@@ -1,0 +1,739 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
+
+// Default production parameters (as of 11 feb 2026)
+const DEFAULT_PRODUCTION_PARAMS = {
+  afplakkenPerUur: 35, // lm/uur
+  platenPerUur: 3, // platen/uur
+  // Base montage time for simple cabinet: 1.5u for 1-door, 900H x 600B x 600D
+  baseMontageUren: 1.5,
+  baseMontageDoors: 1,
+  baseMontageHoogte: 900,
+  baseMontageBreedte: 600,
+  baseMontageDiepte: 600,
+  // Factors for complexity
+  extraUurPerDeur: 0.25, // extra time per additional door
+  extraUurPerLade: 0.3, // extra time per drawer
+  extraUurPerLegger: 0.1, // extra time per shelf
+  extraUurPerTussensteun: 0.15, // extra time per support
+  // Size factors
+  hoogteFactorPer100mm: 0.05, // extra time per 100mm above base
+  breedteFactorPer100mm: 0.03, // extra time per 100mm above base
+  diepteFactorPer100mm: 0.02, // extra time per 100mm above base
+  // Type multipliers
+  typeMultipliers: {
+    'Onderkast': 1.0,
+    'Bovenkast': 0.9,
+    'Kolomkast': 1.35,
+    'Ladekast': 1.35,
+    'Open Nis HPL': 1.0, // Now controlled by complexity dropdown per cabinet
+  },
+  // Open Nis HPL complexity levels (hours)
+  openNisComplexiteit: {
+    'heel_gemakkelijk': 1,
+    'gemakkelijk': 2,
+    'gemiddeld': 3,
+    'moeilijk': 4,
+    'heel_moeilijk': 6
+  },
+  // Last updated
+  lastUpdated: '2026-02-11',
+  updatedBy: 'admin'
+};
+
+const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
+  const [productionParams, setProductionParams] = useState(DEFAULT_PRODUCTION_PARAMS);
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState('algemeen');
+
+  // Open Nis voorbeelden state
+  const [openNisVoorbeelden, setOpenNisVoorbeelden] = useState([]);
+  const [nieuwVoorbeeld, setNieuwVoorbeeld] = useState({
+    hoogte: 900,
+    breedte: 600,
+    diepte: 600,
+    aantalLeggers: 0,
+    aantalDeuren: 0,
+    aantalTussensteunen: 0,
+    hplOnderdelen: { LZ: false, RZ: false, BK: false, OK: false, RUG: false },
+    effectieveUren: 3,
+    complexiteit: 'gemiddeld',
+    notities: ''
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      loadSettings();
+      loadVoorbeelden();
+    }
+  }, [isOpen]);
+
+  const loadSettings = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('key', 'production_params')
+        .single();
+
+      if (data && !error) {
+        setProductionParams({ ...DEFAULT_PRODUCTION_PARAMS, ...data.value });
+      }
+    } catch (err) {
+      console.log('No saved settings found, using defaults');
+    }
+    setLoading(false);
+  };
+
+  const loadVoorbeelden = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('open_nis_voorbeelden')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (data && !error) {
+        setOpenNisVoorbeelden(data);
+      }
+    } catch (err) {
+      console.log('No voorbeelden found');
+    }
+  };
+
+  const saveVoorbeeld = async () => {
+    if (!isAdmin) return;
+
+    try {
+      const { error } = await supabase
+        .from('open_nis_voorbeelden')
+        .insert({
+          ...nieuwVoorbeeld,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      // Reload voorbeelden
+      loadVoorbeelden();
+
+      // Reset form
+      setNieuwVoorbeeld({
+        hoogte: 900,
+        breedte: 600,
+        diepte: 600,
+        aantalLeggers: 0,
+        aantalDeuren: 0,
+        aantalTussensteunen: 0,
+        hplOnderdelen: { LZ: false, RZ: false, BK: false, OK: false, RUG: false },
+        effectieveUren: 3,
+        complexiteit: 'gemiddeld',
+        notities: ''
+      });
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Error saving voorbeeld:', err);
+      alert('Fout bij opslaan: ' + err.message);
+    }
+  };
+
+  const deleteVoorbeeld = async (id) => {
+    if (!isAdmin) return;
+    if (!confirm('Weet je zeker dat je dit voorbeeld wilt verwijderen?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('open_nis_voorbeelden')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadVoorbeelden();
+    } catch (err) {
+      console.error('Error deleting voorbeeld:', err);
+      alert('Fout bij verwijderen: ' + err.message);
+    }
+  };
+
+  const saveSettings = async () => {
+    if (!isAdmin) return;
+
+    setLoading(true);
+    try {
+      const updatedParams = {
+        ...productionParams,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        updatedBy: 'admin'
+      };
+
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({
+          key: 'production_params',
+          value: updatedParams,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+
+      if (error) throw error;
+
+      setProductionParams(updatedParams);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Error saving settings:', err);
+      alert('Fout bij opslaan: ' + err.message);
+    }
+    setLoading(false);
+  };
+
+  const updateParam = (key, value) => {
+    setProductionParams(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const updateTypeMultiplier = (type, value) => {
+    setProductionParams(prev => ({
+      ...prev,
+      typeMultipliers: {
+        ...prev.typeMultipliers,
+        [type]: value
+      }
+    }));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-white">⚙️ Admin Instellingen</h2>
+            <p className="text-purple-200 text-sm">Productie parameters voor werkuurberekening</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white hover:bg-white/20 rounded-full p-2 transition"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b border-gray-200 px-6">
+          <nav className="flex gap-4 -mb-px">
+            {[
+              { id: 'algemeen', label: 'Algemeen', icon: '📊' },
+              { id: 'montage', label: 'Montage Basis', icon: '🔧' },
+              { id: 'factoren', label: 'Complexiteit', icon: '📐' },
+              { id: 'types', label: 'Kast Types', icon: '🗄️' },
+              { id: 'voorbeelden', label: 'Open Nis Voorbeelden', icon: '📋' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-3 px-4 text-sm font-medium border-b-2 transition ${
+                  activeTab === tab.id
+                    ? 'border-purple-600 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[60vh]">
+          {activeTab === 'algemeen' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 mb-2">📅 Huidige Data</h3>
+                <p className="text-sm text-blue-700">
+                  Laatst bijgewerkt: <strong>{productionParams.lastUpdated}</strong>
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    🎨 Afplakken (lm/uur)
+                  </label>
+                  <input
+                    type="number"
+                    value={productionParams.afplakkenPerUur}
+                    onChange={(e) => updateParam('afplakkenPerUur', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Lopende meters kantenband per uur</p>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📦 Platen verwerken (platen/uur)
+                  </label>
+                  <input
+                    type="number"
+                    value={productionParams.platenPerUur}
+                    onChange={(e) => updateParam('platenPerUur', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Aantal platen gezaagd per uur</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'montage' && (
+            <div className="space-y-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="font-semibold text-yellow-800 mb-2">📋 Referentie Kast</h3>
+                <p className="text-sm text-yellow-700">
+                  Eenvoudige onderkast, 1 deur, 900H × 600B × 600D = <strong>{productionParams.baseMontageUren}u</strong>
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ⏱️ Basis montage tijd (uren)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={productionParams.baseMontageUren}
+                    onChange={(e) => updateParam('baseMontageUren', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    🚪 Basis aantal deuren
+                  </label>
+                  <input
+                    type="number"
+                    value={productionParams.baseMontageDoors}
+                    onChange={(e) => updateParam('baseMontageDoors', parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+              </div>
+
+              <h4 className="font-medium text-gray-800 mt-4">Referentie afmetingen (mm)</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hoogte</label>
+                  <input
+                    type="number"
+                    value={productionParams.baseMontageHoogte}
+                    onChange={(e) => updateParam('baseMontageHoogte', parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Breedte</label>
+                  <input
+                    type="number"
+                    value={productionParams.baseMontageBreedte}
+                    onChange={(e) => updateParam('baseMontageBreedte', parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Diepte</label>
+                  <input
+                    type="number"
+                    value={productionParams.baseMontageDiepte}
+                    onChange={(e) => updateParam('baseMontageDiepte', parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'factoren' && (
+            <div className="space-y-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-semibold text-green-800 mb-2">📈 Complexiteitsfactoren</h3>
+                <p className="text-sm text-green-700">
+                  Extra tijd wordt toegevoegd voor elke deur, lade, legger, en tussensteun boven de basis.
+                </p>
+              </div>
+
+              <h4 className="font-medium text-gray-800">Extra uren per onderdeel</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    🚪 Per extra deur (uren)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={productionParams.extraUurPerDeur}
+                    onChange={(e) => updateParam('extraUurPerDeur', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    🗄️ Per lade (uren)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={productionParams.extraUurPerLade}
+                    onChange={(e) => updateParam('extraUurPerLade', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📚 Per legger (uren)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={productionParams.extraUurPerLegger}
+                    onChange={(e) => updateParam('extraUurPerLegger', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ⬍ Per tussensteun (uren)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={productionParams.extraUurPerTussensteun}
+                    onChange={(e) => updateParam('extraUurPerTussensteun', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+              </div>
+
+              <h4 className="font-medium text-gray-800 mt-4">Grootte factoren (per 100mm boven basis)</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hoogte factor</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={productionParams.hoogteFactorPer100mm}
+                    onChange={(e) => updateParam('hoogteFactorPer100mm', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Breedte factor</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={productionParams.breedteFactorPer100mm}
+                    onChange={(e) => updateParam('breedteFactorPer100mm', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Diepte factor</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={productionParams.diepteFactorPer100mm}
+                    onChange={(e) => updateParam('diepteFactorPer100mm', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'types' && (
+            <div className="space-y-6">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h3 className="font-semibold text-purple-800 mb-2">🗄️ Type Multipliers</h3>
+                <p className="text-sm text-purple-700">
+                  De basis montagetijd wordt vermenigvuldigd met deze factor per kasttype.
+                  <br />1.0 = standaard, &lt;1.0 = sneller, &gt;1.0 = langzamer
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {Object.entries(productionParams.typeMultipliers).map(([type, multiplier]) => (
+                  <div key={type} className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                    <span className="font-medium text-gray-700">{type}</span>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={multiplier}
+                        onChange={(e) => updateTypeMultiplier(type, parseFloat(e.target.value))}
+                        className="w-24 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-center"
+                        disabled={!isAdmin}
+                      />
+                      <span className="text-sm text-gray-500">×</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'voorbeelden' && (
+            <div className="space-y-6">
+              <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
+                <h3 className="font-semibold text-pink-800 mb-2">📋 Open Nis HPL Voorbeelden</h3>
+                <p className="text-sm text-pink-700">
+                  Log hier voorbeelden van Open Nis HPL configuraties met hun effectieve werktijd.
+                  Dit helpt om in de toekomst betere schattingen te maken.
+                </p>
+              </div>
+
+              {/* Nieuw voorbeeld formulier */}
+              <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
+                <h4 className="font-semibold text-gray-700 mb-3">+ Nieuw voorbeeld toevoegen</h4>
+
+                {/* Afmetingen */}
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Hoogte (mm)</label>
+                    <input
+                      type="number"
+                      value={nieuwVoorbeeld.hoogte}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, hoogte: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Breedte (mm)</label>
+                    <input
+                      type="number"
+                      value={nieuwVoorbeeld.breedte}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, breedte: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Diepte (mm)</label>
+                    <input
+                      type="number"
+                      value={nieuwVoorbeeld.diepte}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, diepte: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* HPL Onderdelen */}
+                <div className="mb-3">
+                  <label className="text-xs text-gray-600 block mb-1">HPL Onderdelen</label>
+                  <div className="flex gap-4">
+                    {['LZ', 'RZ', 'BK', 'OK', 'RUG'].map(onderdeel => (
+                      <label key={onderdeel} className="flex items-center gap-1 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={nieuwVoorbeeld.hplOnderdelen?.[onderdeel] || false}
+                          onChange={(e) => setNieuwVoorbeeld(prev => ({
+                            ...prev,
+                            hplOnderdelen: { ...prev.hplOnderdelen, [onderdeel]: e.target.checked }
+                          }))}
+                          className="rounded"
+                        />
+                        {onderdeel}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Aantallen */}
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Leggers</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={nieuwVoorbeeld.aantalLeggers}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, aantalLeggers: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Deuren</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={nieuwVoorbeeld.aantalDeuren}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, aantalDeuren: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Tussensteunen</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={nieuwVoorbeeld.aantalTussensteunen}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, aantalTussensteunen: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Effectieve uren en complexiteit */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Effectieve uren (gemeten)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={nieuwVoorbeeld.effectieveUren}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, effectieveUren: parseFloat(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-orange-50 font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Complexiteit categorie</label>
+                    <select
+                      value={nieuwVoorbeeld.complexiteit}
+                      onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, complexiteit: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    >
+                      <option value="heel_gemakkelijk">Heel gemakkelijk (1u)</option>
+                      <option value="gemakkelijk">Gemakkelijk (2u)</option>
+                      <option value="gemiddeld">Gemiddeld (3u)</option>
+                      <option value="moeilijk">Moeilijk (4u)</option>
+                      <option value="heel_moeilijk">Heel moeilijk (6u)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Notities */}
+                <div className="mb-3">
+                  <label className="text-xs text-gray-600 block mb-1">Notities</label>
+                  <textarea
+                    value={nieuwVoorbeeld.notities}
+                    onChange={(e) => setNieuwVoorbeeld(prev => ({ ...prev, notities: e.target.value }))}
+                    placeholder="Bijzonderheden, project naam, etc."
+                    className="w-full px-3 py-2 border rounded-lg text-sm h-16"
+                  />
+                </div>
+
+                <button
+                  onClick={saveVoorbeeld}
+                  disabled={!isAdmin}
+                  className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded-lg font-semibold"
+                >
+                  + Voorbeeld Opslaan
+                </button>
+              </div>
+
+              {/* Bestaande voorbeelden */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-3">Opgeslagen voorbeelden ({openNisVoorbeelden.length})</h4>
+
+                {openNisVoorbeelden.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">Nog geen voorbeelden opgeslagen.</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {openNisVoorbeelden.map((vb) => (
+                      <div key={vb.id} className="bg-white border rounded-lg p-3 text-sm">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-800">
+                              {vb.hoogte}×{vb.breedte}×{vb.diepte}mm
+                              <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
+                                {vb.effectieveUren}u effectief
+                              </span>
+                              <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                                {vb.complexiteit?.replace('_', ' ')}
+                              </span>
+                            </div>
+                            <div className="text-gray-600 text-xs mt-1">
+                              HPL: {Object.entries(vb.hplOnderdelen || {}).filter(([_, v]) => v).map(([k]) => k).join(', ') || 'geen'}
+                              {vb.aantalLeggers > 0 && ` | ${vb.aantalLeggers} leggers`}
+                              {vb.aantalDeuren > 0 && ` | ${vb.aantalDeuren} deuren`}
+                              {vb.aantalTussensteunen > 0 && ` | ${vb.aantalTussensteunen} steunen`}
+                            </div>
+                            {vb.notities && (
+                              <div className="text-gray-500 text-xs mt-1 italic">"{vb.notities}"</div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => deleteVoorbeeld(vb.id)}
+                            className="text-red-500 hover:text-red-700 ml-2"
+                            title="Verwijderen"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-between items-center">
+          <p className="text-xs text-gray-500">
+            {isAdmin ? '✅ Admin rechten - wijzigingen worden opgeslagen' : '🔒 Alleen lezen'}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition"
+            >
+              Sluiten
+            </button>
+            {isAdmin && (
+              <button
+                onClick={saveSettings}
+                disabled={loading}
+                className={`px-6 py-2 rounded-lg font-semibold text-white transition ${
+                  saved
+                    ? 'bg-green-500'
+                    : loading
+                    ? 'bg-gray-400'
+                    : 'bg-purple-600 hover:bg-purple-700'
+                }`}
+              >
+                {saved ? '✓ Opgeslagen!' : loading ? 'Opslaan...' : 'Opslaan'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminSettings;
+export { DEFAULT_PRODUCTION_PARAMS };
