@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { defaultPlaatMaterialen } from '../../data/defaultMaterials';
 
 // Default production parameters (as of 11 feb 2026)
 const DEFAULT_PRODUCTION_PARAMS = {
@@ -26,10 +27,10 @@ const DEFAULT_PRODUCTION_PARAMS = {
     'Bovenkast': 0.9,
     'Kolomkast': 1.35,
     'Ladekast': 1.35,
-    'Open Nis HPL': 1.0, // Now controlled by complexity dropdown per cabinet
+    'Vrije Kast': 1.0, // Now controlled by complexity dropdown per cabinet
   },
-  // Open Nis HPL complexity levels (hours)
-  openNisComplexiteit: {
+  // Vrije Kast complexity levels (hours)
+  vrijeKastComplexiteit: {
     'heel_gemakkelijk': 1,
     'gemakkelijk': 2,
     'gemiddeld': 3,
@@ -46,6 +47,18 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState('algemeen');
+
+  // Plaat materialen state
+  const [plaatMaterialen, setPlaatMaterialen] = useState([]);
+  const [nieuwMateriaal, setNieuwMateriaal] = useState({
+    naam: '',
+    breedte: 3050,
+    hoogte: 1300,
+    prijs: 0,
+    binnenkast: false,
+    buitenzijde: false,
+    tablet: false
+  });
 
   // Open Nis voorbeelden state
   const [openNisVoorbeelden, setOpenNisVoorbeelden] = useState([]);
@@ -66,6 +79,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
     if (isOpen) {
       loadSettings();
       loadVoorbeelden();
+      loadPlaatMaterialen();
     }
   }, [isOpen]);
 
@@ -85,6 +99,98 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
       console.log('No saved settings found, using defaults');
     }
     setLoading(false);
+  };
+
+  const loadPlaatMaterialen = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('plaat_materialen')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (data && !error && data.length > 0) {
+        setPlaatMaterialen(data);
+      } else {
+        // Use defaults if table is empty or doesn't exist
+        setPlaatMaterialen(defaultPlaatMaterialen);
+      }
+    } catch (err) {
+      console.log('Using default plate materials');
+      setPlaatMaterialen(defaultPlaatMaterialen);
+    }
+  };
+
+  const saveNieuwMateriaal = async () => {
+    if (!isAdmin || !nieuwMateriaal.naam.trim()) return;
+
+    try {
+      const afmeting = `${nieuwMateriaal.breedte} x ${nieuwMateriaal.hoogte}`;
+      const { error } = await supabase
+        .from('plaat_materialen')
+        .insert({
+          naam: nieuwMateriaal.naam,
+          afmeting,
+          breedte: nieuwMateriaal.breedte,
+          hoogte: nieuwMateriaal.hoogte,
+          prijs: nieuwMateriaal.prijs,
+          binnenkast: nieuwMateriaal.binnenkast,
+          buitenzijde: nieuwMateriaal.buitenzijde,
+          tablet: nieuwMateriaal.tablet
+        });
+
+      if (error) throw error;
+
+      loadPlaatMaterialen();
+      setNieuwMateriaal({
+        naam: '',
+        breedte: 3050,
+        hoogte: 1300,
+        prijs: 0,
+        binnenkast: false,
+        buitenzijde: false,
+        tablet: false
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Error saving materiaal:', err);
+      alert('Fout bij opslaan: ' + err.message);
+    }
+  };
+
+  const updateMateriaalPopularUse = async (id, field, value) => {
+    if (!isAdmin) return;
+
+    try {
+      const { error } = await supabase
+        .from('plaat_materialen')
+        .update({ [field]: value })
+        .eq('id', id);
+
+      if (error) throw error;
+      loadPlaatMaterialen();
+    } catch (err) {
+      console.error('Error updating materiaal:', err);
+      alert('Fout bij bijwerken: ' + err.message);
+    }
+  };
+
+  const deleteMateriaal = async (id) => {
+    if (!isAdmin) return;
+    if (!confirm('Weet je zeker dat je dit materiaal wilt verwijderen?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('plaat_materialen')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadPlaatMaterialen();
+    } catch (err) {
+      console.error('Error deleting materiaal:', err);
+      alert('Fout bij verwijderen: ' + err.message);
+    }
   };
 
   const loadVoorbeelden = async () => {
@@ -232,10 +338,11 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
           <nav className="flex gap-4 -mb-px">
             {[
               { id: 'algemeen', label: 'Algemeen', icon: '📊' },
+              { id: 'materialen', label: 'Plaat Materialen', icon: '🪵' },
               { id: 'montage', label: 'Montage Basis', icon: '🔧' },
               { id: 'factoren', label: 'Complexiteit', icon: '📐' },
               { id: 'types', label: 'Kast Types', icon: '🗄️' },
-              { id: 'voorbeelden', label: 'Open Nis Voorbeelden', icon: '📋' }
+              { id: 'voorbeelden', label: 'Vrije Kast Voorbeelden', icon: '📋' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -292,6 +399,166 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                   <p className="text-xs text-gray-500 mt-1">Aantal platen gezaagd per uur</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'materialen' && (
+            <div className="space-y-6">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h3 className="font-semibold text-amber-800 mb-2">🪵 Plaat Materialen</h3>
+                <p className="text-sm text-amber-700">
+                  Beheer alle plaatmaterialen. Vink aan waarvoor elk materiaal populair is (binnenkast, buitenzijde, tablet).
+                  De dropdowns in de configurator tonen populaire materialen bovenaan.
+                </p>
+              </div>
+
+              {/* Bestaande materialen tabel */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-amber-100">
+                      <th className="border px-3 py-2 text-left">Naam</th>
+                      <th className="border px-3 py-2 text-right">Breedte</th>
+                      <th className="border px-3 py-2 text-right">Hoogte</th>
+                      <th className="border px-3 py-2 text-right">Prijs/m²</th>
+                      <th className="border px-3 py-2 text-center">Binnenkast</th>
+                      <th className="border px-3 py-2 text-center">Buitenzijde</th>
+                      <th className="border px-3 py-2 text-center">Tablet</th>
+                      <th className="border px-3 py-2 text-center">Actie</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plaatMaterialen.map((mat) => (
+                      <tr key={mat.id} className="hover:bg-gray-50">
+                        <td className="border px-3 py-2 font-medium">{mat.naam}</td>
+                        <td className="border px-3 py-2 text-right">{mat.breedte} mm</td>
+                        <td className="border px-3 py-2 text-right">{mat.hoogte} mm</td>
+                        <td className="border px-3 py-2 text-right font-semibold">€{mat.prijs.toFixed(2)}</td>
+                        <td className="border px-3 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={mat.binnenkast || false}
+                            onChange={(e) => updateMateriaalPopularUse(mat.id, 'binnenkast', e.target.checked)}
+                            disabled={!isAdmin}
+                            className="rounded"
+                          />
+                        </td>
+                        <td className="border px-3 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={mat.buitenzijde || false}
+                            onChange={(e) => updateMateriaalPopularUse(mat.id, 'buitenzijde', e.target.checked)}
+                            disabled={!isAdmin}
+                            className="rounded"
+                          />
+                        </td>
+                        <td className="border px-3 py-2 text-center">
+                          <input
+                            type="checkbox"
+                            checked={mat.tablet || false}
+                            onChange={(e) => updateMateriaalPopularUse(mat.id, 'tablet', e.target.checked)}
+                            disabled={!isAdmin}
+                            className="rounded"
+                          />
+                        </td>
+                        <td className="border px-3 py-2 text-center">
+                          <button
+                            onClick={() => deleteMateriaal(mat.id)}
+                            className="text-red-500 hover:text-red-700"
+                            disabled={!isAdmin}
+                            title="Verwijderen"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Nieuw materiaal toevoegen */}
+              {isAdmin && (
+                <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
+                  <h4 className="font-semibold text-gray-700 mb-3">+ Nieuw materiaal toevoegen</h4>
+                  <div className="grid grid-cols-4 gap-3 mb-3">
+                    <div>
+                      <label className="text-xs text-gray-600 block mb-1">Naam</label>
+                      <input
+                        type="text"
+                        value={nieuwMateriaal.naam}
+                        onChange={(e) => setNieuwMateriaal(prev => ({ ...prev, naam: e.target.value }))}
+                        placeholder="bijv. L18 Eik"
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600 block mb-1">Breedte (mm)</label>
+                      <input
+                        type="number"
+                        value={nieuwMateriaal.breedte}
+                        onChange={(e) => setNieuwMateriaal(prev => ({ ...prev, breedte: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600 block mb-1">Hoogte (mm)</label>
+                      <input
+                        type="number"
+                        value={nieuwMateriaal.hoogte}
+                        onChange={(e) => setNieuwMateriaal(prev => ({ ...prev, hoogte: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600 block mb-1">Prijs (€/m²)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={nieuwMateriaal.prijs}
+                        onChange={(e) => setNieuwMateriaal(prev => ({ ...prev, prijs: parseFloat(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-6 mb-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={nieuwMateriaal.binnenkast}
+                        onChange={(e) => setNieuwMateriaal(prev => ({ ...prev, binnenkast: e.target.checked }))}
+                        className="rounded"
+                      />
+                      Populair voor binnenkast
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={nieuwMateriaal.buitenzijde}
+                        onChange={(e) => setNieuwMateriaal(prev => ({ ...prev, buitenzijde: e.target.checked }))}
+                        className="rounded"
+                      />
+                      Populair voor buitenzijde
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={nieuwMateriaal.tablet}
+                        onChange={(e) => setNieuwMateriaal(prev => ({ ...prev, tablet: e.target.checked }))}
+                        className="rounded"
+                      />
+                      Populair voor tablet
+                    </label>
+                  </div>
+                  <button
+                    onClick={saveNieuwMateriaal}
+                    disabled={!nieuwMateriaal.naam.trim()}
+                    className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white py-2 px-6 rounded-lg font-semibold"
+                  >
+                    + Materiaal Toevoegen
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -507,7 +774,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
           {activeTab === 'voorbeelden' && (
             <div className="space-y-6">
               <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
-                <h3 className="font-semibold text-pink-800 mb-2">📋 Open Nis HPL Voorbeelden</h3>
+                <h3 className="font-semibold text-pink-800 mb-2">📋 Vrije Kast Voorbeelden</h3>
                 <p className="text-sm text-pink-700">
                   Log hier voorbeelden van Open Nis HPL configuraties met hun effectieve werktijd.
                   Dit helpt om in de toekomst betere schattingen te maken.

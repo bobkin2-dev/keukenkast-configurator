@@ -1,6 +1,28 @@
 import React from 'react';
 
-const KastenLijst = ({ kastenLijst, materiaalTablet, voegZijpaneelToe, verwijderKast }) => {
+// Helper: detect Vrije Kast type (including legacy 'Open Nis HPL')
+const isVrijeKast = (type) => type === 'Vrije Kast' || type === 'Open Nis HPL';
+
+// Helper: get onderdelen (backward compat)
+const getOnderdelen = (kast) => kast.vrijeKastOnderdelen || kast.hplOnderdelen || {};
+
+// Helper: get material name for Vrije Kast
+const getVrijeKastMateriaalNaam = (kast, plaatMaterialen) => {
+  // New format: vrijeKastMateriaalId is an id
+  if (kast.vrijeKastMateriaalId !== undefined && kast.vrijeKastMateriaalId !== null) {
+    const mat = plaatMaterialen.find(m => m.id === kast.vrijeKastMateriaalId);
+    if (mat) return mat.naam;
+  }
+  // Legacy format: hplMateriaal was an index
+  if (kast.hplMateriaal !== undefined) {
+    // Try to find by index in plaatMaterialen (best effort)
+    const mat = plaatMaterialen[kast.hplMateriaal];
+    if (mat) return mat.naam;
+  }
+  return 'Materiaal onbekend';
+};
+
+const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, verwijderKast }) => {
   if (kastenLijst.length === 0) return null;
 
   return (
@@ -33,18 +55,20 @@ const KastenLijst = ({ kastenLijst, materiaalTablet, voegZijpaneelToe, verwijder
                   <td className="py-2 px-2 text-gray-600">{index + 1}</td>
                   <td className="py-2 px-2 font-medium">
                     {kast.type}
-                    {kast.type === 'Open Nis HPL' && (
+                    {isVrijeKast(kast.type) && (
                       <>
-                        {kast.hplOnderdelen && (
-                          <span className="text-xs text-gray-500 ml-2">
-                            ({Object.entries(kast.hplOnderdelen).filter(([_, v]) => v).map(([k]) => k).join(', ')})
-                          </span>
-                        )}
-                        {kast.hplMateriaal !== undefined && (
-                          <span className="text-xs text-blue-600 block">
-                            {materiaalTablet[kast.hplMateriaal]?.naam || 'Materiaal onbekend'}
-                          </span>
-                        )}
+                        {(() => {
+                          const onderdelen = getOnderdelen(kast);
+                          const activeOnderdelen = Object.entries(onderdelen).filter(([_, v]) => v).map(([k]) => k);
+                          return activeOnderdelen.length > 0 ? (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({activeOnderdelen.join(', ')})
+                            </span>
+                          ) : null;
+                        })()}
+                        <span className="text-xs text-blue-600 block">
+                          {getVrijeKastMateriaalNaam(kast, plaatMaterialen)}
+                        </span>
                       </>
                     )}
                   </td>

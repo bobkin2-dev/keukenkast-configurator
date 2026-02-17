@@ -5,9 +5,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Allowed email domain
-const ALLOWED_DOMAIN = 'merger.be';
-const ADMIN_EMAIL = 'robin@merger.be';
+import { ADMIN_EMAIL, ALLOWED_DOMAIN } from '../constants/app';
 
 // Check if email is allowed (must be @merger.be)
 export const isEmailAllowed = (email) => {

@@ -1,25 +1,28 @@
 // Default materials for kitchen cabinet configurator
+// Unified plate materials table with popular use categories
 
-export const defaultMateriaalBinnenkast = [
-  { naam: 'M18 Wit', afmeting: '2800 x 2070', breedte: 2800, hoogte: 2070, prijs: 7.7 },
-  { naam: 'M18 Zwart', afmeting: '2800 x 2070', breedte: 2800, hoogte: 2070, prijs: 9.3 },
-  { naam: 'M18 Unikleur', afmeting: '2800 x 2070', breedte: 2800, hoogte: 2070, prijs: 10.5 },
-  { naam: 'L18 Wit', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 24 },
-  { naam: 'L18 Unikleur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 30 },
-  { naam: 'L18 Duur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 40 }
+export const defaultPlaatMaterialen = [
+  { id: 1, naam: 'M18 Wit', afmeting: '2800 x 2070', breedte: 2800, hoogte: 2070, prijs: 7.7, binnenkast: true, buitenzijde: false, tablet: false },
+  { id: 2, naam: 'M18 Zwart', afmeting: '2800 x 2070', breedte: 2800, hoogte: 2070, prijs: 9.3, binnenkast: true, buitenzijde: false, tablet: false },
+  { id: 3, naam: 'M18 Unikleur', afmeting: '2800 x 2070', breedte: 2800, hoogte: 2070, prijs: 10.5, binnenkast: true, buitenzijde: false, tablet: false },
+  { id: 4, naam: 'L18 Wit', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 24, binnenkast: true, buitenzijde: true, tablet: false },
+  { id: 5, naam: 'L18 Unikleur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 30, binnenkast: true, buitenzijde: true, tablet: true },
+  { id: 6, naam: 'L18 Duur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 40, binnenkast: true, buitenzijde: true, tablet: true },
+  { id: 7, naam: 'L36 Duur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 45, binnenkast: false, buitenzijde: false, tablet: true }
 ];
 
-export const defaultMateriaalBuitenzijde = [
-  { naam: 'L18 Wit', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 24 },
-  { naam: 'L18 Unikleur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 30 },
-  { naam: 'L18 Duur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 40 }
-];
+// Helper: filter materials by popular use, sorted with popular ones first
+export const getMateriaalVoor = (materialen, categorie) => {
+  // Popular materials for this category come first, then others
+  const popular = materialen.filter(m => m[categorie]);
+  const overig = materialen.filter(m => !m[categorie]);
+  return { popular, overig, all: [...popular, ...overig] };
+};
 
-export const defaultMateriaalTablet = [
-  { naam: 'L18 Unikleur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 30 },
-  { naam: 'L18 Duur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 40 },
-  { naam: 'L36 Duur', afmeting: '3050 x 1300', breedte: 3050, hoogte: 1300, prijs: 45 }
-];
+// Legacy exports for backward compatibility (derived from unified table)
+export const defaultMateriaalBinnenkast = defaultPlaatMaterialen.filter(m => m.binnenkast);
+export const defaultMateriaalBuitenzijde = defaultPlaatMaterialen.filter(m => m.buitenzijde);
+export const defaultMateriaalTablet = defaultPlaatMaterialen.filter(m => m.tablet);
 
 // Default cabinet configurations
 export const defaultBovenkast = {
@@ -29,8 +32,9 @@ export const defaultBovenkast = {
   diepte: 350,
   aantalLeggers: 2,
   aantalLades: 0,
-  aantalDeuren: 2,
-  aantalTussensteunen: 0
+  aantalDeuren: 1,
+  aantalTussensteunen: 0,
+  isOpen: false
 };
 
 export const defaultKolomkast = {
@@ -40,8 +44,9 @@ export const defaultKolomkast = {
   diepte: 600,
   aantalLeggers: 4,
   aantalLades: 0,
-  aantalDeuren: 2,
-  aantalTussensteunen: 0
+  aantalDeuren: 1,
+  aantalTussensteunen: 0,
+  isOpen: false
 };
 
 export const defaultOnderkast = {
@@ -51,8 +56,9 @@ export const defaultOnderkast = {
   diepte: 600,
   aantalLeggers: 1,
   aantalLades: 0,
-  aantalDeuren: 2,
-  aantalTussensteunen: 0
+  aantalDeuren: 1,
+  aantalTussensteunen: 0,
+  isOpen: false
 };
 
 export const defaultLadekast = {
@@ -63,11 +69,12 @@ export const defaultLadekast = {
   aantalLeggers: 0,
   aantalLades: 3,
   aantalDeuren: 0,
-  aantalTussensteunen: 0
+  aantalTussensteunen: 0,
+  isOpen: false
 };
 
-export const defaultOpenNisHPL = {
-  type: 'Open Nis HPL',
+export const defaultVrijeKast = {
+  type: 'Vrije Kast',
   hoogte: 900,
   breedte: 600,
   diepte: 600,
@@ -75,9 +82,9 @@ export const defaultOpenNisHPL = {
   aantalLades: 0,
   aantalDeuren: 0,
   aantalTussensteunen: 0,
-  hplMateriaal: 0,
-  complexiteit: 'gemiddeld', // heel_gemakkelijk (1u), gemakkelijk (2u), gemiddeld (3u), moeilijk (4u), heel_moeilijk (6u)
-  hplOnderdelen: {
+  vrijeKastMateriaalId: null,  // stores material id from plaatMaterialen (null = first in list)
+  complexiteit: 'gemiddeld',   // heel_gemakkelijk (1u), gemakkelijk (2u), gemiddeld (3u), moeilijk (4u), heel_moeilijk (6u)
+  vrijeKastOnderdelen: {
     LZ: false,
     RZ: false,
     BK: false,
@@ -85,6 +92,9 @@ export const defaultOpenNisHPL = {
     RUG: false
   }
 };
+
+// Backward compatibility alias
+export const defaultOpenNisHPL = defaultVrijeKast;
 
 // Default accessoires
 export const defaultAccessoires = {
