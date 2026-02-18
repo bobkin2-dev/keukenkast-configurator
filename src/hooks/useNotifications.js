@@ -11,9 +11,9 @@ export const useNotifications = () => {
     };
   }, []);
 
-  const addNotification = useCallback((text) => {
+  const addNotification = useCallback((text, color) => {
     const notificationId = Date.now();
-    setNotifications(prev => [...prev, { id: notificationId, text }]);
+    setNotifications(prev => [...prev, { id: notificationId, text, color }]);
 
     const timeoutId = setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));

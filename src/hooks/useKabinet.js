@@ -64,7 +64,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
     setKastenLijst(prev => [...prev, zijpaneel]);
 
     const dimensions = `${zijpaneel.hoogte}×${zijpaneel.breedte}×${zijpaneel.diepte}`;
-    addNotification(`Zijpaneel (${kast.type}) toegevoegd - ${dimensions}`);
+    addNotification(`Zijpaneel (${kast.type}) toegevoegd - ${dimensions}`, 'bg-amber-500');
   }, [addNotification]);
 
   // Add side panel from cabinet type config
@@ -85,7 +85,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
     setKastenLijst(prev => [...prev, zijpaneel]);
 
     const dimensions = `${zijpaneel.hoogte}×${zijpaneel.breedte}×${zijpaneel.diepte}`;
-    addNotification(`Zijpaneel ${type} toegevoegd - ${dimensions}`);
+    addNotification(`Zijpaneel ${type} toegevoegd - ${dimensions}`, 'bg-amber-500');
   }, [addNotification]);
 
   // Copy cabinet

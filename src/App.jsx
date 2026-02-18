@@ -495,7 +495,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         {notifications.map((notification, index) => (
           <div
             key={notification.id}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg font-semibold animate-slide-in"
+            className={`${notification.color || 'bg-green-600'} text-white px-6 py-3 rounded-lg shadow-lg font-semibold animate-slide-in`}
             style={{
               animation: 'slideIn 0.3s ease-out',
               marginBottom: index > 0 ? '8px' : '0'
