@@ -465,7 +465,8 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
     ophangsysteemBK: aggTotalen.ophangsysteemBK,
     ladenStandaard: aggTotalen.ladenStandaard,
     ladenGoedkoper: aggTotalen.ladenGoedkoper || 0,
-    handgrepen: aggTotalen.handgrepen
+    handgrepen: aggTotalen.handgrepen,
+    montageUren: aggTotalen.montageUren
   };
 
   // ── Plate counts ──

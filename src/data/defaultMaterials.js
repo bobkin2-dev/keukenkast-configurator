@@ -75,6 +75,7 @@ export const defaultLadekast = {
 
 export const defaultVrijeKast = {
   type: 'Vrije Kast',
+  naam: '',
   hoogte: 900,
   breedte: 600,
   diepte: 600,

@@ -83,7 +83,23 @@ export const useKabinet = ({ initialData, addNotification }) => {
       isZijpaneel: true
     };
     setKastenLijst(prev => [...prev, zijpaneel]);
-  }, []);
+
+    const dimensions = `${zijpaneel.hoogte}×${zijpaneel.breedte}×${zijpaneel.diepte}`;
+    addNotification(`Zijpaneel ${type} toegevoegd - ${dimensions}`);
+  }, [addNotification]);
+
+  // Copy cabinet
+  const kopieerKast = useCallback((kast) => {
+    const kopie = {
+      ...kast,
+      id: Date.now(),
+      timestamp: new Date().toLocaleString()
+    };
+    setKastenLijst(prev => [...prev, kopie]);
+
+    const dimensions = `${kast.hoogte}×${kast.breedte}×${kast.diepte}`;
+    addNotification(`${kast.type} gekopieerd - ${dimensions}`);
+  }, [addNotification]);
 
   // Remove cabinet
   const verwijderKast = useCallback((id) => {
@@ -101,6 +117,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
     voegKastToe,
     voegZijpaneelToe,
     voegZijpaneelToeVoorType,
+    kopieerKast,
     verwijderKast
   };
 };

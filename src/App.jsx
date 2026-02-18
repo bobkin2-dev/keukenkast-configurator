@@ -392,6 +392,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           kastenLijst={kabinet.kastenLijst}
           plaatMaterialen={materials.plaatMaterialen}
           voegZijpaneelToe={kabinet.voegZijpaneelToe}
+          kopieerKast={kabinet.kopieerKast}
           verwijderKast={kabinet.verwijderKast}
         />
 

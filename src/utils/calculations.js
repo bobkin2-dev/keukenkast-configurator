@@ -69,22 +69,17 @@ export const berekenArbeid = (kastenLijst, totalen, arbeidParameters) => {
     (totalen.platenLeggers || 0) + (totalen.platenBuitenzijde || 0) +
     (totalen.platenTablet || 0);
 
-  const aantalZijpanelen = kastenLijst.filter(k => k.isZijpaneel).length;
   const aantalReguliereKasten = kastenLijst.filter(k => !k.isZijpaneel).length;
-
-  // Count total appliances (each appliance adds 1 hour of work)
-  const aantalToestellen = kastenLijst.reduce((sum, k) => sum + (k.aantalToestellen || 0), 0);
 
   const tekenwerk = (aantalReguliereKasten * TEKENWERK_MINUTES_PER_KAST) / MINUTES_PER_HOUR;
 
   const urenPlatenVerwerken = safeDivide(totaalPlaten, arbeidParameters.platenPerUur || 4);
   const urenAfplakken = safeDivide(totalen.kantenbandStandaard || 0, arbeidParameters.afplakkenPerUur || 50);
   const urenDeuren = ((totalen.handgrepen || 0) * (arbeidParameters.minutenPerDeur || 5)) / MINUTES_PER_HOUR;
-  const urenMontage = (kastenLijst.length * (arbeidParameters.minutenMontagePerKast || 30)) / MINUTES_PER_HOUR;
-  const urenZijpanelen = (aantalZijpanelen * (arbeidParameters.minutenPerZijpaneel || 10)) / MINUTES_PER_HOUR;
-  const urenToestellen = aantalToestellen; // 1 hour per appliance
+  // Use actual per-cabinet montage hours (includes side panels and appliances)
+  const urenMontage = totalen.montageUren || 0;
 
-  const montageWerkhuis = urenPlatenVerwerken + urenAfplakken + urenDeuren + urenMontage + urenZijpanelen + urenToestellen;
+  const montageWerkhuis = urenPlatenVerwerken + urenAfplakken + urenDeuren + urenMontage;
   const plaatsing = kastenLijst.length * (arbeidParameters.plaatsingPerKast || 0.5);
 
   // Use transport parameter if provided, otherwise calculate based on number of cabinets

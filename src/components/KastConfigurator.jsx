@@ -232,6 +232,17 @@ const VrijeKastConfigurator = ({
 
       <div className="flex gap-4">
         <div className="flex-1">
+          {/* Custom name */}
+          <div className="mb-2">
+            <input
+              type="text"
+              placeholder="Naam (optioneel)"
+              value={displayKast.naam || ''}
+              onChange={(e) => updateField('naam', e.target.value)}
+              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+
           {/* Dimensions */}
           <div className="grid grid-cols-3 gap-2 mb-2">
             {[

@@ -22,7 +22,7 @@ const getVrijeKastMateriaalNaam = (kast, plaatMaterialen) => {
   return 'Materiaal onbekend';
 };
 
-const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, verwijderKast }) => {
+const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopieerKast, verwijderKast }) => {
   if (kastenLijst.length === 0) return null;
 
   return (
@@ -54,7 +54,7 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, verw
                 >
                   <td className="py-2 px-2 text-gray-600">{index + 1}</td>
                   <td className="py-2 px-2 font-medium">
-                    {kast.type}
+                    {kast.type}{kast.naam && <span className="text-gray-500 font-normal"> - {kast.naam}</span>}
                     {isVrijeKast(kast.type) && (
                       <>
                         {(() => {
@@ -90,6 +90,13 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, verw
                           Zijpaneel
                         </button>
                       )}
+                      <button
+                        onClick={() => kopieerKast(kast)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                        title="Kopiëren"
+                      >
+                        Kopieer
+                      </button>
                       <button
                         onClick={() => verwijderKast(kast.id)}
                         className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
@@ -145,6 +152,7 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, verw
               <div className="flex-1 grid grid-cols-6 gap-2 text-xs">
                 <div>
                   <strong>{kast.type}</strong>
+                  {kast.naam && <span className="text-gray-500"> - {kast.naam}</span>}
                   {kast.isZijpaneel && <span className="text-yellow-700"> (Zijpaneel)</span>}
                 </div>
                 <div>{kast.breedte} × {kast.hoogte} × {kast.diepte} mm</div>
@@ -165,6 +173,13 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, verw
                     Zijpaneel
                   </button>
                 )}
+                <button
+                  onClick={() => kopieerKast(kast)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-semibold"
+                  title="Kopiëren"
+                >
+                  Kopieer
+                </button>
                 <button
                   onClick={() => verwijderKast(kast.id)}
                   className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold"

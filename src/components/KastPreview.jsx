@@ -1,22 +1,34 @@
 import React from 'react';
 
-// Standard cabinet preview
-export const KastPreview = ({ type, kast, label, maxHeight = 200 }) => {
-  const isOpen = kast.isOpen === true;
+// Aspect ratio limits: widest = 3000mm wide × 800mm high, tallest = 400mm wide × 3000mm high
+const MIN_RATIO = 400 / 3000;  // ~0.133
+const MAX_RATIO = 3000 / 800;  // 3.75
 
-  const getPreviewDimensions = () => {
-    const heightScale = type === 'Kolomkast' ? 12 : 4;
-    return {
-      width: `${Math.min(kast.breedte / 4, 200)}px`,
-      height: `${Math.min(kast.hoogte / heightScale, maxHeight)}px`
-    };
-  };
+// Fit cabinet dimensions into a preview box, preserving clamped aspect ratio
+const getScaledDimensions = (breedte, hoogte, maxW, maxH) => {
+  const rawRatio = breedte / hoogte;
+  const ratio = Math.max(MIN_RATIO, Math.min(MAX_RATIO, rawRatio));
+
+  let w, h;
+  if (ratio > maxW / maxH) {
+    w = maxW;
+    h = maxW / ratio;
+  } else {
+    h = maxH;
+    w = maxH * ratio;
+  }
+  return { width: `${Math.round(w)}px`, height: `${Math.round(h)}px` };
+};
+
+// Standard cabinet preview
+export const KastPreview = ({ type, kast, label }) => {
+  const isOpen = kast.isOpen === true;
 
   return (
     <div className="w-1/3 flex-shrink-0 flex items-center justify-center">
       <div
         className={`border-2 relative ${isOpen ? 'border-yellow-600 bg-yellow-50' : 'border-gray-800 bg-gray-100'}`}
-        style={getPreviewDimensions()}
+        style={getScaledDimensions(kast.breedte, kast.hoogte, 150, 180)}
       >
         {/* Doors - only when closed */}
         {!isOpen && kast.aantalDeuren > 0 && Array.from({ length: kast.aantalDeuren }).map((_, i) => (
@@ -32,7 +44,7 @@ export const KastPreview = ({ type, kast, label, maxHeight = 200 }) => {
           />
         ))}
 
-        {/* Drawers (for Ladekast) */}
+        {/* Drawers */}
         {kast.aantalLades > 0 && Array.from({ length: kast.aantalLades }).map((_, i) => (
           <div
             key={`lade-${i}`}
@@ -74,19 +86,9 @@ export const KastPreview = ({ type, kast, label, maxHeight = 200 }) => {
   );
 };
 
-// Vrije Kast preview (special proportional scaling with part indicators)
+// Vrije Kast preview (proportional scaling with part indicators)
 export const VrijeKastPreview = ({ kast }) => {
-  const maxSize = 200;
-  const aspectRatio = kast.breedte / kast.hoogte;
-  let previewWidth, previewHeight;
-
-  if (aspectRatio > 1) {
-    previewWidth = maxSize;
-    previewHeight = maxSize / aspectRatio;
-  } else {
-    previewHeight = maxSize;
-    previewWidth = maxSize * aspectRatio;
-  }
+  const dims = getScaledDimensions(kast.breedte, kast.hoogte, 150, 180);
 
   // Support both new (vrijeKastOnderdelen) and legacy (hplOnderdelen) field names
   const onderdelen = kast.vrijeKastOnderdelen || kast.hplOnderdelen || {};
@@ -97,8 +99,7 @@ export const VrijeKastPreview = ({ kast }) => {
         <div
           className="relative bg-gray-50"
           style={{
-            width: `${previewWidth}px`,
-            height: `${previewHeight}px`,
+            ...dims,
             backgroundColor: onderdelen.RUG ? '#e0e0e0' : 'transparent',
             borderLeft: `${onderdelen.LZ ? '4' : '1'}px solid #333`,
             borderRight: `${onderdelen.RZ ? '4' : '1'}px solid #333`,
