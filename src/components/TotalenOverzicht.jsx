@@ -283,7 +283,7 @@ const TotalenOverzicht = ({
             </thead>
             <tbody>
               <tr>
-                <td className="py-1">🦶 Kastpootjes</td>
+                <td className="py-1">📍 Kastpootjes</td>
                 <td className="py-1 text-right font-semibold">{totalen.kastpootjes}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('kastpootjes')} onChange={(e) => updateExtra('kastpootjes', e.target.value)} />
@@ -335,7 +335,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.profielBK, 'profielBK', 'profielBK', accessoires.profielBK)}</td>
               </tr>
               <tr>
-                <td className="py-1">⚓ Ophangsysteem</td>
+                <td className="py-1">🧲 Ophangsysteem</td>
                 <td className="py-1 text-right font-semibold">{totalen.ophangsysteemBK}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('ophangsysteem')} onChange={(e) => updateExtra('ophangsysteem', e.target.value)} />
