@@ -283,7 +283,7 @@ const TotalenOverzicht = ({
             </thead>
             <tbody>
               <tr>
-                <td className="py-1">Kastpootjes</td>
+                <td className="py-1">🦶 Kastpootjes</td>
                 <td className="py-1 text-right font-semibold">{totalen.kastpootjes}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('kastpootjes')} onChange={(e) => updateExtra('kastpootjes', e.target.value)} />
@@ -296,7 +296,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.kastpootjes, 'kastpootjes', 'kastpootjes', accessoires.kastpootjes)}</td>
               </tr>
               <tr>
-                <td className="py-1">Scharnieren 110°</td>
+                <td className="py-1">🔗 Scharnieren 110°</td>
                 <td className="py-1 text-right font-semibold">{totalen.scharnieren110}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('scharnier110')} onChange={(e) => updateExtra('scharnier110', e.target.value)} />
@@ -309,7 +309,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.scharnieren110, 'scharnier110', 'scharnier110', accessoires.scharnier110)}</td>
               </tr>
               <tr>
-                <td className="py-1">Scharnieren 155/170°</td>
+                <td className="py-1">🔗 Scharnieren 155/170°</td>
                 <td className="py-1 text-right font-semibold">{totalen.scharnieren170}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('scharnier170')} onChange={(e) => updateExtra('scharnier170', e.target.value)} />
@@ -322,7 +322,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.scharnieren170, 'scharnier170', 'scharnier170', accessoires.scharnier170)}</td>
               </tr>
               <tr>
-                <td className="py-1">Profiel BK</td>
+                <td className="py-1">📏 Profiel BK</td>
                 <td className="py-1 text-right font-semibold">{totalen.profielBK.toFixed(1)}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('profielBK')} onChange={(e) => updateExtra('profielBK', e.target.value)} />
@@ -335,7 +335,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.profielBK, 'profielBK', 'profielBK', accessoires.profielBK)}</td>
               </tr>
               <tr>
-                <td className="py-1">Ophangsysteem</td>
+                <td className="py-1">⚓ Ophangsysteem</td>
                 <td className="py-1 text-right font-semibold">{totalen.ophangsysteemBK}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('ophangsysteem')} onChange={(e) => updateExtra('ophangsysteem', e.target.value)} />
@@ -348,7 +348,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.ophangsysteemBK, 'ophangsysteem', 'ophangsysteem', accessoires.ophangsysteemBK)}</td>
               </tr>
               <tr>
-                <td className="py-1">Laden standaard</td>
+                <td className="py-1">🗄️ Laden standaard</td>
                 <td className="py-1 text-right font-semibold">{totalen.ladenStandaard}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('ladenStd')} onChange={(e) => updateExtra('ladenStd', e.target.value)} />
@@ -361,7 +361,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.ladenStandaard, 'ladenStd', 'ladenStd', accessoires.ladeStandaard)}</td>
               </tr>
               <tr>
-                <td className="py-1">Laden goedkoper</td>
+                <td className="py-1">🗃️ Laden goedkoper</td>
                 <td className="py-1 text-right font-semibold">{totalen.ladenGoedkoper}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('ladenGoedkoper')} onChange={(e) => updateExtra('ladenGoedkoper', e.target.value)} />
@@ -374,7 +374,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.ladenGoedkoper, 'ladenGoedkoper', 'ladenGoedkoper', accessoires.ladeGroteHoeveelheid)}</td>
               </tr>
               <tr>
-                <td className="py-1">Handgrepen</td>
+                <td className="py-1">🚪 Handgrepen</td>
                 <td className="py-1 text-right font-semibold">{totalen.handgrepen}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('handgrepen')} onChange={(e) => updateExtra('handgrepen', e.target.value)} />
@@ -387,7 +387,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.handgrepen, 'handgrepen', 'handgrepen', accessoires.handgrepen)}</td>
               </tr>
               <tr>
-                <td className="py-1">LED</td>
+                <td className="py-1">💡 LED</td>
                 <td className="py-1 text-right font-semibold">{extraBeslag.led}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('led')} onChange={(e) => updateExtra('led', e.target.value)} />
@@ -400,7 +400,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.led, 'led', 'led', extraBeslag.prijsLed)}</td>
               </tr>
               <tr>
-                <td className="py-1">Handdoekdrager</td>
+                <td className="py-1">🧺 Handdoekdrager</td>
                 <td className="py-1 text-right font-semibold">{extraBeslag.handdoekdrager || 0}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('handdoekdrager')} onChange={(e) => updateExtra('handdoekdrager', e.target.value)} />
@@ -413,7 +413,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.handdoekdrager || 0, 'handdoekdrager', 'handdoekdrager', extraBeslag.prijsHanddoekdrager)}</td>
               </tr>
               <tr>
-                <td className="py-1">Alubodem 600mm</td>
+                <td className="py-1">🔲 Alubodem 600mm</td>
                 <td className="py-1 text-right font-semibold">{extraBeslag.alubodem600 || 0}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('alubodem600')} onChange={(e) => updateExtra('alubodem600', e.target.value)} />
@@ -426,7 +426,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.alubodem600 || 0, 'alubodem600', 'alubodem600', extraBeslag.prijsAlubodem600)}</td>
               </tr>
               <tr>
-                <td className="py-1">Alubodem 1200mm</td>
+                <td className="py-1">🔲 Alubodem 1200mm</td>
                 <td className="py-1 text-right font-semibold">{extraBeslag.alubodem1200 || 0}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('alubodem1200')} onChange={(e) => updateExtra('alubodem1200', e.target.value)} />
@@ -439,7 +439,7 @@ const TotalenOverzicht = ({
                 <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.alubodem1200 || 0, 'alubodem1200', 'alubodem1200', extraBeslag.prijsAlubodem1200)}</td>
               </tr>
               <tr>
-                <td className="py-1">Vuilbaksysteem</td>
+                <td className="py-1">🗑️ Vuilbaksysteem</td>
                 <td className="py-1 text-right font-semibold">{extraBeslag.vuilbaksysteem || 0}</td>
                 <td className="py-1 text-center">
                   <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('vuilbaksysteem')} onChange={(e) => updateExtra('vuilbaksysteem', e.target.value)} />
