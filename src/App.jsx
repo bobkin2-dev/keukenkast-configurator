@@ -182,21 +182,6 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             </div>
           </div>
           <div className="flex gap-3">
-            {projectId && (
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${
-                  isSaving
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : hasUnsavedChanges
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
-              >
-                {isSaving ? '💾 Opslaan...' : '💾 Opslaan'}
-              </button>
-            )}
             <button
               onClick={() => setToonDebugTabel(!toonDebugTabel)}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
@@ -541,14 +526,31 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
 
         </div>{/* end flex-1 main content */}
 
-        {/* Floating sidebar: cabinet list */}
+        {/* Floating sidebar: save button + cabinet list */}
         <div className="w-72 flex-shrink-0 hidden xl:block">
-          <FloatingKastenLijst
-            kastenLijst={kabinet.kastenLijst}
-            voegZijpaneelToe={kabinet.voegZijpaneelToe}
-            kopieerKast={kabinet.kopieerKast}
-            verwijderKast={kabinet.verwijderKast}
-          />
+          <div className="sticky top-6 space-y-3">
+            {projectId && (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 ${
+                  isSaving
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : hasUnsavedChanges
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
+              >
+                {isSaving ? '💾 Opslaan...' : '💾 Opslaan'}
+              </button>
+            )}
+            <FloatingKastenLijst
+              kastenLijst={kabinet.kastenLijst}
+              voegZijpaneelToe={kabinet.voegZijpaneelToe}
+              kopieerKast={kabinet.kopieerKast}
+              verwijderKast={kabinet.verwijderKast}
+            />
+          </div>
         </div>
 
         </div>{/* end flex wrapper */}

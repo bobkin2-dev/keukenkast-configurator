@@ -3,7 +3,7 @@ import React from 'react';
 const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, verwijderKast }) => {
   if (kastenLijst.length === 0) {
     return (
-      <div className="sticky top-6">
+      <div>
         <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
           <h3 className="text-sm font-bold text-gray-600">Kasten (0)</h3>
           <p className="text-xs text-gray-400 mt-2">Nog geen kasten toegevoegd.</p>
@@ -13,7 +13,7 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, verwi
   }
 
   return (
-    <div className="sticky top-6">
+    <div>
       <div className="bg-white rounded-lg border-2 border-gray-300 shadow-md overflow-hidden">
         <div className="bg-gray-100 px-3 py-2 border-b border-gray-300">
           <h3 className="text-sm font-bold text-gray-700">Kasten ({kastenLijst.length})</h3>
