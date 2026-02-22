@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 
 const KeukentoestellenPanel = ({ keukentoestellen, setKeukentoestellen, toestellenPrijzen }) => {
+  const [open, setOpen] = useState(false);
   const updateToestel = (toestelId, field, value) => {
     setKeukentoestellen(prev => ({
       ...prev,
@@ -35,8 +36,14 @@ const KeukentoestellenPanel = ({ keukentoestellen, setKeukentoestellen, toestell
 
   return (
     <div className="bg-cyan-50 p-4 rounded-lg mb-4 border-2 border-cyan-200">
-      <h2 className="text-lg font-bold text-gray-800 mb-3">🍳 Keukentoestellen</h2>
-      <div className="overflow-x-auto">
+      <h2
+        className="text-lg font-bold text-gray-800 cursor-pointer flex items-center justify-between"
+        onClick={() => setOpen(prev => !prev)}
+      >
+        <span>🍳 Keukentoestellen</span>
+        <span className="text-sm text-gray-500">{open ? '▲' : '▼'}</span>
+      </h2>
+      {open && <div className="overflow-x-auto mt-3">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b-2 border-cyan-300">
@@ -114,7 +121,7 @@ const KeukentoestellenPanel = ({ keukentoestellen, setKeukentoestellen, toestell
             })}
           </tbody>
         </table>
-      </div>
+      </div>}
     </div>
   );
 };
