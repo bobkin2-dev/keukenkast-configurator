@@ -16,7 +16,6 @@ import KastenLijst from './components/KastenLijst';
 import FloatingKastenLijst from './components/FloatingKastenLijst';
 import TotalenOverzicht from './components/TotalenOverzicht';
 import DebugTabel from './components/DebugTabel';
-import ExtraBeslag from './components/ExtraBeslag';
 import KeukentoestellenPanel from './components/KeukentoestellenPanel';
 import AdminSettings from './components/Admin/AdminSettings';
 
@@ -431,14 +430,6 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             rendementBinnenzijde={materials.rendementBinnenzijde}
             rendementBuitenzijde={materials.rendementBuitenzijde}
             productionParams={productionParams}
-          />
-        )}
-
-        {/* Extra Hardware */}
-        {kabinet.kastenLijst.length > 0 && (
-          <ExtraBeslag
-            extraBeslag={extraBeslag}
-            setExtraBeslag={setExtraBeslag}
           />
         )}
 
