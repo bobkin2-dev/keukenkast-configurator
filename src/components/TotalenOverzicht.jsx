@@ -317,15 +317,35 @@ const TotalenOverzicht = ({
                     <td className="py-1">{label}</td>
                     <td className="py-1 text-right font-semibold">{aantalDisplay}</td>
                     <td className="py-1 text-center">
-                      <input
-                        type="number"
-                        min="0"
-                        step={decimals ? '0.1' : '1'}
-                        className={`w-14 px-1 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
-                        value={aantalOverridden ? extraAmounts[key] : ''}
-                        placeholder={aantalDisplay}
-                        onChange={(e) => updateExtra(key, e.target.value)}
-                      />
+                      <div className="flex items-center justify-center gap-0.5">
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-red-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const step = decimals ? 0.1 : 1;
+                            const current = aantalOverridden ? extraAmounts[key] : aantal;
+                            const next = Math.max(0, +(current - step).toFixed(1));
+                            updateExtra(key, next === aantal ? '' : String(next));
+                          }}
+                        >-</button>
+                        <input
+                          type="number"
+                          min="0"
+                          step={decimals ? '0.1' : '1'}
+                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                          value={aantalOverridden ? extraAmounts[key] : ''}
+                          placeholder={aantalDisplay}
+                          onChange={(e) => updateExtra(key, e.target.value)}
+                        />
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const step = decimals ? 0.1 : 1;
+                            const current = aantalOverridden ? extraAmounts[key] : aantal;
+                            const next = +(current + step).toFixed(1);
+                            updateExtra(key, String(next));
+                          }}
+                        >+</button>
+                      </div>
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
                     <td className="py-1 text-center">
