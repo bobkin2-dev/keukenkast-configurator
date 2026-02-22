@@ -109,14 +109,19 @@ export const db = {
     const user = await auth.getUser();
     if (!user) return { error: { message: 'Not authenticated' } };
 
+    const insertData = {
+      user_id: user.id,
+      name: projectData.name || 'Nieuw Project',
+      meubelnummer: projectData.meubelnummer || '',
+      settings: projectData.settings || {},
+    };
+    if (projectData.group_id) {
+      insertData.group_id = projectData.group_id;
+    }
+
     const { data, error } = await supabase
       .from('projects')
-      .insert({
-        user_id: user.id,
-        name: projectData.name || 'Nieuw Project',
-        meubelnummer: projectData.meubelnummer || '',
-        settings: projectData.settings || {},
-      })
+      .insert(insertData)
       .select()
       .single();
     return { data, error };
@@ -167,6 +172,57 @@ export const db = {
       return { error };
     }
     return { error: null };
+  },
+
+  // --- Project Groups ---
+
+  // Get all groups for current user
+  getGroups: async () => {
+    const { data, error } = await supabase
+      .from('project_groups')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    return { data, error };
+  },
+
+  // Create a new group
+  createGroup: async ({ naam, klant }) => {
+    const user = await auth.getUser();
+    if (!user) return { error: { message: 'Not authenticated' } };
+
+    const { data, error } = await supabase
+      .from('project_groups')
+      .insert({
+        user_id: user.id,
+        naam: naam || 'Nieuw Project',
+        klant: klant || '',
+      })
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Update a group
+  updateGroup: async (groupId, updates) => {
+    const { data, error } = await supabase
+      .from('project_groups')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', groupId)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Delete a group (projects get group_id = NULL via ON DELETE SET NULL)
+  deleteGroup: async (groupId) => {
+    const { error } = await supabase
+      .from('project_groups')
+      .delete()
+      .eq('id', groupId);
+    return { error };
   },
 
   // Save full project state (settings + cabinets)
