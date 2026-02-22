@@ -64,13 +64,15 @@ const TotalenOverzicht = ({
       bestekbak: prev.bestekbak ?? extraBeslag.prijsBestekbak,
       slot: prev.slot ?? extraBeslag.prijsSlot,
       cylinderslot: prev.cylinderslot ?? extraBeslag.prijsCylinderslot,
+      arbeid_tekenwerk: prev.arbeid_tekenwerk ?? 60,
+      arbeid_montageWerkhuis: prev.arbeid_montageWerkhuis ?? 40,
+      arbeid_plaatsing: prev.arbeid_plaatsing ?? 40,
+      arbeid_transport: prev.arbeid_transport ?? 40,
     }));
   }, [materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet, accessoires, extraBeslag]);
 
-  const getExtra = (key) => extraAmounts[key] || 0;
   const getOverride = (key, defaultVal) => priceOverrides[key] ?? defaultVal;
 
-  const getArbeidUren = (key) => arbeidOverrides[key] ?? arbeidUren[key];
   const updateArbeidOverride = (key, value) => {
     if (value === '' || value === undefined) {
       setArbeidOverrides(prev => {
@@ -84,17 +86,19 @@ const TotalenOverzicht = ({
   };
 
   const updateExtra = (key, value) => {
-    setExtraAmounts(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    if (value === '' || value === undefined) {
+      setExtraAmounts(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } else {
+      setExtraAmounts(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    }
   };
 
   const updateOverride = (key, value) => {
     setPriceOverrides(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
-  };
-
-  const calculateTotal = (aantal, extraKey, overrideKey, defaultPrice) => {
-    const extra = getExtra(extraKey);
-    const price = getOverride(overrideKey, defaultPrice);
-    return ((aantal + extra) * price).toFixed(2);
   };
 
   if (kastenLijst.length === 0) return null;
@@ -118,44 +122,55 @@ const TotalenOverzicht = ({
         {/* Labor */}
         <div className="bg-white p-3 rounded border">
           <h3 className="font-bold text-gray-700 mb-2">Arbeid</h3>
-          <div className="space-y-1 text-sm">
-            {[
-              { key: 'tekenwerk', label: 'Tekenwerk' },
-              { key: 'montageWerkhuis', label: 'Montage werkhuis' },
-              { key: 'plaatsing', label: 'Plaatsing' },
-              { key: 'transport', label: 'Transport' },
-            ].map(({ key, label }) => {
-              const calculated = arbeidUren[key];
-              const isOverridden = arbeidOverrides[key] !== undefined;
-              return (
-                <div key={key} className="flex justify-between items-center">
-                  <span>
-                    {label}:
-                    {isOverridden && (
-                      <span className="text-xs text-gray-400 ml-1">(berekend: {calculated.toFixed(1)})</span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${
-                        isOverridden ? 'border-blue-400 bg-blue-50' : ''
-                      }`}
-                      value={isOverridden ? arbeidOverrides[key] : calculated.toFixed(1)}
-                      placeholder={calculated.toFixed(1)}
-                      onChange={(e) => updateArbeidOverride(key, e.target.value)}
-                      onFocus={(e) => {
-                        if (!isOverridden) e.target.select();
-                      }}
-                    />
-                    <span className="text-xs text-gray-500 w-6">uur</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-gray-500 border-b">
+                <th className="text-left py-1">Taak</th>
+                <th className="text-right py-1">Uren</th>
+                <th className="text-center py-1">Override</th>
+                <th className="text-right py-1">€/uur</th>
+                <th className="text-center py-1">Override €</th>
+                <th className="text-right py-1 font-bold text-gray-700">Totaal €</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { key: 'tekenwerk', label: 'Tekenwerk', defaultPrijs: 60 },
+                { key: 'montageWerkhuis', label: 'Montage werkhuis', defaultPrijs: 40 },
+                { key: 'plaatsing', label: 'Plaatsing', defaultPrijs: 40 },
+                { key: 'transport', label: 'Transport', defaultPrijs: 40 },
+              ].map(({ key, label, defaultPrijs }) => {
+                const calculated = arbeidUren[key];
+                const urenOverridden = arbeidOverrides[key] !== undefined;
+                const effectiefUren = urenOverridden ? arbeidOverrides[key] : calculated;
+                const effectiefPrijs = getOverride(`arbeid_${key}`, defaultPrijs);
+                return (
+                  <tr key={key}>
+                    <td className="py-1">{label}</td>
+                    <td className="py-1 text-right font-semibold">{calculated.toFixed(1)}</td>
+                    <td className="py-1 text-center">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${
+                          urenOverridden ? 'border-blue-400 bg-blue-50' : ''
+                        }`}
+                        value={urenOverridden ? arbeidOverrides[key] : ''}
+                        placeholder={calculated.toFixed(1)}
+                        onChange={(e) => updateArbeidOverride(key, e.target.value)}
+                      />
+                    </td>
+                    <td className="py-1 text-right text-xs">€{defaultPrijs}/u</td>
+                    <td className="py-1 text-center">
+                      <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.round(effectiefPrijs)} onChange={(e) => updateOverride(`arbeid_${key}`, e.target.value)} />
+                    </td>
+                    <td className="py-1 text-right font-bold text-green-700">€{Math.round(effectiefUren * effectiefPrijs)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* Plate materials */}
@@ -167,94 +182,46 @@ const TotalenOverzicht = ({
                 <th className="text-left py-1">Materiaal</th>
                 <th className="text-left py-1">Info</th>
                 <th className="text-right py-1">Aantal</th>
-                <th className="text-center py-1">Extra</th>
-                <th className="text-right py-1">Prijs/m²</th>
+                <th className="text-center py-1">Override</th>
                 <th className="text-right py-1">Prijs/plaat</th>
                 <th className="text-center py-1">Override €</th>
-                <th className="text-left py-1"></th>
                 <th className="text-right py-1 font-bold text-gray-700">Totaal €</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="py-1">Binnenkast</td>
-                <td className="py-1 text-xs text-gray-600">{materiaalBinnenkast[geselecteerdMateriaalBinnen].naam} - {materiaalBinnenkast[geselecteerdMateriaalBinnen].afmeting} mm</td>
-                <td className="py-1 text-right font-semibold">{totalen.platenBinnenkast}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('binnenkast')} onChange={(e) => updateExtra('binnenkast', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{materiaalBinnenkast[geselecteerdMateriaalBinnen].prijs.toFixed(2)}/m²</td>
-                <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(binnenPlaatPrijs)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(getOverride('binnenkast', binnenPlaatPrijs))} onChange={(e) => updateOverride('binnenkast', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">platen</td>
-                <td className="py-1 text-right font-bold text-green-700">€{Math.ceil((totalen.platenBinnenkast + getExtra('binnenkast')) * getOverride('binnenkast', binnenPlaatPrijs))}</td>
-              </tr>
-
-              <tr>
-                <td className="py-1">Rug (apart)</td>
-                <td className="py-1 text-xs text-gray-600">{alternatieveMateriaal.ruggenGebruiken ? materiaalBinnenkast[alternatieveMateriaal.ruggenMateriaal].naam : 'Zelfde als binnenkast'}</td>
-                <td className="py-1 text-right font-semibold">{totalen.platenRug}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('rug')} onChange={(e) => updateExtra('rug', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{materiaalBinnenkast[geselecteerdMateriaalBinnen].prijs.toFixed(2)}/m²</td>
-                <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(binnenPlaatPrijs)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(getOverride('rug', binnenPlaatPrijs))} onChange={(e) => updateOverride('rug', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">platen</td>
-                <td className="py-1 text-right font-bold text-green-700">€{Math.ceil((totalen.platenRug + getExtra('rug')) * getOverride('rug', binnenPlaatPrijs))}</td>
-              </tr>
-
-              <tr>
-                <td className="py-1">Leggers (apart)</td>
-                <td className="py-1 text-xs text-gray-600">{alternatieveMateriaal.leggersGebruiken ? materiaalBinnenkast[alternatieveMateriaal.leggersMateriaal].naam : 'Zelfde als binnenkast'}</td>
-                <td className="py-1 text-right font-semibold">{totalen.platenLeggers}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('leggers')} onChange={(e) => updateExtra('leggers', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{materiaalBinnenkast[geselecteerdMateriaalBinnen].prijs.toFixed(2)}/m²</td>
-                <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(binnenPlaatPrijs)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(getOverride('leggers', binnenPlaatPrijs))} onChange={(e) => updateOverride('leggers', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">platen</td>
-                <td className="py-1 text-right font-bold text-green-700">€{Math.ceil((totalen.platenLeggers + getExtra('leggers')) * getOverride('leggers', binnenPlaatPrijs))}</td>
-              </tr>
-
-              <tr>
-                <td className="py-1">Buitenzijde</td>
-                <td className="py-1 text-xs text-gray-600">{materiaalBuitenzijde[geselecteerdMateriaalBuiten].naam} - {materiaalBuitenzijde[geselecteerdMateriaalBuiten].afmeting} mm</td>
-                <td className="py-1 text-right font-semibold">{totalen.platenBuitenzijde}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('buitenzijde')} onChange={(e) => updateExtra('buitenzijde', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{materiaalBuitenzijde[geselecteerdMateriaalBuiten].prijs.toFixed(2)}/m²</td>
-                <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(buitenPlaatPrijs)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(getOverride('buitenzijde', buitenPlaatPrijs))} onChange={(e) => updateOverride('buitenzijde', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">platen</td>
-                <td className="py-1 text-right font-bold text-green-700">€{Math.ceil((totalen.platenBuitenzijde + getExtra('buitenzijde')) * getOverride('buitenzijde', buitenPlaatPrijs))}</td>
-              </tr>
-
-              <tr>
-                <td className="py-1">Tablet (standaard)</td>
-                <td className="py-1 text-xs text-gray-600">{materiaalTablet[geselecteerdMateriaalTablet].naam} - {materiaalTablet[geselecteerdMateriaalTablet].afmeting} mm</td>
-                <td className="py-1 text-right font-semibold">{totalen.platenTablet}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('tablet')} onChange={(e) => updateExtra('tablet', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{materiaalTablet[geselecteerdMateriaalTablet].prijs.toFixed(2)}/m²</td>
-                <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(tabletPlaatPrijs)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(getOverride('tablet', tabletPlaatPrijs))} onChange={(e) => updateOverride('tablet', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">platen</td>
-                <td className="py-1 text-right font-bold text-green-700">€{Math.ceil((totalen.platenTablet + getExtra('tablet')) * getOverride('tablet', tabletPlaatPrijs))}</td>
-              </tr>
+              {[
+                { key: 'binnenkast', label: 'Binnenkast', aantal: totalen.platenBinnenkast, info: `${materiaalBinnenkast[geselecteerdMateriaalBinnen].naam} - ${materiaalBinnenkast[geselecteerdMateriaalBinnen].afmeting} mm`, defaultPlaatPrijs: binnenPlaatPrijs },
+                { key: 'rug', label: 'Rug (apart)', aantal: totalen.platenRug, info: alternatieveMateriaal.ruggenGebruiken ? materiaalBinnenkast[alternatieveMateriaal.ruggenMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
+                { key: 'leggers', label: 'Leggers (apart)', aantal: totalen.platenLeggers, info: alternatieveMateriaal.leggersGebruiken ? materiaalBinnenkast[alternatieveMateriaal.leggersMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
+                { key: 'buitenzijde', label: 'Buitenzijde', aantal: totalen.platenBuitenzijde, info: `${materiaalBuitenzijde[geselecteerdMateriaalBuiten].naam} - ${materiaalBuitenzijde[geselecteerdMateriaalBuiten].afmeting} mm`, defaultPlaatPrijs: buitenPlaatPrijs },
+                { key: 'tablet', label: 'Tablet', aantal: totalen.platenTablet, info: `${materiaalTablet[geselecteerdMateriaalTablet].naam} - ${materiaalTablet[geselecteerdMateriaalTablet].afmeting} mm`, defaultPlaatPrijs: tabletPlaatPrijs },
+              ].map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
+                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
+                const effectiefPrijs = getOverride(key, defaultPlaatPrijs);
+                return (
+                  <tr key={key}>
+                    <td className="py-1">{label}</td>
+                    <td className="py-1 text-xs text-gray-600">{info}</td>
+                    <td className="py-1 text-right font-semibold">{aantal}</td>
+                    <td className="py-1 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        className={`w-14 px-1 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                        value={aantalOverridden ? extraAmounts[key] : ''}
+                        placeholder={aantal}
+                        onChange={(e) => updateExtra(key, e.target.value)}
+                      />
+                    </td>
+                    <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(defaultPlaatPrijs)}</td>
+                    <td className="py-1 text-center">
+                      <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(effectiefPrijs)} onChange={(e) => updateOverride(key, e.target.value)} />
+                    </td>
+                    <td className="py-1 text-right font-bold text-green-700">€{Math.ceil(effectiefAantal * effectiefPrijs)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -267,40 +234,43 @@ const TotalenOverzicht = ({
               <tr className="text-xs text-gray-500 border-b">
                 <th className="text-left py-1">Type</th>
                 <th className="text-right py-1">Aantal</th>
-                <th className="text-center py-1">Extra</th>
+                <th className="text-center py-1">Override</th>
                 <th className="text-right py-1">Prijs</th>
                 <th className="text-center py-1">Override €</th>
-                <th className="text-left py-1"></th>
                 <th className="text-right py-1 font-bold text-gray-700">Totaal €</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="py-1">Standaard</td>
-                <td className="py-1 text-right font-semibold">{totalen.kantenbandStandaard.toFixed(1)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('kantenbandStd')} onChange={(e) => updateExtra('kantenbandStd', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.afplakkenStandaard.toFixed(2)}/m</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('kantenbandStd', accessoires.afplakkenStandaard)} onChange={(e) => updateOverride('kantenbandStd', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">lm</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.kantenbandStandaard, 'kantenbandStd', 'kantenbandStd', accessoires.afplakkenStandaard)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">Speciaal</td>
-                <td className="py-1 text-right font-semibold">{totalen.kantenbandSpeciaal.toFixed(1)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('kantenbandSpec')} onChange={(e) => updateExtra('kantenbandSpec', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.afplakkenSpeciaal.toFixed(2)}/m</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('kantenbandSpec', accessoires.afplakkenSpeciaal)} onChange={(e) => updateOverride('kantenbandSpec', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">lm</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.kantenbandSpeciaal, 'kantenbandSpec', 'kantenbandSpec', accessoires.afplakkenSpeciaal)}</td>
-              </tr>
+              {[
+                { key: 'kantenbandStd', label: 'Standaard', aantal: totalen.kantenbandStandaard, defaultPrijs: accessoires.afplakkenStandaard, unit: '/m' },
+                { key: 'kantenbandSpec', label: 'Speciaal', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal, unit: '/m' },
+              ].map(({ key, label, aantal, defaultPrijs, unit }) => {
+                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
+                const effectiefPrijs = getOverride(key, defaultPrijs);
+                return (
+                  <tr key={key}>
+                    <td className="py-1">{label}</td>
+                    <td className="py-1 text-right font-semibold">{aantal.toFixed(1)}</td>
+                    <td className="py-1 text-center">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        className={`w-14 px-1 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                        value={aantalOverridden ? extraAmounts[key] : ''}
+                        placeholder={aantal.toFixed(1)}
+                        onChange={(e) => updateExtra(key, e.target.value)}
+                      />
+                    </td>
+                    <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
+                    <td className="py-1 text-center">
+                      <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={effectiefPrijs} onChange={(e) => updateOverride(key, e.target.value)} />
+                    </td>
+                    <td className="py-1 text-right font-bold text-green-700">€{(effectiefAantal * effectiefPrijs).toFixed(2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -313,222 +283,58 @@ const TotalenOverzicht = ({
               <tr className="text-xs text-gray-500 border-b">
                 <th className="text-left py-1">Item</th>
                 <th className="text-right py-1">Aantal</th>
-                <th className="text-center py-1">Extra</th>
+                <th className="text-center py-1">Override</th>
                 <th className="text-right py-1">Prijs</th>
                 <th className="text-center py-1">Override €</th>
-                <th className="text-left py-1"></th>
                 <th className="text-right py-1 font-bold text-gray-700">Totaal €</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="py-1">📍 Kastpootjes</td>
-                <td className="py-1 text-right font-semibold">{totalen.kastpootjes}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('kastpootjes')} onChange={(e) => updateExtra('kastpootjes', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.kastpootjes.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('kastpootjes', accessoires.kastpootjes)} onChange={(e) => updateOverride('kastpootjes', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.kastpootjes, 'kastpootjes', 'kastpootjes', accessoires.kastpootjes)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🔗 Scharnieren 110°</td>
-                <td className="py-1 text-right font-semibold">{totalen.scharnieren110}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('scharnier110')} onChange={(e) => updateExtra('scharnier110', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.scharnier110.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('scharnier110', accessoires.scharnier110)} onChange={(e) => updateOverride('scharnier110', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.scharnieren110, 'scharnier110', 'scharnier110', accessoires.scharnier110)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🔗 Scharnieren 155/170°</td>
-                <td className="py-1 text-right font-semibold">{totalen.scharnieren170}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('scharnier170')} onChange={(e) => updateExtra('scharnier170', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.scharnier170.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('scharnier170', accessoires.scharnier170)} onChange={(e) => updateOverride('scharnier170', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.scharnieren170, 'scharnier170', 'scharnier170', accessoires.scharnier170)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">📏 Profiel BK</td>
-                <td className="py-1 text-right font-semibold">{totalen.profielBK.toFixed(1)}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('profielBK')} onChange={(e) => updateExtra('profielBK', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.profielBK.toFixed(2)}/m</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('profielBK', accessoires.profielBK)} onChange={(e) => updateOverride('profielBK', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">lm</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.profielBK, 'profielBK', 'profielBK', accessoires.profielBK)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🧲 Ophangsysteem</td>
-                <td className="py-1 text-right font-semibold">{totalen.ophangsysteemBK}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('ophangsysteem')} onChange={(e) => updateExtra('ophangsysteem', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.ophangsysteemBK.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('ophangsysteem', accessoires.ophangsysteemBK)} onChange={(e) => updateOverride('ophangsysteem', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.ophangsysteemBK, 'ophangsysteem', 'ophangsysteem', accessoires.ophangsysteemBK)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🗄️ Laden standaard</td>
-                <td className="py-1 text-right font-semibold">{totalen.ladenStandaard}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('ladenStd')} onChange={(e) => updateExtra('ladenStd', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.ladeStandaard.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('ladenStd', accessoires.ladeStandaard)} onChange={(e) => updateOverride('ladenStd', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.ladenStandaard, 'ladenStd', 'ladenStd', accessoires.ladeStandaard)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🗃️ Laden goedkoper</td>
-                <td className="py-1 text-right font-semibold">{totalen.ladenGoedkoper}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('ladenGoedkoper')} onChange={(e) => updateExtra('ladenGoedkoper', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.ladeGroteHoeveelheid.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('ladenGoedkoper', accessoires.ladeGroteHoeveelheid)} onChange={(e) => updateOverride('ladenGoedkoper', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.ladenGoedkoper, 'ladenGoedkoper', 'ladenGoedkoper', accessoires.ladeGroteHoeveelheid)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🚪 Handgrepen</td>
-                <td className="py-1 text-right font-semibold">{totalen.handgrepen}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('handgrepen')} onChange={(e) => updateExtra('handgrepen', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{accessoires.handgrepen.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('handgrepen', accessoires.handgrepen)} onChange={(e) => updateOverride('handgrepen', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(totalen.handgrepen, 'handgrepen', 'handgrepen', accessoires.handgrepen)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">💡 LED</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.led}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('led')} onChange={(e) => updateExtra('led', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsLed.toFixed(2)}/m</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('led', extraBeslag.prijsLed)} onChange={(e) => updateOverride('led', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">lm</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.led, 'led', 'led', extraBeslag.prijsLed)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🧺 Handdoekdrager</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.handdoekdrager || 0}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('handdoekdrager')} onChange={(e) => updateExtra('handdoekdrager', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsHanddoekdrager.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('handdoekdrager', extraBeslag.prijsHanddoekdrager)} onChange={(e) => updateOverride('handdoekdrager', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.handdoekdrager || 0, 'handdoekdrager', 'handdoekdrager', extraBeslag.prijsHanddoekdrager)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🔲 Alubodem 600mm</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.alubodem600 || 0}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('alubodem600')} onChange={(e) => updateExtra('alubodem600', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsAlubodem600.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('alubodem600', extraBeslag.prijsAlubodem600)} onChange={(e) => updateOverride('alubodem600', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.alubodem600 || 0, 'alubodem600', 'alubodem600', extraBeslag.prijsAlubodem600)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🔲 Alubodem 1200mm</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.alubodem1200 || 0}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('alubodem1200')} onChange={(e) => updateExtra('alubodem1200', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsAlubodem1200.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('alubodem1200', extraBeslag.prijsAlubodem1200)} onChange={(e) => updateOverride('alubodem1200', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.alubodem1200 || 0, 'alubodem1200', 'alubodem1200', extraBeslag.prijsAlubodem1200)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">🗑️ Vuilbaksysteem</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.vuilbaksysteem || 0}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('vuilbaksysteem')} onChange={(e) => updateExtra('vuilbaksysteem', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsVuilbaksysteem.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('vuilbaksysteem', extraBeslag.prijsVuilbaksysteem)} onChange={(e) => updateOverride('vuilbaksysteem', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.vuilbaksysteem || 0, 'vuilbaksysteem', 'vuilbaksysteem', extraBeslag.prijsVuilbaksysteem)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">Bestekbak</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.bestekbak || 0}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('bestekbak')} onChange={(e) => updateExtra('bestekbak', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsBestekbak.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('bestekbak', extraBeslag.prijsBestekbak)} onChange={(e) => updateOverride('bestekbak', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.bestekbak || 0, 'bestekbak', 'bestekbak', extraBeslag.prijsBestekbak)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">Slot</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.slot || 0}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('slot')} onChange={(e) => updateExtra('slot', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsSlot.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('slot', extraBeslag.prijsSlot)} onChange={(e) => updateOverride('slot', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.slot || 0, 'slot', 'slot', extraBeslag.prijsSlot)}</td>
-              </tr>
-              <tr>
-                <td className="py-1">Cylinderslot</td>
-                <td className="py-1 text-right font-semibold">{extraBeslag.cylinderslot || 0}</td>
-                <td className="py-1 text-center">
-                  <input type="number" className="w-14 px-1 py-0.5 border rounded text-center text-xs" value={getExtra('cylinderslot')} onChange={(e) => updateExtra('cylinderslot', e.target.value)} />
-                </td>
-                <td className="py-1 text-right text-xs">€{extraBeslag.prijsCylinderslot.toFixed(2)}/st</td>
-                <td className="py-1 text-center">
-                  <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={getOverride('cylinderslot', extraBeslag.prijsCylinderslot)} onChange={(e) => updateOverride('cylinderslot', e.target.value)} />
-                </td>
-                <td className="py-1 text-xs pl-1">st</td>
-                <td className="py-1 text-right font-bold text-green-700">€{calculateTotal(extraBeslag.cylinderslot || 0, 'cylinderslot', 'cylinderslot', extraBeslag.prijsCylinderslot)}</td>
-              </tr>
+              {[
+                { key: 'kastpootjes', label: '📍 Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes, unit: '/st' },
+                { key: 'scharnier110', label: '🔗 Scharnieren 110°', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110, unit: '/st' },
+                { key: 'scharnier170', label: '🔗 Scharnieren 155/170°', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170, unit: '/st' },
+                { key: 'profielBK', label: '📏 Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, unit: '/m', decimals: 1 },
+                { key: 'ophangsysteem', label: '🧲 Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK, unit: '/st' },
+                { key: 'ladenStd', label: '🗄️ Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard, unit: '/st' },
+                { key: 'ladenGoedkoper', label: '🗃️ Laden goedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid, unit: '/st' },
+                { key: 'handgrepen', label: '🚪 Handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen, unit: '/st' },
+                { key: 'led', label: '💡 LED', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed, unit: '/m', decimals: 1 },
+                { key: 'handdoekdrager', label: '🧺 Handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager, unit: '/st' },
+                { key: 'alubodem600', label: '🔲 Alubodem 600mm', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600, unit: '/st' },
+                { key: 'alubodem1200', label: '🔲 Alubodem 1200mm', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200, unit: '/st' },
+                { key: 'vuilbaksysteem', label: '🗑️ Vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem, unit: '/st' },
+                { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak, unit: '/st' },
+                { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot, unit: '/st' },
+                { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot, unit: '/st' },
+              ].map(({ key, label, aantal, defaultPrijs, unit, decimals }) => {
+                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
+                const effectiefPrijs = getOverride(key, defaultPrijs);
+                const aantalDisplay = decimals ? aantal.toFixed(decimals) : aantal;
+                return (
+                  <tr key={key}>
+                    <td className="py-1">{label}</td>
+                    <td className="py-1 text-right font-semibold">{aantalDisplay}</td>
+                    <td className="py-1 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        step={decimals ? '0.1' : '1'}
+                        className={`w-14 px-1 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                        value={aantalOverridden ? extraAmounts[key] : ''}
+                        placeholder={aantalDisplay}
+                        onChange={(e) => updateExtra(key, e.target.value)}
+                      />
+                    </td>
+                    <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
+                    <td className="py-1 text-center">
+                      <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={effectiefPrijs} onChange={(e) => updateOverride(key, e.target.value)} />
+                    </td>
+                    <td className="py-1 text-right font-bold text-green-700">€{(effectiefAantal * effectiefPrijs).toFixed(2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
