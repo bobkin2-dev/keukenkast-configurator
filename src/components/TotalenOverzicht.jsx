@@ -26,7 +26,9 @@ const TotalenOverzicht = ({
   keukentoestellen = {},
   toestellenPrijzen = {},
   schuifbeslagPrijzen = {},
-  plaatMaterialen = []
+  plaatMaterialen = [],
+  beslagBibliotheek = [],
+  onSaveBeslagBibliotheek
 }) => {
   // State for extra amounts (manual additions)
   const [extraAmounts, setExtraAmounts] = useState({});
@@ -501,16 +503,30 @@ const TotalenOverzicht = ({
                   );
                 })()}
               </tr>
-              {customBeslag.map((line, idx) => (
+              {customBeslag.map((line, idx) => {
+                const isInLibrary = beslagBibliotheek.some(b => b.label === line.label && b.prijs === line.prijs);
+                return (
                 <tr key={`custom_${idx}`}>
                   <td className="py-1">
-                    <input
-                      type="text"
-                      className="w-full px-1 py-0.5 border rounded text-xs"
-                      value={line.label}
-                      placeholder="Omschrijving"
-                      onChange={(e) => setCustomBeslag(prev => prev.map((l, i) => i === idx ? { ...l, label: e.target.value } : l))}
-                    />
+                    <div className="flex items-center gap-0.5">
+                      <input
+                        type="text"
+                        className="flex-1 min-w-0 px-1 py-0.5 border rounded text-xs"
+                        value={line.label}
+                        placeholder="Omschrijving"
+                        onChange={(e) => setCustomBeslag(prev => prev.map((l, i) => i === idx ? { ...l, label: e.target.value } : l))}
+                      />
+                      {!isInLibrary && line.label && onSaveBeslagBibliotheek && (
+                        <button
+                          className="w-5 h-5 rounded bg-amber-100 hover:bg-amber-200 text-xs leading-none text-amber-700 flex-shrink-0"
+                          onClick={() => onSaveBeslagBibliotheek([...beslagBibliotheek, { label: line.label, prijs: line.prijs }])}
+                          title="Opslaan in bibliotheek"
+                        >★</button>
+                      )}
+                      {isInLibrary && (
+                        <span className="w-5 h-5 flex items-center justify-center text-xs text-amber-400 flex-shrink-0" title="In bibliotheek">★</span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-1 text-right font-semibold">{line.aantal}</td>
                   <td className="py-1 text-center">
@@ -547,13 +563,48 @@ const TotalenOverzicht = ({
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               <tr>
                 <td colSpan={6} className="py-1">
-                  <button
-                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                    onClick={() => setCustomBeslag(prev => [...prev, { label: '', aantal: 1, prijs: 0 }])}
-                  >+ Extra lijn toevoegen</button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                      onClick={() => setCustomBeslag(prev => [...prev, { label: '', aantal: 1, prijs: 0 }])}
+                    >+ Nieuwe lijn</button>
+                    {beslagBibliotheek.length > 0 && (
+                      <>
+                        <span className="text-xs text-gray-300">|</span>
+                        <select
+                          className="text-xs border rounded px-1 py-0.5 text-gray-600"
+                          value=""
+                          onChange={(e) => {
+                            const item = beslagBibliotheek[parseInt(e.target.value)];
+                            if (item) {
+                              setCustomBeslag(prev => [...prev, { label: item.label, aantal: 1, prijs: item.prijs }]);
+                            }
+                          }}
+                        >
+                          <option value="">+ Uit bibliotheek...</option>
+                          {beslagBibliotheek.map((item, i) => (
+                            <option key={i} value={i}>{item.label} — €{item.prijs.toFixed(2)}</option>
+                          ))}
+                        </select>
+                        <button
+                          className="text-xs text-gray-400 hover:text-red-500"
+                          onClick={() => {
+                            if (window.confirm('Bibliotheek beheren: wil je een item verwijderen?')) {
+                              const label = window.prompt('Naam van item om te verwijderen:');
+                              if (label && onSaveBeslagBibliotheek) {
+                                onSaveBeslagBibliotheek(beslagBibliotheek.filter(b => b.label !== label));
+                              }
+                            }
+                          }}
+                          title="Bibliotheek beheren"
+                        >⚙</button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             </tbody>

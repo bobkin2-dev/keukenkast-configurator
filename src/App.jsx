@@ -66,6 +66,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [keukentoestellen, setKeukentoestellen] = useState(defaultKeukentoestellen);
   const [toestellenPrijzen, setToestellenPrijzen] = useState(defaultToestellenPrijzen);
   const [schuifbeslagPrijzen, setSchuifbeslagPrijzen] = useState(defaultSchuifbeslagPrijzen);
+  const [beslagBibliotheek, setBeslagBibliotheek] = useState([]);
 
   const updateAccessoire = (field, value) => {
     setAccessoires(prev => ({ ...prev, [field]: value }));
@@ -99,7 +100,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         const { data, error } = await supabase
           .from('admin_settings')
           .select('*')
-          .in('key', ['keukentoestellen_prijzen', 'schuifbeslag_prijzen']);
+          .in('key', ['keukentoestellen_prijzen', 'schuifbeslag_prijzen', 'beslag_bibliotheek']);
 
         if (data && !error) {
           data.forEach(row => {
@@ -109,6 +110,9 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             if (row.key === 'schuifbeslag_prijzen') {
               setSchuifbeslagPrijzen(prev => ({ ...prev, ...row.value }));
             }
+            if (row.key === 'beslag_bibliotheek') {
+              setBeslagBibliotheek(row.value || []);
+            }
           });
         }
       } catch (err) {
@@ -117,6 +121,18 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     };
     loadAdminPricing();
   }, []);
+
+  const saveBeslagBibliotheek = async (newLib) => {
+    setBeslagBibliotheek(newLib);
+    try {
+      await supabase.from('admin_settings').upsert({
+        key: 'beslag_bibliotheek',
+        value: newLib
+      }, { onConflict: 'key' });
+    } catch (err) {
+      console.error('Could not save beslag library:', err);
+    }
+  };
 
   // Calculate totals (memoized)
   const totalen = useMemo(() => berekenTotalen(
@@ -459,6 +475,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           toestellenPrijzen={toestellenPrijzen}
           schuifbeslagPrijzen={schuifbeslagPrijzen}
           plaatMaterialen={materials.plaatMaterialen}
+          beslagBibliotheek={beslagBibliotheek}
+          onSaveBeslagBibliotheek={saveBeslagBibliotheek}
         />
 
         {/* Summary */}
