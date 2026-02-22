@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
+import BeslagBibliotheekModal from './BeslagBibliotheekModal';
 
 const TABLETSTEUN_TYPES = [
   { id: '287.45.459', label: 'Hafele 287.45.459 — 380 mm', prijs: 29.19 },
@@ -40,6 +41,8 @@ const TotalenOverzicht = ({
   const [customBeslag, setCustomBeslag] = useState([]);
   // State for tabletsteun
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
+  // State for library modal
+  const [showBibliotheek, setShowBibliotheek] = useState(false);
 
   // Helper for safe array access
   const safeGet = (arr, idx) => arr?.[idx] || { breedte: 1000, hoogte: 1000, prijs: 0 };
@@ -519,7 +522,7 @@ const TotalenOverzicht = ({
                       {!isInLibrary && line.label && onSaveBeslagBibliotheek && (
                         <button
                           className="w-5 h-5 rounded bg-amber-100 hover:bg-amber-200 text-xs leading-none text-amber-700 flex-shrink-0"
-                          onClick={() => onSaveBeslagBibliotheek([...beslagBibliotheek, { label: line.label, prijs: line.prijs }])}
+                          onClick={() => onSaveBeslagBibliotheek([...beslagBibliotheek, { label: line.label, prijs: line.prijs, categorie: 'Bouwbeslag', eenheid: '/st' }])}
                           title="Opslaan in bibliotheek"
                         >★</button>
                       )}
@@ -572,38 +575,11 @@ const TotalenOverzicht = ({
                       className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
                       onClick={() => setCustomBeslag(prev => [...prev, { label: '', aantal: 1, prijs: 0 }])}
                     >+ Nieuwe lijn</button>
-                    {beslagBibliotheek.length > 0 && (
-                      <>
-                        <span className="text-xs text-gray-300">|</span>
-                        <select
-                          className="text-xs border rounded px-1 py-0.5 text-gray-600"
-                          value=""
-                          onChange={(e) => {
-                            const item = beslagBibliotheek[parseInt(e.target.value)];
-                            if (item) {
-                              setCustomBeslag(prev => [...prev, { label: item.label, aantal: 1, prijs: item.prijs }]);
-                            }
-                          }}
-                        >
-                          <option value="">+ Uit bibliotheek...</option>
-                          {beslagBibliotheek.map((item, i) => (
-                            <option key={i} value={i}>{item.label} — €{item.prijs.toFixed(2)}</option>
-                          ))}
-                        </select>
-                        <button
-                          className="text-xs text-gray-400 hover:text-red-500"
-                          onClick={() => {
-                            if (window.confirm('Bibliotheek beheren: wil je een item verwijderen?')) {
-                              const label = window.prompt('Naam van item om te verwijderen:');
-                              if (label && onSaveBeslagBibliotheek) {
-                                onSaveBeslagBibliotheek(beslagBibliotheek.filter(b => b.label !== label));
-                              }
-                            }
-                          }}
-                          title="Bibliotheek beheren"
-                        >⚙</button>
-                      </>
-                    )}
+                    <span className="text-xs text-gray-300">|</span>
+                    <button
+                      className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+                      onClick={() => setShowBibliotheek(true)}
+                    >📚 Bibliotheek</button>
                   </div>
                 </td>
               </tr>
@@ -724,6 +700,16 @@ const TotalenOverzicht = ({
           );
         })()}
       </div>
+
+      {/* Beslag Bibliotheek Modal */}
+      {showBibliotheek && (
+        <BeslagBibliotheekModal
+          bibliotheek={beslagBibliotheek}
+          onSave={onSaveBeslagBibliotheek}
+          onClose={() => setShowBibliotheek(false)}
+          onSelectItem={(item) => setCustomBeslag(prev => [...prev, item])}
+        />
+      )}
     </div>
   );
 };
