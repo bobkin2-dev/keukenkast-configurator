@@ -26,6 +26,8 @@ const TotalenOverzicht = ({
   const [priceOverrides, setPriceOverrides] = useState({});
   // State for arbeid (work hours) overrides
   const [arbeidOverrides, setArbeidOverrides] = useState({});
+  // State for custom meubelbeslag lines
+  const [customBeslag, setCustomBeslag] = useState([]);
 
   // Helper for safe array access
   const safeGet = (arr, idx) => arr?.[idx] || { breedte: 1000, hoogte: 1000, prijs: 0 };
@@ -367,6 +369,61 @@ const TotalenOverzicht = ({
                   </tr>
                 );
               })}
+              {customBeslag.map((line, idx) => (
+                <tr key={`custom_${idx}`}>
+                  <td className="py-1">
+                    <input
+                      type="text"
+                      className="w-full px-1 py-0.5 border rounded text-xs"
+                      value={line.label}
+                      placeholder="Omschrijving"
+                      onChange={(e) => setCustomBeslag(prev => prev.map((l, i) => i === idx ? { ...l, label: e.target.value } : l))}
+                    />
+                  </td>
+                  <td className="py-1 text-right font-semibold">{line.aantal}</td>
+                  <td className="py-1 text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <button
+                        className="w-5 h-5 rounded bg-gray-200 hover:bg-red-200 text-xs font-bold leading-none"
+                        onClick={() => setCustomBeslag(prev => prev.map((l, i) => i === idx ? { ...l, aantal: Math.max(0, l.aantal - 1) } : l))}
+                      >-</button>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-12 px-0.5 py-0.5 border rounded text-center text-xs"
+                        value={line.aantal}
+                        onChange={(e) => setCustomBeslag(prev => prev.map((l, i) => i === idx ? { ...l, aantal: parseFloat(e.target.value) || 0 } : l))}
+                      />
+                      <button
+                        className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
+                        onClick={() => setCustomBeslag(prev => prev.map((l, i) => i === idx ? { ...l, aantal: l.aantal + 1 } : l))}
+                      >+</button>
+                    </div>
+                  </td>
+                  <td className="py-1 text-right text-xs">€{line.prijs.toFixed(2)}/st</td>
+                  <td className="py-1 text-center">
+                    <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={line.prijs} onChange={(e) => setCustomBeslag(prev => prev.map((l, i) => i === idx ? { ...l, prijs: parseFloat(e.target.value) || 0 } : l))} />
+                  </td>
+                  <td className="py-1 text-right font-bold text-green-700">
+                    <div className="flex items-center justify-end gap-1">
+                      €{(line.aantal * line.prijs).toFixed(2)}
+                      <button
+                        className="w-4 h-4 rounded bg-gray-200 hover:bg-red-300 text-xs leading-none text-red-600"
+                        onClick={() => setCustomBeslag(prev => prev.filter((_, i) => i !== idx))}
+                        title="Verwijder"
+                      >×</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td colSpan={6} className="py-1">
+                  <button
+                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    onClick={() => setCustomBeslag(prev => [...prev, { label: '', aantal: 1, prijs: 0 }])}
+                  >+ Extra lijn toevoegen</button>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
