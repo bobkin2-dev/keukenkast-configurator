@@ -50,12 +50,7 @@ const calculateKastpootjes = (breedte) => {
 export const berekenMontageUren = (kast, params) => {
   if (kast.isZijpaneel) return 0.17; // ~10 min for side panel
 
-  const {
-    hoogte = 0, breedte = 0, diepte = 0,
-    aantalDeuren = 0, aantalLades = 0,
-    aantalLeggers = 0, aantalTussensteunen = 0,
-    type, aantalToestellen = 0, complexiteit
-  } = kast;
+  const { type, complexiteit } = kast;
 
   // Vrije Kast (and legacy Open Nis HPL) uses complexity-based hours
   if (isVrijeKast(type)) {
@@ -64,31 +59,9 @@ export const berekenMontageUren = (kast, params) => {
 
   if (!params) return 1.5; // fallback
 
+  // Standard cabinet: base montage × type multiplier
   const typeMultiplier = params.typeMultipliers?.[type] || 1.0;
-  let uren = (params.baseMontageUren || 1.5) * typeMultiplier;
-
-  // Extra doors above base
-  const extraDeuren = Math.max(0, aantalDeuren - (params.baseMontageDoors || 1));
-  uren += extraDeuren * (params.extraUurPerDeur || 0.25);
-
-  // Drawers, shelves, supports
-  uren += aantalLades * (params.extraUurPerLade || 0.3);
-  uren += aantalLeggers * (params.extraUurPerLegger || 0.1);
-  uren += aantalTussensteunen * (params.extraUurPerTussensteun || 0.15);
-
-  // Size adjustments (per 100mm above base)
-  const hoogteVerschil = Math.max(0, hoogte - (params.baseMontageHoogte || 900)) / 100;
-  const breedteVerschil = Math.max(0, breedte - (params.baseMontageBreedte || 600)) / 100;
-  const diepteVerschil = Math.max(0, diepte - (params.baseMontageDiepte || 600)) / 100;
-
-  uren += hoogteVerschil * (params.hoogteFactorPer100mm || 0.05);
-  uren += breedteVerschil * (params.breedteFactorPer100mm || 0.03);
-  uren += diepteVerschil * (params.diepteFactorPer100mm || 0.02);
-
-  // Appliances (1 hour each)
-  uren += aantalToestellen;
-
-  return uren;
+  return (params.baseMontageUren || 1.5) * typeMultiplier;
 };
 
 /**

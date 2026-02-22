@@ -62,7 +62,7 @@ export const berekenArbeid = (kastenLijst, totalen, arbeidParameters) => {
     totalen = { platenBinnenkast: 0, platenRug: 0, platenLeggers: 0, platenBuitenzijde: 0, platenTablet: 0, kantenbandStandaard: 0, handgrepen: 0 };
   }
   if (!arbeidParameters) {
-    arbeidParameters = { platenPerUur: 4, afplakkenPerUur: 50, minutenPerDeur: 5, minutenMontagePerKast: 30, minutenPerZijpaneel: 10, plaatsingPerKast: 0.5, transport: 2 };
+    arbeidParameters = { platenPerUur: 4, afplakkenPerUur: 50, plaatsingPerKast: 0.5, transport: 2 };
   }
 
   const totaalPlaten = (totalen.platenBinnenkast || 0) + (totalen.platenRug || 0) +
@@ -75,11 +75,9 @@ export const berekenArbeid = (kastenLijst, totalen, arbeidParameters) => {
 
   const urenPlatenVerwerken = safeDivide(totaalPlaten, arbeidParameters.platenPerUur || 4);
   const urenAfplakken = safeDivide(totalen.kantenbandStandaard || 0, arbeidParameters.afplakkenPerUur || 50);
-  const urenDeuren = ((totalen.handgrepen || 0) * (arbeidParameters.minutenPerDeur || 5)) / MINUTES_PER_HOUR;
-  // Use actual per-cabinet montage hours (includes side panels and appliances)
   const urenMontage = totalen.montageUren || 0;
 
-  const montageWerkhuis = urenPlatenVerwerken + urenAfplakken + urenDeuren + urenMontage;
+  const montageWerkhuis = urenPlatenVerwerken + urenAfplakken + urenMontage;
   const plaatsing = kastenLijst.length * (arbeidParameters.plaatsingPerKast || 0.5);
 
   // Use transport parameter if provided, otherwise calculate based on number of cabinets

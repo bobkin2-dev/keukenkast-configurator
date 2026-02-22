@@ -2,25 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { defaultPlaatMaterialen } from '../../data/defaultMaterials';
 
-// Default production parameters (as of 11 feb 2026)
+// Default production parameters (as of 22 feb 2026)
 const DEFAULT_PRODUCTION_PARAMS = {
   afplakkenPerUur: 35, // lm/uur
   platenPerUur: 3, // platen/uur
-  // Base montage time for simple cabinet: 1.5u for 1-door, 900H x 600B x 600D
+  // Base montage time: simple cabinet = baseMontageUren × typeMultiplier
   baseMontageUren: 1.5,
-  baseMontageDoors: 1,
-  baseMontageHoogte: 900,
-  baseMontageBreedte: 600,
-  baseMontageDiepte: 600,
-  // Factors for complexity
-  extraUurPerDeur: 0.25, // extra time per additional door
-  extraUurPerLade: 0.3, // extra time per drawer
-  extraUurPerLegger: 0.1, // extra time per shelf
-  extraUurPerTussensteun: 0.15, // extra time per support
-  // Size factors
-  hoogteFactorPer100mm: 0.05, // extra time per 100mm above base
-  breedteFactorPer100mm: 0.03, // extra time per 100mm above base
-  diepteFactorPer100mm: 0.02, // extra time per 100mm above base
   // Type multipliers
   typeMultipliers: {
     'Onderkast': 1.0,
@@ -339,8 +326,6 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
             {[
               { id: 'algemeen', label: 'Algemeen', icon: '📊' },
               { id: 'materialen', label: 'Plaat Materialen', icon: '🪵' },
-              { id: 'montage', label: 'Montage Basis', icon: '🔧' },
-              { id: 'factoren', label: 'Complexiteit', icon: '📐' },
               { id: 'types', label: 'Kast Types', icon: '🗄️' },
               { id: 'voorbeelden', label: 'Vrije Kast Voorbeelden', icon: '📋' }
             ].map(tab => (
@@ -370,7 +355,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-3 gap-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     🎨 Afplakken (lm/uur)
@@ -397,6 +382,21 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                     disabled={!isAdmin}
                   />
                   <p className="text-xs text-gray-500 mt-1">Aantal platen gezaagd per uur</p>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    🔧 Basis montage (uren/kast)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={productionParams.baseMontageUren}
+                    onChange={(e) => updateParam('baseMontageUren', parseFloat(e.target.value))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={!isAdmin}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Basistijd x type multiplier</p>
                 </div>
               </div>
             </div>
@@ -559,184 +559,6 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                   </button>
                 </div>
               )}
-            </div>
-          )}
-
-          {activeTab === 'montage' && (
-            <div className="space-y-6">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="font-semibold text-yellow-800 mb-2">📋 Referentie Kast</h3>
-                <p className="text-sm text-yellow-700">
-                  Eenvoudige onderkast, 1 deur, 900H × 600B × 600D = <strong>{productionParams.baseMontageUren}u</strong>
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ⏱️ Basis montage tijd (uren)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={productionParams.baseMontageUren}
-                    onChange={(e) => updateParam('baseMontageUren', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    🚪 Basis aantal deuren
-                  </label>
-                  <input
-                    type="number"
-                    value={productionParams.baseMontageDoors}
-                    onChange={(e) => updateParam('baseMontageDoors', parseInt(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-              </div>
-
-              <h4 className="font-medium text-gray-800 mt-4">Referentie afmetingen (mm)</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hoogte</label>
-                  <input
-                    type="number"
-                    value={productionParams.baseMontageHoogte}
-                    onChange={(e) => updateParam('baseMontageHoogte', parseInt(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Breedte</label>
-                  <input
-                    type="number"
-                    value={productionParams.baseMontageBreedte}
-                    onChange={(e) => updateParam('baseMontageBreedte', parseInt(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Diepte</label>
-                  <input
-                    type="number"
-                    value={productionParams.baseMontageDiepte}
-                    onChange={(e) => updateParam('baseMontageDiepte', parseInt(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'factoren' && (
-            <div className="space-y-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h3 className="font-semibold text-green-800 mb-2">📈 Complexiteitsfactoren</h3>
-                <p className="text-sm text-green-700">
-                  Extra tijd wordt toegevoegd voor elke deur, lade, legger, en tussensteun boven de basis.
-                </p>
-              </div>
-
-              <h4 className="font-medium text-gray-800">Extra uren per onderdeel</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    🚪 Per extra deur (uren)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={productionParams.extraUurPerDeur}
-                    onChange={(e) => updateParam('extraUurPerDeur', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    🗄️ Per lade (uren)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={productionParams.extraUurPerLade}
-                    onChange={(e) => updateParam('extraUurPerLade', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    📚 Per legger (uren)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={productionParams.extraUurPerLegger}
-                    onChange={(e) => updateParam('extraUurPerLegger', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ⬍ Per tussensteun (uren)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={productionParams.extraUurPerTussensteun}
-                    onChange={(e) => updateParam('extraUurPerTussensteun', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-              </div>
-
-              <h4 className="font-medium text-gray-800 mt-4">Grootte factoren (per 100mm boven basis)</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hoogte factor</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={productionParams.hoogteFactorPer100mm}
-                    onChange={(e) => updateParam('hoogteFactorPer100mm', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Breedte factor</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={productionParams.breedteFactorPer100mm}
-                    onChange={(e) => updateParam('breedteFactorPer100mm', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Diepte factor</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={productionParams.diepteFactorPer100mm}
-                    onChange={(e) => updateParam('diepteFactorPer100mm', parseFloat(e.target.value))}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                    disabled={!isAdmin}
-                  />
-                </div>
-              </div>
             </div>
           )}
 

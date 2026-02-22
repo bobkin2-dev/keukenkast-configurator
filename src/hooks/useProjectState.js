@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { db, supabase } from '../lib/supabase';
 import { DEFAULT_PRODUCTION_PARAMS } from '../components/Admin/AdminSettings';
 
@@ -19,6 +19,8 @@ export const useProjectState = ({
   const [lastSaved, setLastSaved] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [productionParams, setProductionParams] = useState(DEFAULT_PRODUCTION_PARAMS);
+  const autoSaveTimerRef = useRef(null);
+  const isSavingRef = useRef(false);
 
   // Mark as having unsaved changes when data changes
   useEffect(() => {
@@ -28,9 +30,10 @@ export const useProjectState = ({
   }, [kastenLijst, projectInfo, accessoires, extraBeslag, materials.rendementBinnenzijde, materials.rendementBuitenzijde]);
 
   // Save project function
-  const handleSave = async () => {
-    if (!projectId) return;
+  const handleSave = useCallback(async () => {
+    if (!projectId || isSavingRef.current) return;
 
+    isSavingRef.current = true;
     setIsSaving(true);
 
     const settings = {
@@ -49,14 +52,34 @@ export const useProjectState = ({
     const { error } = await db.saveProjectState(projectId, projectInfo, settings, kastenLijst);
 
     if (error) {
-      alert('Kon niet opslaan: ' + error.message);
+      console.error('Autosave fout:', error.message);
     } else {
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
     }
 
     setIsSaving(false);
-  };
+    isSavingRef.current = false;
+  }, [projectId, materials, accessoires, extraBeslag, arbeidParameters, projectInfo, kastenLijst]);
+
+  // Debounced autosave: 5 seconds after last change
+  useEffect(() => {
+    if (!hasUnsavedChanges || !projectId) return;
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => handleSave(), 5000);
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [hasUnsavedChanges, kastenLijst, projectInfo, accessoires, extraBeslag, handleSave, projectId]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, []);
 
   // Load settings from initialData
   useEffect(() => {
