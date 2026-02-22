@@ -302,7 +302,10 @@ const TotalenOverzicht = ({
         {/* Hardware */}
         <div className="bg-white p-3 rounded border">
           <h3 className="font-bold text-gray-700 mb-2">Meubelbeslag</h3>
-          <table className="w-full text-sm">
+
+          {/* Berekend beslag */}
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Berekend beslag</h4>
+          <table className="w-full text-sm mb-3">
             <thead>
               <tr className="text-xs text-gray-500 border-b">
                 <th className="text-left py-1">Item</th>
@@ -315,29 +318,87 @@ const TotalenOverzicht = ({
             </thead>
             <tbody>
               {[
-                { key: 'kastpootjes', label: '📍 Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes, unit: '/st', g: 0 },
-                { key: 'scharnier110', label: '🔗 Scharnieren 110°', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110, unit: '/st', g: 0 },
-                { key: 'scharnier170', label: '🔗 Scharnieren 155/170°', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170, unit: '/st', g: 0 },
-                { key: 'profielBK', label: '📏 Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, unit: '/m', decimals: 1, g: 1 },
-                { key: 'ophangsysteem', label: '🧲 Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK, unit: '/st', g: 1 },
-                { key: 'ladenStd', label: '🗄️ Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard, unit: '/st', g: 2 },
-                { key: 'ladenGoedkoper', label: '🗃️ Laden goedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid, unit: '/st', g: 2 },
-                { key: 'handgrepen', label: '🚪 Handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen, unit: '/st', g: 3 },
-                { key: 'led', label: '💡 LED', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed, unit: '/m', decimals: 1, g: 4 },
-                { key: 'handdoekdrager', label: '🧺 Handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager, unit: '/st', g: 4 },
-                { key: 'alubodem600', label: '🔲 Alubodem 600mm', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600, unit: '/st', g: 4 },
-                { key: 'alubodem1200', label: '🔲 Alubodem 1200mm', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200, unit: '/st', g: 4 },
-                { key: 'vuilbaksysteem', label: '🗑️ Vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem, unit: '/st', g: 4 },
-                { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak, unit: '/st', g: 4 },
-                { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot, unit: '/st', g: 4 },
-                { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot, unit: '/st', g: 4 },
-              ].map(({ key, label, aantal, defaultPrijs, unit, decimals, g }) => {
+                { key: 'kastpootjes', label: 'Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes, unit: '/st' },
+                { key: 'scharnier110', label: 'Scharnieren 110°', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110, unit: '/st' },
+                { key: 'scharnier170', label: 'Scharnieren 155/170°', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170, unit: '/st' },
+                { key: 'profielBK', label: 'Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, unit: '/m', decimals: 1 },
+                { key: 'ophangsysteem', label: 'Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK, unit: '/st' },
+                { key: 'ladenStd', label: 'Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard, unit: '/st' },
+                { key: 'ladenGoedkoper', label: 'Laden goedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid, unit: '/st' },
+                { key: 'handgrepen', label: 'Handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen, unit: '/st' },
+              ].map(({ key, label, aantal, defaultPrijs, unit, decimals }) => {
                 const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPrijs);
                 const aantalDisplay = decimals ? aantal.toFixed(decimals) : aantal;
+                const isZero = aantal === 0 && !aantalOverridden;
                 return (
-                  <tr key={key} className={g % 2 === 1 ? 'bg-gray-50' : ''}>
+                  <tr key={key} className={isZero ? 'opacity-40' : ''}>
+                    <td className="py-1">{label}</td>
+                    <td className="py-1 text-right font-semibold">{aantalDisplay}</td>
+                    <td className="py-1 text-center">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-red-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const step = decimals ? 0.1 : 1;
+                            const current = aantalOverridden ? extraAmounts[key] : aantal;
+                            const next = Math.max(0, +(current - step).toFixed(1));
+                            updateExtra(key, next === aantal ? '' : String(next));
+                          }}
+                        >-</button>
+                        <input
+                          type="number"
+                          min="0"
+                          step={decimals ? '0.1' : '1'}
+                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                          value={aantalOverridden ? extraAmounts[key] : ''}
+                          placeholder={aantalDisplay}
+                          onChange={(e) => updateExtra(key, e.target.value)}
+                        />
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const step = decimals ? 0.1 : 1;
+                            const current = aantalOverridden ? extraAmounts[key] : aantal;
+                            const next = +(current + step).toFixed(1);
+                            updateExtra(key, String(next));
+                          }}
+                        >+</button>
+                      </div>
+                    </td>
+                    <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
+                    <td className="py-1 text-center">
+                      <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={effectiefPrijs} onChange={(e) => updateOverride(key, e.target.value)} />
+                    </td>
+                    <td className="py-1 text-right font-bold text-green-700">€{(effectiefAantal * effectiefPrijs).toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Extra beslag */}
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Extra beslag</h4>
+          <table className="w-full text-sm">
+            <tbody>
+              {[
+                { key: 'led', label: 'LED', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed, unit: '/m', decimals: 1 },
+                { key: 'handdoekdrager', label: 'Handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager, unit: '/st' },
+                { key: 'alubodem600', label: 'Alubodem 600mm', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600, unit: '/st' },
+                { key: 'alubodem1200', label: 'Alubodem 1200mm', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200, unit: '/st' },
+                { key: 'vuilbaksysteem', label: 'Vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem, unit: '/st' },
+                { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak, unit: '/st' },
+                { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot, unit: '/st' },
+                { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot, unit: '/st' },
+              ].map(({ key, label, aantal, defaultPrijs, unit, decimals }) => {
+                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
+                const effectiefPrijs = getOverride(key, defaultPrijs);
+                const aantalDisplay = decimals ? aantal.toFixed(decimals) : aantal;
+                const isZero = aantal === 0 && !aantalOverridden;
+                return (
+                  <tr key={key} className={isZero ? 'opacity-40' : ''}>
                     <td className="py-1">{label}</td>
                     <td className="py-1 text-right font-semibold">{aantalDisplay}</td>
                     <td className="py-1 text-center">
@@ -380,7 +441,7 @@ const TotalenOverzicht = ({
                 );
               })}
               {/* Tabletsteun Hebgo 125kg */}
-              <tr>
+              <tr className={!tabletsteun.type && tabletsteun.aantal === 0 ? 'opacity-40' : ''}>
                 <td className="py-1">
                   <div className="flex items-center gap-1">
                     <span className="text-xs whitespace-nowrap">Tabletsteun Hebgo 125kg</span>
