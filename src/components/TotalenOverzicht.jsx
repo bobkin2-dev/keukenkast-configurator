@@ -509,6 +509,7 @@ const TotalenOverzicht = ({
                 <thead>
                   <tr className="border-b">
                     <th className="py-1 text-left">Toestel</th>
+                    <th className="py-1 text-left">Model</th>
                     <th className="py-1 text-left">Klasse</th>
                     <th className="py-1 text-center">Aantal</th>
                     <th className="py-1 text-right">Prijs/st</th>
@@ -528,6 +529,7 @@ const TotalenOverzicht = ({
                     return (
                       <tr key={toestel.id} className="border-b border-gray-100">
                         <td className="py-1">{toestel.naam}</td>
+                        <td className="py-1 text-gray-500 italic">{sel.naam || ''}</td>
                         <td className="py-1 text-gray-500">{tierLabel}</td>
                         <td className="py-1 text-center">{aantal}</td>
                         <td className="py-1 text-right font-mono">€{prijs.toFixed(0)}</td>
@@ -536,7 +538,7 @@ const TotalenOverzicht = ({
                     );
                   })}
                   <tr className="border-t-2 border-gray-300 font-bold">
-                    <td className="py-1" colSpan={4}>Totaal Keukentoestellen</td>
+                    <td className="py-1" colSpan={5}>Totaal Keukentoestellen</td>
                     <td className="py-1 text-right text-green-800">€{totaalToestellen.toFixed(0)}</td>
                   </tr>
                 </tbody>

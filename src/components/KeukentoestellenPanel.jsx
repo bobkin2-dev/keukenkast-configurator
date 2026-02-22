@@ -22,7 +22,8 @@ const KeukentoestellenPanel = ({ keukentoestellen, setKeukentoestellen, toestell
           ...current,
           geselecteerd,
           tier: current.tier || 'medium',
-          aantal: current.aantal || 1
+          aantal: current.aantal || 1,
+          naam: current.naam || ''
         }
       };
     });
@@ -41,6 +42,7 @@ const KeukentoestellenPanel = ({ keukentoestellen, setKeukentoestellen, toestell
             <tr className="border-b-2 border-cyan-300">
               <th className="text-center py-2 px-2 w-8"></th>
               <th className="text-left py-2 px-2">Toestel</th>
+              <th className="text-left py-2 px-2">Model / Naam</th>
               <th className="text-left py-2 px-2">Klasse</th>
               <th className="text-center py-2 px-2 w-16">Aantal</th>
               <th className="text-right py-2 px-2">Prijs/st</th>
@@ -69,6 +71,16 @@ const KeukentoestellenPanel = ({ keukentoestellen, setKeukentoestellen, toestell
                     />
                   </td>
                   <td className="py-2 px-2 font-medium">{toestel.naam}</td>
+                  <td className="py-2 px-2">
+                    <input
+                      type="text"
+                      value={sel.naam || ''}
+                      onChange={(e) => updateToestel(toestel.id, 'naam', e.target.value)}
+                      disabled={!sel.geselecteerd}
+                      placeholder="bijv. Siemens SN73EX02CE"
+                      className="px-2 py-1 border rounded text-sm w-full max-w-[220px] placeholder-gray-400"
+                    />
+                  </td>
                   <td className="py-2 px-2">
                     <select
                       value={tier}
