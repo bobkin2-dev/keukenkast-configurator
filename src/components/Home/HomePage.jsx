@@ -154,61 +154,71 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
     });
   };
 
-  const getProjectsForGroup = (groupId) => projects.filter(p => p.group_id === groupId);
-  const looseProjects = projects.filter(p => !p.group_id);
+  const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '', 'nl');
+  const getProjectsForGroup = (groupId) => projects.filter(p => p.group_id === groupId).sort(sortByName);
+  const looseProjects = projects.filter(p => !p.group_id).sort(sortByName);
 
-  // Reusable offerte card
-  const OfferteCard = ({ project }) => (
-    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition p-4 border border-gray-100">
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-gray-800 truncate">
-            {project.name || 'Naamloos'}
-          </h4>
+  // Reusable offerte row
+  const OfferteRow = ({ project }) => (
+    <>
+      <tr
+        className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition"
+        onClick={() => onSelectProject(project.id)}
+      >
+        <td className="py-2 px-3 font-medium text-gray-800">
+          {project.name || 'Naamloos'}
           {project.meubelnummer && (
-            <p className="text-xs text-gray-500">#{project.meubelnummer}</p>
+            <span className="ml-2 text-xs text-gray-400">#{project.meubelnummer}</span>
           )}
-        </div>
-      </div>
-      <div className="text-xs text-gray-500 mb-3 space-y-0.5">
-        <p>Aangemaakt: {formatDate(project.created_at)}</p>
-        <p>Bewerkt: {formatDate(project.updated_at)}</p>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => onSelectProject(project.id)}
-          className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-sm transition"
-        >
-          Openen
-        </button>
-        <button
-          onClick={() => setDeleteConfirm(project.id)}
-          className="px-3 py-1.5 text-red-500 hover:bg-red-50 rounded transition text-sm"
-          title="Verwijderen"
-        >
-          ✕
-        </button>
-      </div>
-      {deleteConfirm === project.id && (
-        <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
-          <p className="text-xs text-red-700 mb-2">Offerte verwijderen?</p>
-          <div className="flex gap-2">
+        </td>
+        <td className="py-2 px-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(project.updated_at)}</td>
+        <td className="py-2 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+          {deleteConfirm === project.id ? (
+            <span className="inline-flex gap-1 items-center">
+              <span className="text-xs text-red-600 mr-1">Verwijderen?</span>
+              <button
+                onClick={() => handleDeleteProject(project.id)}
+                className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
+              >
+                Ja
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs font-medium"
+              >
+                Nee
+              </button>
+            </span>
+          ) : (
             <button
-              onClick={() => handleDeleteProject(project.id)}
-              className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
+              onClick={() => setDeleteConfirm(project.id)}
+              className="text-gray-300 hover:text-red-500 transition"
+              title="Verwijderen"
             >
-              Ja
+              ✕
             </button>
-            <button
-              onClick={() => setDeleteConfirm(null)}
-              className="flex-1 px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-xs font-medium"
-            >
-              Nee
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+          )}
+        </td>
+      </tr>
+    </>
+  );
+
+  // Reusable table wrapper for offerte rows
+  const OfferteTable = ({ projectList }) => (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-xs text-gray-400 border-b border-gray-200">
+          <th className="text-left py-1.5 px-3 font-medium">Naam</th>
+          <th className="text-left py-1.5 px-3 font-medium">Laatst bewerkt</th>
+          <th className="text-right py-1.5 px-3 font-medium w-24"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {projectList.map(project => (
+          <OfferteRow key={project.id} project={project} />
+        ))}
+      </tbody>
+    </table>
   );
 
   return (
@@ -448,10 +458,8 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
                       {groupProjects.length === 0 ? (
                         <p className="text-sm text-gray-400 italic mb-3">Nog geen offertes in deze groep.</p>
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-3">
-                          {groupProjects.map(project => (
-                            <OfferteCard key={project.id} project={project} />
-                          ))}
+                        <div className="mb-3">
+                          <OfferteTable projectList={groupProjects} />
                         </div>
                       )}
                       <button
@@ -472,10 +480,8 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
                 {groups.length > 0 && (
                   <h3 className="text-lg font-semibold text-gray-700 mb-4">Losse Offertes</h3>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {looseProjects.map(project => (
-                    <OfferteCard key={project.id} project={project} />
-                  ))}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
+                  <OfferteTable projectList={looseProjects} />
                 </div>
               </div>
             )}
