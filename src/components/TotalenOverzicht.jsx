@@ -17,7 +17,8 @@ const TotalenOverzicht = ({
   alternatieveMateriaal,
   keukentoestellen = {},
   toestellenPrijzen = {},
-  schuifbeslagPrijzen = {}
+  schuifbeslagPrijzen = {},
+  plaatMaterialen = []
 }) => {
   // State for extra amounts (manual additions)
   const [extraAmounts, setExtraAmounts] = useState({});
@@ -195,6 +196,17 @@ const TotalenOverzicht = ({
                 { key: 'leggers', label: 'Leggers (apart)', aantal: totalen.platenLeggers, info: alternatieveMateriaal.leggersGebruiken ? materiaalBinnenkast[alternatieveMateriaal.leggersMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
                 { key: 'buitenzijde', label: 'Buitenzijde', aantal: totalen.platenBuitenzijde, info: `${materiaalBuitenzijde[geselecteerdMateriaalBuiten].naam} - ${materiaalBuitenzijde[geselecteerdMateriaalBuiten].afmeting} mm`, defaultPlaatPrijs: buitenPlaatPrijs },
                 { key: 'tablet', label: 'Tablet', aantal: totalen.platenTablet, info: `${materiaalTablet[geselecteerdMateriaalTablet].naam} - ${materiaalTablet[geselecteerdMateriaalTablet].afmeting} mm`, defaultPlaatPrijs: tabletPlaatPrijs },
+                // Dynamic vrije kast material rows
+                ...Object.entries(totalen.platenVrijeKast || {}).map(([matRef, { platen, mat }]) => {
+                  const plaatPrijs = (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs;
+                  return {
+                    key: `vrijeKast_${matRef}`,
+                    label: 'Vrije Kast',
+                    aantal: platen,
+                    info: `${mat.naam || 'Onbekend'} - ${mat.afmeting || `${mat.breedte}x${mat.hoogte}`} mm`,
+                    defaultPlaatPrijs: plaatPrijs
+                  };
+                }),
               ].map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
                 const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;

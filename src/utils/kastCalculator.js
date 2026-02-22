@@ -692,18 +692,21 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
   const m2PPTablet = m2PerPlaat(tabletMat);
   flat.platenTablet = m2PPTablet > 0 ? Math.ceil(m2Tablet / m2PPTablet) : 0;
 
-  // Vrije Kast plates (grouped by material reference) - added as extra platen
-  let totaalPlatenVrijeKast = 0;
+  // Vrije Kast plates (grouped by material reference) - separate per material
+  flat.platenVrijeKast = {};
   Object.entries(aggTotalen.m2VrijeKastPerMateriaal || {}).forEach(([matRef, m2]) => {
     const mat = findVrijeKastMat(parseInt(matRef) || matRef);
     if (mat) {
       const m2PP = m2PerPlaat(mat);
       if (m2PP > 0) {
-        totaalPlatenVrijeKast += Math.ceil(m2 / m2PP);
+        flat.platenVrijeKast[matRef] = {
+          platen: Math.ceil(m2 / m2PP),
+          m2,
+          mat
+        };
       }
     }
   });
-  flat.platenTablet += totaalPlatenVrijeKast;
 
   return flat;
 };

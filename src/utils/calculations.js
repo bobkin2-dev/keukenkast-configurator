@@ -26,7 +26,8 @@ export const berekenTotalen = (
   geselecteerdMateriaalBinnen,
   geselecteerdMateriaalBuiten,
   geselecteerdMateriaalTablet,
-  productionParams
+  productionParams,
+  plaatMaterialen = []
 ) => {
   // Validate inputs
   if (!kastenLijst || !Array.isArray(kastenLijst)) {
@@ -47,7 +48,7 @@ export const berekenTotalen = (
   // Convert to flat format with plate counts
   const flat = convertToFlatTotalen(
     aggTotalen,
-    { materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet },
+    { materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, plaatMaterialen },
     { geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet },
     alternatieveMateriaal
   );
@@ -67,9 +68,10 @@ export const berekenArbeid = (kastenLijst, totalen, arbeidParameters) => {
     arbeidParameters = { platenPerUur: 4, afplakkenPerUur: 50, plaatsingPerKast: 0.5, transport: 2 };
   }
 
+  const totaalPlatenVrijeKast = Object.values(totalen.platenVrijeKast || {}).reduce((sum, v) => sum + (v.platen || 0), 0);
   const totaalPlaten = (totalen.platenBinnenkast || 0) + (totalen.platenRug || 0) +
     (totalen.platenLeggers || 0) + (totalen.platenBuitenzijde || 0) +
-    (totalen.platenTablet || 0);
+    (totalen.platenTablet || 0) + totaalPlatenVrijeKast;
 
   const aantalReguliereKasten = kastenLijst.filter(k => !k.isZijpaneel).length;
 

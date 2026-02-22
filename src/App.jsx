@@ -131,7 +131,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     materials.geselecteerdMateriaalBinnen,
     materials.geselecteerdMateriaalBuiten,
     materials.geselecteerdMateriaalTablet,
-    productionParams
+    productionParams,
+    materials.plaatMaterialen
   ), [
     kabinet.kastenLijst,
     materials.rendementBinnenzijde,
@@ -143,7 +144,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     materials.geselecteerdMateriaalBinnen,
     materials.geselecteerdMateriaalBuiten,
     materials.geselecteerdMateriaalTablet,
-    productionParams
+    productionParams,
+    materials.plaatMaterialen
   ]);
 
   const arbeidUren = useMemo(() =>
@@ -465,6 +467,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           keukentoestellen={keukentoestellen}
           toestellenPrijzen={toestellenPrijzen}
           schuifbeslagPrijzen={schuifbeslagPrijzen}
+          plaatMaterialen={materials.plaatMaterialen}
         />
 
         {/* Summary */}
