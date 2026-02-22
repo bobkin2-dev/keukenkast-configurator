@@ -23,6 +23,8 @@ const TotalenOverzicht = ({
   const [extraAmounts, setExtraAmounts] = useState({});
   // State for price overrides
   const [priceOverrides, setPriceOverrides] = useState({});
+  // State for arbeid (work hours) overrides
+  const [arbeidOverrides, setArbeidOverrides] = useState({});
 
   // Helper for safe array access
   const safeGet = (arr, idx) => arr?.[idx] || { breedte: 1000, hoogte: 1000, prijs: 0 };
@@ -68,6 +70,19 @@ const TotalenOverzicht = ({
   const getExtra = (key) => extraAmounts[key] || 0;
   const getOverride = (key, defaultVal) => priceOverrides[key] ?? defaultVal;
 
+  const getArbeidUren = (key) => arbeidOverrides[key] ?? arbeidUren[key];
+  const updateArbeidOverride = (key, value) => {
+    if (value === '' || value === undefined) {
+      setArbeidOverrides(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } else {
+      setArbeidOverrides(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    }
+  };
+
   const updateExtra = (key, value) => {
     setExtraAmounts(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
   };
@@ -104,22 +119,42 @@ const TotalenOverzicht = ({
         <div className="bg-white p-3 rounded border">
           <h3 className="font-bold text-gray-700 mb-2">Arbeid</h3>
           <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span>Tekenwerk:</span>
-              <span className="font-semibold">{arbeidUren.tekenwerk.toFixed(1)} uur</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Montage werkhuis:</span>
-              <span className="font-semibold">{arbeidUren.montageWerkhuis.toFixed(1)} uur</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Plaatsing:</span>
-              <span className="font-semibold">{arbeidUren.plaatsing.toFixed(1)} uur</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Transport:</span>
-              <span className="font-semibold">{arbeidUren.transport.toFixed(1)} uur</span>
-            </div>
+            {[
+              { key: 'tekenwerk', label: 'Tekenwerk' },
+              { key: 'montageWerkhuis', label: 'Montage werkhuis' },
+              { key: 'plaatsing', label: 'Plaatsing' },
+              { key: 'transport', label: 'Transport' },
+            ].map(({ key, label }) => {
+              const calculated = arbeidUren[key];
+              const isOverridden = arbeidOverrides[key] !== undefined;
+              return (
+                <div key={key} className="flex justify-between items-center">
+                  <span>
+                    {label}:
+                    {isOverridden && (
+                      <span className="text-xs text-gray-400 ml-1">(berekend: {calculated.toFixed(1)})</span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${
+                        isOverridden ? 'border-blue-400 bg-blue-50' : ''
+                      }`}
+                      value={isOverridden ? arbeidOverrides[key] : calculated.toFixed(1)}
+                      placeholder={calculated.toFixed(1)}
+                      onChange={(e) => updateArbeidOverride(key, e.target.value)}
+                      onFocus={(e) => {
+                        if (!isOverridden) e.target.select();
+                      }}
+                    />
+                    <span className="text-xs text-gray-500 w-6">uur</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
