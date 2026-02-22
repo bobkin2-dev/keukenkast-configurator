@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 
+const TABLETSTEUN_TYPES = [
+  { id: '287.45.459', label: 'Hafele 287.45.459 — 380 mm', prijs: 29.19 },
+  { id: '287.45.468', label: 'Hafele 287.45.468 — 480 mm', prijs: 33.64 },
+  { id: '287.45.477', label: 'Hafele 287.45.477 — 580 mm', prijs: 44.78 },
+  { id: '287.45.486', label: 'Hafele 287.45.486 — 680 mm', prijs: 52.57 },
+  { id: '287.45.495', label: 'Hafele 287.45.495 — 780 mm', prijs: 57.03 },
+];
+
 const TotalenOverzicht = ({
   kastenLijst,
   totalen,
@@ -28,6 +36,8 @@ const TotalenOverzicht = ({
   const [arbeidOverrides, setArbeidOverrides] = useState({});
   // State for custom meubelbeslag lines
   const [customBeslag, setCustomBeslag] = useState([]);
+  // State for tabletsteun
+  const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
 
   // Helper for safe array access
   const safeGet = (arr, idx) => arr?.[idx] || { breedte: 1000, hoogte: 1000, prijs: 0 };
@@ -369,6 +379,67 @@ const TotalenOverzicht = ({
                   </tr>
                 );
               })}
+              {/* Tabletsteun Hebgo 125kg */}
+              <tr>
+                <td className="py-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs whitespace-nowrap">Tabletsteun Hebgo 125kg</span>
+                    <select
+                      className="text-xs border rounded px-1 py-0.5 flex-1 min-w-0"
+                      value={tabletsteun.type}
+                      onChange={(e) => {
+                        const selected = TABLETSTEUN_TYPES.find(t => t.id === e.target.value);
+                        setTabletsteun(prev => ({
+                          type: e.target.value,
+                          aantal: e.target.value && prev.aantal === 0 ? 1 : prev.aantal,
+                        }));
+                        if (selected) {
+                          setPriceOverrides(prev => ({ ...prev, tabletsteun: selected.prijs }));
+                        }
+                      }}
+                    >
+                      <option value="">— kies type —</option>
+                      {TABLETSTEUN_TYPES.map(t => (
+                        <option key={t.id} value={t.id}>{t.label} — €{t.prijs.toFixed(2)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </td>
+                <td className="py-1 text-right font-semibold">{tabletsteun.aantal}</td>
+                <td className="py-1 text-center">
+                  <div className="flex items-center justify-center gap-0.5">
+                    <button
+                      className="w-5 h-5 rounded bg-gray-200 hover:bg-red-200 text-xs font-bold leading-none"
+                      onClick={() => setTabletsteun(prev => ({ ...prev, aantal: Math.max(0, prev.aantal - 1) }))}
+                    >-</button>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-12 px-0.5 py-0.5 border rounded text-center text-xs"
+                      value={tabletsteun.aantal}
+                      onChange={(e) => setTabletsteun(prev => ({ ...prev, aantal: parseInt(e.target.value) || 0 }))}
+                    />
+                    <button
+                      className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
+                      onClick={() => setTabletsteun(prev => ({ ...prev, aantal: prev.aantal + 1 }))}
+                    >+</button>
+                  </div>
+                </td>
+                {(() => {
+                  const selected = TABLETSTEUN_TYPES.find(t => t.id === tabletsteun.type);
+                  const defaultPrijs = selected?.prijs || 0;
+                  const effectiefPrijs = priceOverrides.tabletsteun ?? defaultPrijs;
+                  return (
+                    <>
+                      <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}/st</td>
+                      <td className="py-1 text-center">
+                        <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={effectiefPrijs} onChange={(e) => updateOverride('tabletsteun', e.target.value)} />
+                      </td>
+                      <td className="py-1 text-right font-bold text-green-700">€{(tabletsteun.aantal * effectiefPrijs).toFixed(2)}</td>
+                    </>
+                  );
+                })()}
+              </tr>
               {customBeslag.map((line, idx) => (
                 <tr key={`custom_${idx}`}>
                   <td className="py-1">
