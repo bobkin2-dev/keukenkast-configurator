@@ -26,7 +26,10 @@ const AppRouter = () => {
     const { data: { subscription } } = auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
-        setAppState(APP_STATES.HOME);
+        // Only navigate to HOME on fresh sign-in, not on token refresh
+        setAppState(prev => prev === APP_STATES.LOGIN || prev === APP_STATES.LOADING ? APP_STATES.HOME : prev);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        setUser(session.user);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setCurrentProjectId(null);
