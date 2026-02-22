@@ -315,29 +315,29 @@ const TotalenOverzicht = ({
             </thead>
             <tbody>
               {[
-                { key: 'kastpootjes', label: '📍 Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes, unit: '/st' },
-                { key: 'scharnier110', label: '🔗 Scharnieren 110°', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110, unit: '/st' },
-                { key: 'scharnier170', label: '🔗 Scharnieren 155/170°', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170, unit: '/st' },
-                { key: 'profielBK', label: '📏 Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, unit: '/m', decimals: 1, sep: true },
-                { key: 'ophangsysteem', label: '🧲 Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK, unit: '/st' },
-                { key: 'ladenStd', label: '🗄️ Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard, unit: '/st', sep: true },
-                { key: 'ladenGoedkoper', label: '🗃️ Laden goedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid, unit: '/st' },
-                { key: 'handgrepen', label: '🚪 Handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen, unit: '/st', sep: true },
-                { key: 'led', label: '💡 LED', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed, unit: '/m', decimals: 1, sep: true },
-                { key: 'handdoekdrager', label: '🧺 Handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager, unit: '/st' },
-                { key: 'alubodem600', label: '🔲 Alubodem 600mm', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600, unit: '/st' },
-                { key: 'alubodem1200', label: '🔲 Alubodem 1200mm', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200, unit: '/st' },
-                { key: 'vuilbaksysteem', label: '🗑️ Vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem, unit: '/st' },
-                { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak, unit: '/st' },
-                { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot, unit: '/st' },
-                { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot, unit: '/st' },
-              ].map(({ key, label, aantal, defaultPrijs, unit, decimals, sep }) => {
+                { key: 'kastpootjes', label: '📍 Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes, unit: '/st', g: 0 },
+                { key: 'scharnier110', label: '🔗 Scharnieren 110°', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110, unit: '/st', g: 0 },
+                { key: 'scharnier170', label: '🔗 Scharnieren 155/170°', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170, unit: '/st', g: 0 },
+                { key: 'profielBK', label: '📏 Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, unit: '/m', decimals: 1, g: 1 },
+                { key: 'ophangsysteem', label: '🧲 Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK, unit: '/st', g: 1 },
+                { key: 'ladenStd', label: '🗄️ Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard, unit: '/st', g: 2 },
+                { key: 'ladenGoedkoper', label: '🗃️ Laden goedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid, unit: '/st', g: 2 },
+                { key: 'handgrepen', label: '🚪 Handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen, unit: '/st', g: 3 },
+                { key: 'led', label: '💡 LED', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed, unit: '/m', decimals: 1, g: 4 },
+                { key: 'handdoekdrager', label: '🧺 Handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager, unit: '/st', g: 4 },
+                { key: 'alubodem600', label: '🔲 Alubodem 600mm', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600, unit: '/st', g: 4 },
+                { key: 'alubodem1200', label: '🔲 Alubodem 1200mm', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200, unit: '/st', g: 4 },
+                { key: 'vuilbaksysteem', label: '🗑️ Vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem, unit: '/st', g: 4 },
+                { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak, unit: '/st', g: 4 },
+                { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot, unit: '/st', g: 4 },
+                { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot, unit: '/st', g: 4 },
+              ].map(({ key, label, aantal, defaultPrijs, unit, decimals, g }) => {
                 const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPrijs);
                 const aantalDisplay = decimals ? aantal.toFixed(decimals) : aantal;
                 return (
-                  <tr key={key} className={sep ? 'border-t border-gray-200' : ''}>
+                  <tr key={key} className={g % 2 === 1 ? 'bg-gray-50' : ''}>
                     <td className="py-1">{label}</td>
                     <td className="py-1 text-right font-semibold">{aantalDisplay}</td>
                     <td className="py-1 text-center">
