@@ -11,9 +11,11 @@ export const useProjectState = ({
   accessoires,
   extraBeslag,
   arbeidParameters,
+  keukentoestellen,
   setAccessoires,
   setExtraBeslag,
-  setArbeidParameters
+  setArbeidParameters,
+  setKeukentoestellen
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
@@ -27,7 +29,7 @@ export const useProjectState = ({
     if (projectId) {
       setHasUnsavedChanges(true);
     }
-  }, [kastenLijst, projectInfo, accessoires, extraBeslag, materials.rendementBinnenzijde, materials.rendementBuitenzijde]);
+  }, [kastenLijst, projectInfo, accessoires, extraBeslag, keukentoestellen, materials.rendementBinnenzijde, materials.rendementBuitenzijde]);
 
   // Save project function
   const handleSave = useCallback(async () => {
@@ -46,6 +48,7 @@ export const useProjectState = ({
       accessoires,
       extraBeslag,
       arbeidParameters,
+      keukentoestellen,
       alternatieveMateriaal: materials.alternatieveMateriaal
     };
 
@@ -60,7 +63,7 @@ export const useProjectState = ({
 
     setIsSaving(false);
     isSavingRef.current = false;
-  }, [projectId, materials, accessoires, extraBeslag, arbeidParameters, projectInfo, kastenLijst]);
+  }, [projectId, materials, accessoires, extraBeslag, arbeidParameters, keukentoestellen, projectInfo, kastenLijst]);
 
   // Debounced autosave: 5 seconds after last change
   useEffect(() => {
@@ -72,7 +75,7 @@ export const useProjectState = ({
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-  }, [hasUnsavedChanges, kastenLijst, projectInfo, accessoires, extraBeslag, handleSave, projectId]);
+  }, [hasUnsavedChanges, kastenLijst, projectInfo, accessoires, extraBeslag, keukentoestellen, handleSave, projectId]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -89,6 +92,7 @@ export const useProjectState = ({
       if (s.accessoires) setAccessoires(s.accessoires);
       if (s.extraBeslag) setExtraBeslag(s.extraBeslag);
       if (s.arbeidParameters) setArbeidParameters(s.arbeidParameters);
+      if (s.keukentoestellen) setKeukentoestellen(s.keukentoestellen);
     }
     setHasUnsavedChanges(false);
   }, [initialData]);

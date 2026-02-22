@@ -143,3 +143,31 @@ export const defaultArbeidParameters = {
   plaatsingPerKast: 0.5,
   transport: 2
 };
+
+// Keukentoestellen types
+export const TOESTEL_TYPES = [
+  { id: 'spoelbak_enkel', naam: 'Spoelbak 1x' },
+  { id: 'spoelbak_afdruip', naam: 'Spoelbak 1x met afdruip' },
+  { id: 'spoelbak_1_5_afdruip', naam: 'Spoelbak 1+0.5 met afdruip' },
+  { id: 'kraan', naam: 'Kraan standaard' },
+  { id: 'koelkast_onderbouw', naam: 'Koelkast onderbouw' },
+  { id: 'koelkast_178', naam: 'Koelkast 178 cm' },
+  { id: 'microgolf', naam: 'Microgolf' },
+  { id: 'oven', naam: 'Oven' },
+  { id: 'combi_oven', naam: 'Combi-oven' },
+  { id: 'vaatwasser', naam: 'Vaatwasser' },
+];
+
+export const TOESTEL_TIERS = [
+  { id: 'budget', label: 'Budget (Whirlpool)' },
+  { id: 'medium', label: 'Medium (AEG)' },
+  { id: 'high-end', label: 'High-end (Siemens)' },
+];
+
+// Default keukentoestellen (empty selection per project)
+export const defaultKeukentoestellen = {};
+
+// Default admin pricing for keukentoestellen
+export const defaultToestellenPrijzen = Object.fromEntries(
+  TOESTEL_TYPES.map(t => [t.id, { budget: 0, medium: 0, 'high-end': 0 }])
+);

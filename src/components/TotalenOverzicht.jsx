@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 
 const TotalenOverzicht = ({
   kastenLijst,
@@ -12,8 +13,9 @@ const TotalenOverzicht = ({
   geselecteerdMateriaalBinnen,
   geselecteerdMateriaalBuiten,
   geselecteerdMateriaalTablet,
-  alternatieveMateriaal
-  // Note: rendementBuitenzijde was removed as it's unused in this component
+  alternatieveMateriaal,
+  keukentoestellen = {},
+  toestellenPrijzen = {}
 }) => {
   // State for extra amounts (manual additions)
   const [extraAmounts, setExtraAmounts] = useState({});
@@ -493,6 +495,55 @@ const TotalenOverzicht = ({
             </tbody>
           </table>
         </div>
+
+        {/* Keukentoestellen */}
+        {(() => {
+          const geselecteerdeToestellen = TOESTEL_TYPES.filter(t => keukentoestellen[t.id]?.geselecteerd);
+          if (geselecteerdeToestellen.length === 0) return null;
+
+          let totaalToestellen = 0;
+          return (
+            <div className="bg-white p-3 rounded border">
+              <h3 className="font-semibold text-gray-700 mb-2 text-sm">🍳 Keukentoestellen</h3>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b">
+                    <th className="py-1 text-left">Toestel</th>
+                    <th className="py-1 text-left">Klasse</th>
+                    <th className="py-1 text-center">Aantal</th>
+                    <th className="py-1 text-right">Prijs/st</th>
+                    <th className="py-1 text-right">Totaal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {geselecteerdeToestellen.map(toestel => {
+                    const sel = keukentoestellen[toestel.id];
+                    const tier = sel.tier || 'medium';
+                    const aantal = sel.aantal || 1;
+                    const prijs = toestellenPrijzen?.[toestel.id]?.[tier] || 0;
+                    const totaal = aantal * prijs;
+                    totaalToestellen += totaal;
+                    const tierLabel = TOESTEL_TIERS.find(t => t.id === tier)?.label || tier;
+
+                    return (
+                      <tr key={toestel.id} className="border-b border-gray-100">
+                        <td className="py-1">{toestel.naam}</td>
+                        <td className="py-1 text-gray-500">{tierLabel}</td>
+                        <td className="py-1 text-center">{aantal}</td>
+                        <td className="py-1 text-right font-mono">€{prijs.toFixed(0)}</td>
+                        <td className="py-1 text-right font-bold text-green-700">€{totaal.toFixed(0)}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="border-t-2 border-gray-300 font-bold">
+                    <td className="py-1" colSpan={4}>Totaal Keukentoestellen</td>
+                    <td className="py-1 text-right text-green-800">€{totaalToestellen.toFixed(0)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

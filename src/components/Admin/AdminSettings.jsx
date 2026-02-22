@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { defaultPlaatMaterialen } from '../../data/defaultMaterials';
+import { defaultPlaatMaterialen, TOESTEL_TYPES, TOESTEL_TIERS, defaultToestellenPrijzen } from '../../data/defaultMaterials';
 
 // Default production parameters (as of 22 feb 2026)
 const DEFAULT_PRODUCTION_PARAMS = {
@@ -47,6 +47,9 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
     tablet: false
   });
 
+  // Keukentoestellen prijzen state
+  const [toestellenPrijzen, setToestellenPrijzen] = useState(defaultToestellenPrijzen);
+
   // Open Nis voorbeelden state
   const [openNisVoorbeelden, setOpenNisVoorbeelden] = useState([]);
   const [nieuwVoorbeeld, setNieuwVoorbeeld] = useState({
@@ -65,6 +68,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
   useEffect(() => {
     if (isOpen) {
       loadSettings();
+      loadToestellenPrijzen();
       loadVoorbeelden();
       loadPlaatMaterialen();
     }
@@ -86,6 +90,54 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
       console.log('No saved settings found, using defaults');
     }
     setLoading(false);
+  };
+
+  const loadToestellenPrijzen = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('key', 'keukentoestellen_prijzen')
+        .single();
+
+      if (data && !error) {
+        setToestellenPrijzen({ ...defaultToestellenPrijzen, ...data.value });
+      }
+    } catch (err) {
+      console.log('No toestellen prijzen found, using defaults');
+    }
+  };
+
+  const saveToestellenPrijzen = async () => {
+    if (!isAdmin) return;
+
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({
+          key: 'keukentoestellen_prijzen',
+          value: toestellenPrijzen,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+
+      if (error) throw error;
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Error saving toestellen prijzen:', err);
+      alert('Fout bij opslaan: ' + err.message);
+    }
+  };
+
+  const updateToestelPrijs = (toestelId, tier, value) => {
+    setToestellenPrijzen(prev => ({
+      ...prev,
+      [toestelId]: {
+        ...prev[toestelId],
+        [tier]: value
+      }
+    }));
   };
 
   const loadPlaatMaterialen = async () => {
@@ -327,6 +379,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
               { id: 'algemeen', label: 'Algemeen', icon: '📊' },
               { id: 'materialen', label: 'Plaat Materialen', icon: '🪵' },
               { id: 'types', label: 'Kast Types', icon: '🗄️' },
+              { id: 'toestellen', label: 'Keukentoestellen', icon: '🍳' },
               { id: 'voorbeelden', label: 'Vrije Kast Voorbeelden', icon: '📋' }
             ].map(tab => (
               <button
@@ -590,6 +643,61 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {activeTab === 'toestellen' && (
+            <div className="space-y-6">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <h3 className="font-semibold text-orange-800 mb-2">🍳 Keukentoestellen Prijzen</h3>
+                <p className="text-sm text-orange-700">
+                  Stel prijzen in per toestel en per klasse. Budget = Whirlpool, Medium = AEG, High-end = Siemens.
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-orange-100">
+                      <th className="border px-3 py-2 text-left">Toestel</th>
+                      {TOESTEL_TIERS.map(tier => (
+                        <th key={tier.id} className="border px-3 py-2 text-right">{tier.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TOESTEL_TYPES.map(toestel => (
+                      <tr key={toestel.id} className="hover:bg-gray-50">
+                        <td className="border px-3 py-2 font-medium">{toestel.naam}</td>
+                        {TOESTEL_TIERS.map(tier => (
+                          <td key={tier.id} className="border px-3 py-2">
+                            <div className="flex items-center gap-1 justify-end">
+                              <span className="text-gray-400 text-xs">€</span>
+                              <input
+                                type="number"
+                                step="1"
+                                value={toestellenPrijzen[toestel.id]?.[tier.id] || 0}
+                                onChange={(e) => updateToestelPrijs(toestel.id, tier.id, parseFloat(e.target.value) || 0)}
+                                className="w-24 px-2 py-1 border rounded text-right text-sm"
+                                disabled={!isAdmin}
+                              />
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {isAdmin && (
+                <button
+                  onClick={saveToestellenPrijzen}
+                  className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-6 rounded-lg font-semibold"
+                >
+                  Toestellen Prijzen Opslaan
+                </button>
+              )}
             </div>
           )}
 

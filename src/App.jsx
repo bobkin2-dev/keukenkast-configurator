@@ -1,19 +1,22 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 // Data imports
-import { defaultAccessoires, defaultExtraBeslag, defaultArbeidParameters } from './data/defaultMaterials';
+import { defaultAccessoires, defaultExtraBeslag, defaultArbeidParameters, defaultKeukentoestellen, defaultToestellenPrijzen } from './data/defaultMaterials';
 
 // Utility imports
 import { berekenTotalen, berekenArbeid } from './utils/calculations';
+import { supabase } from './lib/supabase';
 
 // Component imports
 import MaterialenPanel from './components/MaterialenPanel';
 import AccessoiresPanel from './components/AccessoiresPanel';
 import KastConfigurator from './components/KastConfigurator';
 import KastenLijst from './components/KastenLijst';
+import FloatingKastenLijst from './components/FloatingKastenLijst';
 import TotalenOverzicht from './components/TotalenOverzicht';
 import DebugTabel from './components/DebugTabel';
 import ExtraBeslag from './components/ExtraBeslag';
+import KeukentoestellenPanel from './components/KeukentoestellenPanel';
 import AdminSettings from './components/Admin/AdminSettings';
 
 // Hooks
@@ -36,9 +39,6 @@ const MATERIAL_PANELS = [
 const ARBEID_FIELDS = [
   { key: 'platenPerUur', label: 'Platen verwerken (platen/uur)', step: '0.5', fallback: 1 },
   { key: 'afplakkenPerUur', label: 'Afplakken (lm/uur)', step: '1', fallback: 1 },
-  { key: 'minutenPerDeur', label: 'Tijd per deur (minuten)', step: '1', fallback: 0 },
-  { key: 'minutenMontagePerKast', label: 'Montage per kast (minuten)', step: '5', fallback: 0 },
-  { key: 'minutenPerZijpaneel', label: 'Montage per zijpaneel (minuten)', step: '5', fallback: 0 },
   { key: 'plaatsingPerKast', label: 'Plaatsing per kast (uur)', step: '0.1', fallback: 0 },
   { key: 'transport', label: 'Transport (uur/project)', step: '0.5', fallback: 0 },
 ];
@@ -63,6 +63,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [accessoires, setAccessoires] = useState(defaultAccessoires);
   const [extraBeslag, setExtraBeslag] = useState(defaultExtraBeslag);
   const [arbeidParameters, setArbeidParameters] = useState(defaultArbeidParameters);
+  const [keukentoestellen, setKeukentoestellen] = useState(defaultKeukentoestellen);
+  const [toestellenPrijzen, setToestellenPrijzen] = useState(defaultToestellenPrijzen);
 
   const updateAccessoire = (field, value) => {
     setAccessoires(prev => ({ ...prev, [field]: value }));
@@ -82,10 +84,32 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     accessoires,
     extraBeslag,
     arbeidParameters,
+    keukentoestellen,
     setAccessoires,
     setExtraBeslag,
-    setArbeidParameters
+    setArbeidParameters,
+    setKeukentoestellen
   });
+
+  // Load admin toestellen pricing
+  useEffect(() => {
+    const loadToestellenPrijzen = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admin_settings')
+          .select('*')
+          .eq('key', 'keukentoestellen_prijzen')
+          .single();
+
+        if (data && !error) {
+          setToestellenPrijzen(prev => ({ ...prev, ...data.value }));
+        }
+      } catch (err) {
+        console.log('Using default toestellen prijzen');
+      }
+    };
+    loadToestellenPrijzen();
+  }, []);
 
   // Calculate totals (memoized)
   const totalen = useMemo(() => berekenTotalen(
@@ -98,7 +122,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     materials.materiaalTablet,
     materials.geselecteerdMateriaalBinnen,
     materials.geselecteerdMateriaalBuiten,
-    materials.geselecteerdMateriaalTablet
+    materials.geselecteerdMateriaalTablet,
+    productionParams
   ), [
     kabinet.kastenLijst,
     materials.rendementBinnenzijde,
@@ -109,7 +134,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     materials.materiaalTablet,
     materials.geselecteerdMateriaalBinnen,
     materials.geselecteerdMateriaalBuiten,
-    materials.geselecteerdMateriaalTablet
+    materials.geselecteerdMateriaalTablet,
+    productionParams
   ]);
 
   const arbeidUren = useMemo(() =>
@@ -118,8 +144,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+      <div className="max-w-[1800px] mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
@@ -255,6 +281,10 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             </div>
           </div>
         )}
+
+        {/* Main content + floating sidebar */}
+        <div className="flex gap-4">
+        <div className="flex-1 min-w-0">
 
         {/* Project Info */}
         <div className="bg-blue-50 p-4 rounded-lg mb-4 border-2 border-blue-200">
@@ -415,6 +445,13 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           />
         )}
 
+        {/* Keukentoestellen */}
+        <KeukentoestellenPanel
+          keukentoestellen={keukentoestellen}
+          setKeukentoestellen={setKeukentoestellen}
+          toestellenPrijzen={toestellenPrijzen}
+        />
+
         {/* Totals Overview */}
         <TotalenOverzicht
           kastenLijst={kabinet.kastenLijst}
@@ -430,6 +467,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           geselecteerdMateriaalTablet={materials.geselecteerdMateriaalTablet}
           alternatieveMateriaal={materials.alternatieveMateriaal}
           rendementBuitenzijde={materials.rendementBuitenzijde}
+          keukentoestellen={keukentoestellen}
+          toestellenPrijzen={toestellenPrijzen}
         />
 
         {/* Summary */}
@@ -488,6 +527,20 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             </div>
           </div>
         )}
+
+        </div>{/* end flex-1 main content */}
+
+        {/* Floating sidebar: cabinet list */}
+        <div className="w-72 flex-shrink-0 hidden xl:block">
+          <FloatingKastenLijst
+            kastenLijst={kabinet.kastenLijst}
+            voegZijpaneelToe={kabinet.voegZijpaneelToe}
+            kopieerKast={kabinet.kopieerKast}
+            verwijderKast={kabinet.verwijderKast}
+          />
+        </div>
+
+        </div>{/* end flex wrapper */}
       </div>
 
       {/* Notifications */}

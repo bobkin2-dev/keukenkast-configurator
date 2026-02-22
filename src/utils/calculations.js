@@ -25,7 +25,8 @@ export const berekenTotalen = (
   materiaalTablet,
   geselecteerdMateriaalBinnen,
   geselecteerdMateriaalBuiten,
-  geselecteerdMateriaalTablet
+  geselecteerdMateriaalTablet,
+  productionParams
 ) => {
   // Validate inputs
   if (!kastenLijst || !Array.isArray(kastenLijst)) {
@@ -39,7 +40,8 @@ export const berekenTotalen = (
   // Use kastCalculator for all per-cabinet calculations
   const { totalen: aggTotalen } = berekenAlleKasten(kastenLijst, {
     afvalfactorBinnen,
-    afvalfactorBuiten
+    afvalfactorBuiten,
+    productionParams
   });
 
   // Convert to flat format with plate counts
