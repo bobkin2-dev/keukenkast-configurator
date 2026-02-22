@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { defaultPlaatMaterialen, TOESTEL_TYPES, TOESTEL_TIERS, defaultToestellenPrijzen } from '../../data/defaultMaterials';
+import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL, defaultSchuifbeslagPrijzen } from '../../constants/cabinet';
 
 // Default production parameters (as of 22 feb 2026)
 const DEFAULT_PRODUCTION_PARAMS = {
@@ -15,6 +16,9 @@ const DEFAULT_PRODUCTION_PARAMS = {
     'Kolomkast': 1.35,
     'Ladekast': 1.35,
     'Vrije Kast': 1.0, // Now controlled by complexity dropdown per cabinet
+    'Vaatwasserdeur': 1.7,
+    'Onderkast Schuifdeur': 1.5,
+    'Kolomkast Schuifdeur': 1.8,
   },
   // Vrije Kast complexity levels (hours)
   vrijeKastComplexiteit: {
@@ -49,6 +53,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
 
   // Keukentoestellen prijzen state
   const [toestellenPrijzen, setToestellenPrijzen] = useState(defaultToestellenPrijzen);
+  const [schuifbeslagPrijzen, setSchuifbeslagPrijzen] = useState(defaultSchuifbeslagPrijzen);
 
   // Open Nis voorbeelden state
   const [openNisVoorbeelden, setOpenNisVoorbeelden] = useState([]);
@@ -69,6 +74,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
     if (isOpen) {
       loadSettings();
       loadToestellenPrijzen();
+      loadSchuifbeslagPrijzen();
       loadVoorbeelden();
       loadPlaatMaterialen();
     }
@@ -128,6 +134,53 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
       console.error('Error saving toestellen prijzen:', err);
       alert('Fout bij opslaan: ' + err.message);
     }
+  };
+
+  // Schuifbeslag prijzen
+  const loadSchuifbeslagPrijzen = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('key', 'schuifbeslag_prijzen')
+        .single();
+
+      if (data && !error) {
+        setSchuifbeslagPrijzen({ ...defaultSchuifbeslagPrijzen, ...data.value });
+      }
+    } catch (err) {
+      console.log('No schuifbeslag prijzen found, using defaults');
+    }
+  };
+
+  const saveSchuifbeslagPrijzen = async () => {
+    if (!isAdmin) return;
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({
+          key: 'schuifbeslag_prijzen',
+          value: schuifbeslagPrijzen,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+
+      if (error) throw error;
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Error saving schuifbeslag prijzen:', err);
+      alert('Fout bij opslaan: ' + err.message);
+    }
+  };
+
+  const updateSchuifbeslagPrijs = (categorie, key, value) => {
+    setSchuifbeslagPrijzen(prev => ({
+      ...prev,
+      [categorie]: {
+        ...prev[categorie],
+        [key]: parseFloat(value) || 0
+      }
+    }));
   };
 
   const updateToestelPrijs = (toestelId, tier, value) => {
@@ -380,6 +433,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
               { id: 'materialen', label: 'Plaat Materialen', icon: '🪵' },
               { id: 'types', label: 'Kast Types', icon: '🗄️' },
               { id: 'toestellen', label: 'Keukentoestellen', icon: '🍳' },
+              { id: 'schuifbeslag', label: 'Schuifbeslag', icon: '🚪' },
               { id: 'voorbeelden', label: 'Vrije Kast Voorbeelden', icon: '📋' }
             ].map(tab => (
               <button
@@ -696,6 +750,133 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                   className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-6 rounded-lg font-semibold"
                 >
                   Toestellen Prijzen Opslaan
+                </button>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'schuifbeslag' && (
+            <div className="space-y-6">
+              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                <h3 className="font-semibold text-teal-800 mb-2">🚪 Schuifbeslag Prijzen</h3>
+                <p className="text-sm text-teal-700">
+                  Prijzen per stuk voor schuifdeursystemen (licht = onderkast, zwaar = kolomkast) en profielen.
+                </p>
+              </div>
+
+              {/* Schuifdeursystemen */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">Schuifdeursysteem per deur</h4>
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-teal-100">
+                      <th className="border px-3 py-2 text-left">Demping</th>
+                      <th className="border px-3 py-2 text-right">Licht (onderkast)</th>
+                      <th className="border px-3 py-2 text-right">Zwaar (kolomkast)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SCHUIFDEUR_DEMPING.map(d => (
+                      <tr key={d.id} className="hover:bg-gray-50">
+                        <td className="border px-3 py-2 font-medium">{d.label}</td>
+                        <td className="border px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-gray-400 text-xs">€</span>
+                            <input type="number" step="1"
+                              value={schuifbeslagPrijzen.systeem_licht?.[d.id] || 0}
+                              onChange={(e) => updateSchuifbeslagPrijs('systeem_licht', d.id, e.target.value)}
+                              className="w-24 px-2 py-1 border rounded text-right text-sm" disabled={!isAdmin} />
+                          </div>
+                        </td>
+                        <td className="border px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-gray-400 text-xs">€</span>
+                            <input type="number" step="1"
+                              value={schuifbeslagPrijzen.systeem_zwaar?.[d.id] || 0}
+                              onChange={(e) => updateSchuifbeslagPrijs('systeem_zwaar', d.id, e.target.value)}
+                              className="w-24 px-2 py-1 border rounded text-right text-sm" disabled={!isAdmin} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Bovenprofielen */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">Bovenprofiel per kast</h4>
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-teal-100">
+                      <th className="border px-3 py-2 text-left">Maat</th>
+                      <th className="border px-3 py-2 text-right">Licht (onderkast)</th>
+                      <th className="border px-3 py-2 text-right">Zwaar (kolomkast)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SCHUIFDEUR_PROFIEL.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="border px-3 py-2 font-medium">{p.label}</td>
+                        <td className="border px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-gray-400 text-xs">€</span>
+                            <input type="number" step="1"
+                              value={schuifbeslagPrijzen.bovenprofiel_licht?.[p.id] || 0}
+                              onChange={(e) => updateSchuifbeslagPrijs('bovenprofiel_licht', p.id, e.target.value)}
+                              className="w-24 px-2 py-1 border rounded text-right text-sm" disabled={!isAdmin} />
+                          </div>
+                        </td>
+                        <td className="border px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-gray-400 text-xs">€</span>
+                            <input type="number" step="1"
+                              value={schuifbeslagPrijzen.bovenprofiel_zwaar?.[p.id] || 0}
+                              onChange={(e) => updateSchuifbeslagPrijs('bovenprofiel_zwaar', p.id, e.target.value)}
+                              className="w-24 px-2 py-1 border rounded text-right text-sm" disabled={!isAdmin} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Onderprofielen */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">Onderprofiel per kast (alleen kolomkast)</h4>
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-teal-100">
+                      <th className="border px-3 py-2 text-left">Maat</th>
+                      <th className="border px-3 py-2 text-right">Prijs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SCHUIFDEUR_PROFIEL.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="border px-3 py-2 font-medium">{p.label}</td>
+                        <td className="border px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            <span className="text-gray-400 text-xs">€</span>
+                            <input type="number" step="1"
+                              value={schuifbeslagPrijzen.onderprofiel?.[p.id] || 0}
+                              onChange={(e) => updateSchuifbeslagPrijs('onderprofiel', p.id, e.target.value)}
+                              className="w-24 px-2 py-1 border rounded text-right text-sm" disabled={!isAdmin} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {isAdmin && (
+                <button
+                  onClick={saveSchuifbeslagPrijzen}
+                  className="bg-teal-500 hover:bg-teal-600 text-white py-2 px-6 rounded-lg font-semibold"
+                >
+                  Schuifbeslag Prijzen Opslaan
                 </button>
               )}
             </div>

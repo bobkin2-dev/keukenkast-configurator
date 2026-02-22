@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 
 // Data imports
 import { defaultAccessoires, defaultExtraBeslag, defaultArbeidParameters, defaultKeukentoestellen, defaultToestellenPrijzen } from './data/defaultMaterials';
+import { defaultSchuifbeslagPrijzen } from './constants/cabinet';
 
 // Utility imports
 import { berekenTotalen, berekenArbeid } from './utils/calculations';
@@ -65,6 +66,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [arbeidParameters, setArbeidParameters] = useState(defaultArbeidParameters);
   const [keukentoestellen, setKeukentoestellen] = useState(defaultKeukentoestellen);
   const [toestellenPrijzen, setToestellenPrijzen] = useState(defaultToestellenPrijzen);
+  const [schuifbeslagPrijzen, setSchuifbeslagPrijzen] = useState(defaultSchuifbeslagPrijzen);
 
   const updateAccessoire = (field, value) => {
     setAccessoires(prev => ({ ...prev, [field]: value }));
@@ -91,24 +93,30 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setKeukentoestellen
   });
 
-  // Load admin toestellen pricing
+  // Load admin pricing (toestellen + schuifbeslag)
   useEffect(() => {
-    const loadToestellenPrijzen = async () => {
+    const loadAdminPricing = async () => {
       try {
         const { data, error } = await supabase
           .from('admin_settings')
           .select('*')
-          .eq('key', 'keukentoestellen_prijzen')
-          .single();
+          .in('key', ['keukentoestellen_prijzen', 'schuifbeslag_prijzen']);
 
         if (data && !error) {
-          setToestellenPrijzen(prev => ({ ...prev, ...data.value }));
+          data.forEach(row => {
+            if (row.key === 'keukentoestellen_prijzen') {
+              setToestellenPrijzen(prev => ({ ...prev, ...row.value }));
+            }
+            if (row.key === 'schuifbeslag_prijzen') {
+              setSchuifbeslagPrijzen(prev => ({ ...prev, ...row.value }));
+            }
+          });
         }
       } catch (err) {
-        console.log('Using default toestellen prijzen');
+        console.log('Using default admin pricing');
       }
     };
-    loadToestellenPrijzen();
+    loadAdminPricing();
   }, []);
 
   // Calculate totals (memoized)
@@ -410,6 +418,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           setLadekast={kabinet.setLadekast}
           vrijeKast={kabinet.vrijeKast}
           setVrijeKast={kabinet.setVrijeKast}
+          customKast={kabinet.customKast}
+          setCustomKast={kabinet.setCustomKast}
           huidigKast={kabinet.huidigKast}
           setHuidigKast={kabinet.setHuidigKast}
           voegKastToe={kabinet.voegKastToe}
@@ -469,6 +479,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           rendementBuitenzijde={materials.rendementBuitenzijde}
           keukentoestellen={keukentoestellen}
           toestellenPrijzen={toestellenPrijzen}
+          schuifbeslagPrijzen={schuifbeslagPrijzen}
         />
 
         {/* Summary */}

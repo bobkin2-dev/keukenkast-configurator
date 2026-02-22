@@ -57,9 +57,14 @@ export const berekenMontageUren = (kast, params) => {
     return COMPLEXITEIT_UREN[complexiteit || 'gemiddeld'] || 3;
   }
 
+  // Tablet: fixed 2u + 1u if spatwand
+  if (type === 'Tablet') {
+    return 2 + (kast.spatwand ? 1 : 0);
+  }
+
   if (!params) return 1.5; // fallback
 
-  // Standard cabinet: base montage × type multiplier
+  // Standard cabinet + custom types: base montage × type multiplier
   const typeMultiplier = params.typeMultipliers?.[type] || 1.0;
   return (params.baseMontageUren || 1.5) * typeMultiplier;
 };
@@ -96,7 +101,8 @@ export const berekenKast = (kast, options = {}) => {
   // Result structure
   const result = {
     onderdelen: [],      // Array of { naam, m2, materiaalType, vrijeKastMateriaalRef? }
-    afplakken: 0,        // linear meters of edge banding
+    afplakken: 0,        // linear meters of edge banding (standaard)
+    afplakkenSpeciaal: 0, // linear meters of edge banding (speciaal)
     kastpootjes: 0,
     scharnieren110: 0,
     scharnieren170: 0,
@@ -104,7 +110,9 @@ export const berekenKast = (kast, options = {}) => {
     ladenStandaard: 0,
     profielBK: 0,
     ophangsysteemBK: 0,
-    montageUren: 0
+    montageUren: 0,
+    schuifdeursystemen: [],  // Array of { gewicht, demping, aantal }
+    profielen: []            // Array of { type, gewicht, maat, aantal }
   };
 
   // Skip invalid dimensions
@@ -209,6 +217,158 @@ export const berekenKast = (kast, options = {}) => {
       result.afplakken += (hoogte * aantalTussensteunen) / MM_TO_M;
     }
 
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
+  // VAATWASSERDEUR
+  // ──────────────────────────────────────────────
+  if (type === 'Vaatwasserdeur') {
+    // Only 1 door panel in buitenzijde material
+    result.onderdelen.push({
+      naam: 'Vaatwasserdeur',
+      m2: (breedte * hoogte) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'buitenzijde'
+    });
+    // Edge banding around the door
+    result.afplakken = 2 * (breedte + hoogte) / MM_TO_M;
+    // 1 handle
+    result.handgrepen = 1;
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
+  // ONDERKAST SCHUIFDEUR
+  // ──────────────────────────────────────────────
+  if (type === 'Onderkast Schuifdeur') {
+    // Same structure as Onderkast but always 2 doors, no hinges, + schuifdeursysteem
+    result.onderdelen.push({
+      naam: 'Binnenkast',
+      m2: ((diepte * hoogte * (2 + aantalTussensteunen)) + (breedte * diepte * 2)) / MM2_TO_M2 * afvalfactorBinnen,
+      materiaalType: 'binnenkast'
+    });
+    result.onderdelen.push({
+      naam: 'Rug',
+      m2: (breedte * hoogte) / MM2_TO_M2 * afvalfactorBinnen,
+      materiaalType: 'rug'
+    });
+    if (aantalLeggers > 0) {
+      result.onderdelen.push({
+        naam: 'Leggers',
+        m2: (breedte * diepte * aantalLeggers) / MM2_TO_M2 * afvalfactorBinnen,
+        materiaalType: 'leggers'
+      });
+    }
+    // Always 2 doors (buitenzijde)
+    result.onderdelen.push({
+      naam: 'Schuifdeuren',
+      m2: (breedte * hoogte) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'buitenzijde'
+    });
+    // Edge banding
+    result.afplakken = (
+      (breedte * (2 + aantalLeggers)) +
+      (hoogte * (2 + aantalTussensteunen)) +
+      (hoogte * 2 * 2) + // 2 doors
+      (breedte * 2)
+    ) / MM_TO_M;
+    // No hinges, but schuifdeursysteem
+    result.kastpootjes = calculateKastpootjes(breedte);
+    result.handgrepen = 2;
+    // Schuifdeursysteem (licht)
+    result.schuifdeursystemen.push({
+      gewicht: 'licht',
+      demping: kast.schuifdeurDemping || 'geen',
+      aantal: 2
+    });
+    result.profielen.push({
+      type: 'bovenprofiel',
+      gewicht: 'licht',
+      maat: kast.schuifdeurBovenprofiel || '2_5m',
+      aantal: 1
+    });
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
+  // KOLOMKAST SCHUIFDEUR
+  // ──────────────────────────────────────────────
+  if (type === 'Kolomkast Schuifdeur') {
+    // Same structure as Kolomkast but always 2 doors, no hinges, + zwaar schuifdeursysteem + onderprofiel
+    result.onderdelen.push({
+      naam: 'Binnenkast',
+      m2: ((diepte * hoogte * (2 + aantalTussensteunen)) + (breedte * diepte * 2)) / MM2_TO_M2 * afvalfactorBinnen,
+      materiaalType: 'binnenkast'
+    });
+    result.onderdelen.push({
+      naam: 'Rug',
+      m2: (breedte * hoogte) / MM2_TO_M2 * afvalfactorBinnen,
+      materiaalType: 'rug'
+    });
+    if (aantalLeggers > 0) {
+      result.onderdelen.push({
+        naam: 'Leggers',
+        m2: (breedte * diepte * aantalLeggers) / MM2_TO_M2 * afvalfactorBinnen,
+        materiaalType: 'leggers'
+      });
+    }
+    // Always 2 doors (buitenzijde)
+    result.onderdelen.push({
+      naam: 'Schuifdeuren',
+      m2: (breedte * hoogte) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'buitenzijde'
+    });
+    // Edge banding
+    result.afplakken = (
+      (breedte * (2 + aantalLeggers)) +
+      (hoogte * (2 + aantalTussensteunen)) +
+      (hoogte * 2 * 2) + // 2 doors
+      (breedte * 2)
+    ) / MM_TO_M;
+    // No hinges, but zwaar schuifdeursysteem + onderprofiel
+    result.kastpootjes = calculateKastpootjes(breedte);
+    result.handgrepen = 2;
+    // Schuifdeursysteem (zwaar)
+    result.schuifdeursystemen.push({
+      gewicht: 'zwaar',
+      demping: kast.schuifdeurDemping || 'geen',
+      aantal: 2
+    });
+    result.profielen.push({
+      type: 'bovenprofiel',
+      gewicht: 'zwaar',
+      maat: kast.schuifdeurBovenprofiel || '2_5m',
+      aantal: 1
+    });
+    result.profielen.push({
+      type: 'onderprofiel',
+      gewicht: 'zwaar',
+      maat: kast.schuifdeurOnderprofiel || '2_5m',
+      aantal: 1
+    });
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
+  // TABLET
+  // ──────────────────────────────────────────────
+  if (type === 'Tablet') {
+    // Only OK plate in tablet material
+    result.onderdelen.push({
+      naam: 'Tablet',
+      m2: (breedte * diepte) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'tablet'
+    });
+    // Edge banding is SPECIAAL (not standaard)
+    result.afplakkenSpeciaal = 2 * (breedte + diepte) / MM_TO_M;
+    // Optional spatwand (back panel in buitenzijde)
+    if (kast.spatwand) {
+      result.onderdelen.push({
+        naam: 'Spatwand',
+        m2: (breedte * hoogte) / MM2_TO_M2 * afvalfactorBuiten,
+        materiaalType: 'buitenzijde'
+      });
+    }
     return result;
   }
 
@@ -362,6 +522,7 @@ const aggregeerTotalen = (perKast) => {
 
     // Sum accessories
     totalen.afplakken += result.afplakken;
+    totalen.afplakkenSpeciaal += result.afplakkenSpeciaal || 0;
     totalen.kastpootjes += result.kastpootjes;
     totalen.scharnieren110 += result.scharnieren110;
     totalen.scharnieren170 += result.scharnieren170;
@@ -370,6 +531,30 @@ const aggregeerTotalen = (perKast) => {
     totalen.profielBK += result.profielBK;
     totalen.ophangsysteemBK += result.ophangsysteemBK;
     totalen.montageUren += result.montageUren;
+
+    // Aggregate schuifdeursystemen
+    (result.schuifdeursystemen || []).forEach(s => {
+      const existing = totalen.schuifdeursystemen.find(
+        e => e.gewicht === s.gewicht && e.demping === s.demping
+      );
+      if (existing) {
+        existing.aantal += s.aantal;
+      } else {
+        totalen.schuifdeursystemen.push({ ...s });
+      }
+    });
+
+    // Aggregate profielen
+    (result.profielen || []).forEach(p => {
+      const existing = totalen.profielen.find(
+        e => e.type === p.type && e.gewicht === p.gewicht && e.maat === p.maat
+      );
+      if (existing) {
+        existing.aantal += p.aantal;
+      } else {
+        totalen.profielen.push({ ...p });
+      }
+    });
   });
 
   return totalen;
@@ -379,9 +564,10 @@ const aggregeerTotalen = (perKast) => {
  * Create an empty totals object
  */
 const emptyTotalen = () => ({
-  m2PerType: {},                // { binnenkast: x, rug: x, leggers: x, buitenzijde: x, vrijeKast: x }
+  m2PerType: {},                // { binnenkast: x, rug: x, leggers: x, buitenzijde: x, tablet: x, vrijeKast: x }
   m2VrijeKastPerMateriaal: {},  // { [materiaalRef]: m2 } - grouped by material id (or legacy index)
   afplakken: 0,
+  afplakkenSpeciaal: 0,
   kastpootjes: 0,
   scharnieren110: 0,
   scharnieren170: 0,
@@ -390,7 +576,9 @@ const emptyTotalen = () => ({
   ladenGoedkoper: 0,
   profielBK: 0,
   ophangsysteemBK: 0,
-  montageUren: 0
+  montageUren: 0,
+  schuifdeursystemen: [],       // Aggregated: [{ gewicht, demping, aantal }]
+  profielen: []                 // Aggregated: [{ type, gewicht, maat, aantal }]
 });
 
 /**
@@ -421,7 +609,7 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
   const m2Rug = aggTotalen.m2PerType.rug || 0;
   const m2Leggers = aggTotalen.m2PerType.leggers || 0;
   const m2Buitenzijde = aggTotalen.m2PerType.buitenzijde || 0;
-  const m2Tablet = 0; // Regular tablets not yet implemented
+  const m2Tablet = aggTotalen.m2PerType.tablet || 0;
 
   const flat = {
     m2Binnenkast,
@@ -430,7 +618,7 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
     m2Buitenzijde,
     m2Tablet,
     kantenbandStandaard: aggTotalen.afplakken,
-    kantenbandSpeciaal: 0,
+    kantenbandSpeciaal: aggTotalen.afplakkenSpeciaal || 0,
     kastpootjes: aggTotalen.kastpootjes,
     scharnieren110: aggTotalen.scharnieren110,
     scharnieren170: aggTotalen.scharnieren170,
@@ -439,7 +627,9 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
     ladenStandaard: aggTotalen.ladenStandaard,
     ladenGoedkoper: aggTotalen.ladenGoedkoper || 0,
     handgrepen: aggTotalen.handgrepen,
-    montageUren: aggTotalen.montageUren
+    montageUren: aggTotalen.montageUren,
+    schuifdeursystemen: aggTotalen.schuifdeursystemen || [],
+    profielen: aggTotalen.profielen || []
   };
 
   // ── Plate counts ──
@@ -497,7 +687,12 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
   const m2PPBuiten = m2PerPlaat(buitenMat);
   flat.platenBuitenzijde = m2PPBuiten > 0 ? Math.ceil(m2Buitenzijde / m2PPBuiten) : 0;
 
-  // Vrije Kast plates (grouped by material reference)
+  // Tablet plates (from Tablet cabinet type)
+  const tabletMat = getMat(materiaalTablet, geselecteerdMateriaalTablet);
+  const m2PPTablet = m2PerPlaat(tabletMat);
+  flat.platenTablet = m2PPTablet > 0 ? Math.ceil(m2Tablet / m2PPTablet) : 0;
+
+  // Vrije Kast plates (grouped by material reference) - added as extra platen
   let totaalPlatenVrijeKast = 0;
   Object.entries(aggTotalen.m2VrijeKastPerMateriaal || {}).forEach(([matRef, m2]) => {
     const mat = findVrijeKastMat(parseInt(matRef) || matRef);
@@ -508,7 +703,7 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
       }
     }
   });
-  flat.platenTablet = totaalPlatenVrijeKast;
+  flat.platenTablet += totaalPlatenVrijeKast;
 
   return flat;
 };

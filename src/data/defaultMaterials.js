@@ -97,6 +97,25 @@ export const defaultVrijeKast = {
 // Backward compatibility alias
 export const defaultOpenNisHPL = defaultVrijeKast;
 
+// Default custom cabinet configurations
+export const defaultCustomKast = {
+  type: 'Vaatwasserdeur',
+  hoogte: 700,
+  breedte: 605,
+  diepte: 600,
+  aantalLeggers: 0,
+  aantalLades: 0,
+  aantalDeuren: 2,
+  aantalTussensteunen: 0,
+  isOpen: false,
+  // Schuifdeur options (for Onderkast/Kolomkast Schuifdeur)
+  schuifdeurDemping: 'geen',
+  schuifdeurBovenprofiel: '2_5m',
+  schuifdeurOnderprofiel: '2_5m',
+  // Tablet options
+  spatwand: false,
+};
+
 // Default accessoires
 export const defaultAccessoires = {
   afplakkenStandaard: 1.5,

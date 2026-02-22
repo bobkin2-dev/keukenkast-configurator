@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
+import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 
 const TotalenOverzicht = ({
   kastenLijst,
@@ -15,7 +16,8 @@ const TotalenOverzicht = ({
   geselecteerdMateriaalTablet,
   alternatieveMateriaal,
   keukentoestellen = {},
-  toestellenPrijzen = {}
+  toestellenPrijzen = {},
+  schuifbeslagPrijzen = {}
 }) => {
   // State for extra amounts (manual additions)
   const [extraAmounts, setExtraAmounts] = useState({});
@@ -540,6 +542,68 @@ const TotalenOverzicht = ({
                   <tr className="border-t-2 border-gray-300 font-bold">
                     <td className="py-1" colSpan={5}>Totaal Keukentoestellen</td>
                     <td className="py-1 text-right text-green-800">€{totaalToestellen.toFixed(0)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
+        {/* Schuifdeursystemen */}
+        {(() => {
+          const systemen = totalen.schuifdeursystemen || [];
+          const profielen = totalen.profielen || [];
+          if (systemen.length === 0 && profielen.length === 0) return null;
+
+          const getDempingLabel = (id) => SCHUIFDEUR_DEMPING.find(d => d.id === id)?.label || id;
+          const getProfielLabel = (id) => SCHUIFDEUR_PROFIEL.find(p => p.id === id)?.label || id;
+
+          let totaalSchuifbeslag = 0;
+
+          return (
+            <div className="bg-white p-3 rounded border">
+              <h3 className="font-semibold text-gray-700 mb-2 text-sm">🚪 Schuifdeursystemen</h3>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b">
+                    <th className="py-1 text-left">Item</th>
+                    <th className="py-1 text-center">Aantal</th>
+                    <th className="py-1 text-right">Prijs/st</th>
+                    <th className="py-1 text-right">Totaal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {systemen.map((s, i) => {
+                    const prijsKey = `systeem_${s.gewicht}`;
+                    const prijs = schuifbeslagPrijzen[prijsKey]?.[s.demping] || 0;
+                    const subtotaal = s.aantal * prijs;
+                    totaalSchuifbeslag += subtotaal;
+                    return (
+                      <tr key={`sys-${i}`} className="border-b border-gray-100">
+                        <td className="py-1">Schuifdeursysteem {getDempingLabel(s.demping)} ({s.gewicht})</td>
+                        <td className="py-1 text-center">{s.aantal}</td>
+                        <td className="py-1 text-right font-mono">{prijs > 0 ? `€${prijs.toFixed(0)}` : '-'}</td>
+                        <td className="py-1 text-right font-bold text-green-700">{subtotaal > 0 ? `€${subtotaal.toFixed(0)}` : '-'}</td>
+                      </tr>
+                    );
+                  })}
+                  {profielen.map((p, i) => {
+                    const prijsKey = p.type === 'onderprofiel' ? 'onderprofiel' : `bovenprofiel_${p.gewicht}`;
+                    const prijs = schuifbeslagPrijzen[prijsKey]?.[p.maat] || 0;
+                    const subtotaal = p.aantal * prijs;
+                    totaalSchuifbeslag += subtotaal;
+                    return (
+                      <tr key={`prof-${i}`} className="border-b border-gray-100">
+                        <td className="py-1">{p.type === 'onderprofiel' ? 'Onderprofiel' : 'Bovenprofiel'} {getProfielLabel(p.maat)} ({p.gewicht})</td>
+                        <td className="py-1 text-center">{p.aantal}</td>
+                        <td className="py-1 text-right font-mono">{prijs > 0 ? `€${prijs.toFixed(0)}` : '-'}</td>
+                        <td className="py-1 text-right font-bold text-green-700">{subtotaal > 0 ? `€${subtotaal.toFixed(0)}` : '-'}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="border-t-2 border-gray-300 font-bold">
+                    <td className="py-1" colSpan={3}>Totaal Schuifbeslag</td>
+                    <td className="py-1 text-right text-green-800">€{totaalSchuifbeslag.toFixed(0)}</td>
                   </tr>
                 </tbody>
               </table>

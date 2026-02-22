@@ -4,7 +4,8 @@ import {
   defaultKolomkast,
   defaultOnderkast,
   defaultLadekast,
-  defaultVrijeKast
+  defaultVrijeKast,
+  defaultCustomKast
 } from '../data/defaultMaterials';
 
 export const useKabinet = ({ initialData, addNotification }) => {
@@ -31,6 +32,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
   const [onderkast, setOnderkast] = useState(defaultOnderkast);
   const [ladekast, setLadekast] = useState(defaultLadekast);
   const [vrijeKast, setVrijeKast] = useState(defaultVrijeKast);
+  const [customKast, setCustomKast] = useState(defaultCustomKast);
 
   // Add cabinet function
   const voegKastToe = useCallback((kastData) => {
@@ -114,6 +116,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
     onderkast, setOnderkast,
     ladekast, setLadekast,
     vrijeKast, setVrijeKast,
+    customKast, setCustomKast,
     voegKastToe,
     voegZijpaneelToe,
     voegZijpaneelToeVoorType,
