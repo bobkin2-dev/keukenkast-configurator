@@ -227,12 +227,13 @@ const VrijeKastConfigurator = ({
   const selectedMatId = displayKast.vrijeKastMateriaalId;
 
   return (
-    <div className="bg-white p-4 rounded-lg border-2 border-pink-200 shadow-md">
+    <div className="bg-white p-3 rounded-lg border-2 border-pink-200 shadow-md">
       <h3 className="text-sm font-bold text-gray-800 mb-2">Vrije Kast</h3>
 
-      <div>
+      <div className="flex gap-3">
+        <div className="flex-1 space-y-2">
           {/* Custom name */}
-          <div className="mb-2">
+          <div>
             <input
               type="text"
               placeholder="Naam (optioneel)"
@@ -243,7 +244,7 @@ const VrijeKastConfigurator = ({
           </div>
 
           {/* Dimensions */}
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-3 gap-2">
             {[
               { field: 'hoogte', label: 'Hoogte (mm)' },
               { field: 'breedte', label: 'Breedte (mm)' },
@@ -261,13 +262,13 @@ const VrijeKastConfigurator = ({
             ))}
           </div>
 
-          {/* Material selection - shows ALL plaatMaterialen, stores material id */}
-          <div className="mb-2">
+          {/* Material selection */}
+          <div>
             <label className="text-xs text-gray-600 block mb-1">Materiaal</label>
             <select
               value={selectedMatId ?? ''}
               onChange={(e) => updateField('vrijeKastMateriaalId', e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-2 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
             >
               <option value="">-- Kies materiaal --</option>
               {plaatMaterialen.map((mat) => (
@@ -279,12 +280,12 @@ const VrijeKastConfigurator = ({
           </div>
 
           {/* Complexity selection */}
-          <div className="mb-2">
+          <div>
             <label className="text-xs text-gray-600 block mb-1">Complexiteit (montage uren)</label>
             <select
               value={displayKast.complexiteit || 'gemiddeld'}
               onChange={(e) => updateField('complexiteit', e.target.value)}
-              className="w-full px-2 py-2 border border-gray-300 rounded-md text-sm bg-orange-50"
+              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm bg-orange-50"
             >
               {complexiteitOpties.map((optie) => (
                 <option key={optie.key} value={optie.key}>
@@ -295,7 +296,7 @@ const VrijeKastConfigurator = ({
           </div>
 
           {/* Parts selection */}
-          <div className="mb-2">
+          <div>
             <label className="text-xs text-gray-600 block mb-1">Onderdelen</label>
             <div className="grid grid-cols-5 gap-2">
               {['LZ', 'RZ', 'BK', 'OK', 'RUG'].map(onderdeel => (
@@ -313,7 +314,7 @@ const VrijeKastConfigurator = ({
           </div>
 
           {/* Counters */}
-          <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="grid grid-cols-2 gap-2">
             {[
               { field: 'aantalLeggers', label: 'Leggers' },
               { field: 'aantalTussensteunen', label: 'Steunen' },
@@ -345,6 +346,9 @@ const VrijeKastConfigurator = ({
               Zijpaneel
             </button>
           </div>
+        </div>
+
+        <VrijeKastPreview kast={displayKast} />
       </div>
     </div>
   );
@@ -404,90 +408,76 @@ const CustomKastConfigurator = ({
     : [{ field: 'hoogte', label: 'Hoogte (mm)' }, { field: 'breedte', label: 'Breedte (mm)' }, { field: 'diepte', label: 'Diepte (mm)' }];
 
   return (
-    <div className={`${styles.bg} p-4 rounded-lg border-2 ${styles.border} shadow-md`}>
+    <div className={`${styles.bg} p-3 rounded-lg border-2 ${styles.border} shadow-md`}>
       <h3 className="text-sm font-bold text-gray-800 mb-2">Custom Kast</h3>
 
-      {/* Type selector */}
-      <div className="mb-2">
-        <select
-          value={selectedType}
-          onChange={(e) => switchType(e.target.value)}
-          className="w-full px-2 py-2 border border-gray-300 rounded-md text-sm font-semibold"
-        >
-          {CUSTOM_CABINET_TYPES.map(t => (
-            <option key={t.id} value={t.id}>{t.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Dimensions */}
-      <div className={`grid grid-cols-${dimensionFields.length} gap-2 mb-2`}>
-        {dimensionFields.map(({ field, label }) => (
-          <div key={field}>
-            <label className="text-xs text-gray-600">{label}</label>
-            <input
-              type="number"
-              value={customKast[field] || 0}
-              onChange={(e) => updateField(field, parseInt(e.target.value) || 0)}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Schuifdeur options */}
-      {isSchuifdeur && (
-        <div className="space-y-2 mb-2">
-          {/* Counters for leggers/steunen */}
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { field: 'aantalLeggers', label: 'Leggers' },
-              { field: 'aantalTussensteunen', label: 'Steunen' },
-            ].map(({ field, label }) => (
-              <Counter
-                key={field}
-                label={label}
-                value={customKast[field] || 0}
-                onChange={(val) => updateField(field, val)}
-                onIncrement={() => incrementField(field)}
-                onDecrement={() => decrementField(field)}
-              />
+      <div className="space-y-2">
+        {/* Type selector */}
+        <div>
+          <select
+            value={selectedType}
+            onChange={(e) => switchType(e.target.value)}
+            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm font-semibold"
+          >
+            {CUSTOM_CABINET_TYPES.map(t => (
+              <option key={t.id} value={t.id}>{t.label}</option>
             ))}
-          </div>
+          </select>
+        </div>
 
-          <div>
-            <label className="text-xs text-gray-600 block mb-1">Demping schuifdeursysteem</label>
-            <select
-              value={customKast.schuifdeurDemping || 'geen'}
-              onChange={(e) => updateField('schuifdeurDemping', e.target.value)}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
-            >
-              {SCHUIFDEUR_DEMPING.map(d => (
-                <option key={d.id} value={d.id}>{d.label}</option>
+        {/* Dimensions */}
+        <div className={`grid grid-cols-${dimensionFields.length} gap-2`}>
+          {dimensionFields.map(({ field, label }) => (
+            <div key={field}>
+              <label className="text-xs text-gray-600">{label}</label>
+              <input
+                type="number"
+                value={customKast[field] || 0}
+                onChange={(e) => updateField(field, parseInt(e.target.value) || 0)}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Schuifdeur options */}
+        {isSchuifdeur && (
+          <>
+            {/* Counters for leggers/steunen */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { field: 'aantalLeggers', label: 'Leggers' },
+                { field: 'aantalTussensteunen', label: 'Steunen' },
+              ].map(({ field, label }) => (
+                <Counter
+                  key={field}
+                  label={label}
+                  value={customKast[field] || 0}
+                  onChange={(val) => updateField(field, val)}
+                  onIncrement={() => incrementField(field)}
+                  onDecrement={() => decrementField(field)}
+                />
               ))}
-            </select>
-          </div>
+            </div>
 
-          <div>
-            <label className="text-xs text-gray-600 block mb-1">Bovenprofiel</label>
-            <select
-              value={customKast.schuifdeurBovenprofiel || '2_5m'}
-              onChange={(e) => updateField('schuifdeurBovenprofiel', e.target.value)}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
-            >
-              {SCHUIFDEUR_PROFIEL.map(p => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Onderprofiel only for Kolomkast Schuifdeur */}
-          {selectedType === 'Kolomkast Schuifdeur' && (
             <div>
-              <label className="text-xs text-gray-600 block mb-1">Onderprofiel</label>
+              <label className="text-xs text-gray-600 block mb-1">Demping schuifdeursysteem</label>
               <select
-                value={customKast.schuifdeurOnderprofiel || '2_5m'}
-                onChange={(e) => updateField('schuifdeurOnderprofiel', e.target.value)}
+                value={customKast.schuifdeurDemping || 'geen'}
+                onChange={(e) => updateField('schuifdeurDemping', e.target.value)}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                {SCHUIFDEUR_DEMPING.map(d => (
+                  <option key={d.id} value={d.id}>{d.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-600 block mb-1">Bovenprofiel</label>
+              <select
+                value={customKast.schuifdeurBovenprofiel || '2_5m'}
+                onChange={(e) => updateField('schuifdeurBovenprofiel', e.target.value)}
                 className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
               >
                 {SCHUIFDEUR_PROFIEL.map(p => (
@@ -495,39 +485,55 @@ const CustomKastConfigurator = ({
                 ))}
               </select>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* Tablet: spatwand checkbox */}
-      {isTablet && (
-        <div className="mb-2">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              checked={customKast.spatwand || false}
-              onChange={(e) => updateField('spatwand', e.target.checked)}
-              className="rounded"
-            />
-            Spatwand (+1u, in buitenzijde materiaal)
-          </label>
-        </div>
-      )}
+            {/* Onderprofiel only for Kolomkast Schuifdeur */}
+            {selectedType === 'Kolomkast Schuifdeur' && (
+              <div>
+                <label className="text-xs text-gray-600 block mb-1">Onderprofiel</label>
+                <select
+                  value={customKast.schuifdeurOnderprofiel || '2_5m'}
+                  onChange={(e) => updateField('schuifdeurOnderprofiel', e.target.value)}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+                >
+                  {SCHUIFDEUR_PROFIEL.map(p => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </>
+        )}
 
-      {/* Buttons */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => voegKastToe({ ...customKast })}
-          className={`${styles.button} text-white px-3 py-2 rounded-md font-semibold text-sm`}
-        >
-          + Toevoegen
-        </button>
-        <button
-          onClick={() => voegZijpaneelToeVoorType(selectedType, customKast)}
-          className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-md font-semibold text-sm"
-        >
-          Zijpaneel
-        </button>
+        {/* Tablet: spatwand checkbox */}
+        {isTablet && (
+          <div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={customKast.spatwand || false}
+                onChange={(e) => updateField('spatwand', e.target.checked)}
+                className="rounded"
+              />
+              Spatwand (+1u, in buitenzijde materiaal)
+            </label>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => voegKastToe({ ...customKast })}
+            className={`${styles.button} text-white px-3 py-2 rounded-md font-semibold text-sm`}
+          >
+            + Toevoegen
+          </button>
+          <button
+            onClick={() => voegZijpaneelToeVoorType(selectedType, customKast)}
+            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-md font-semibold text-sm"
+          >
+            Zijpaneel
+          </button>
+        </div>
       </div>
     </div>
   );
