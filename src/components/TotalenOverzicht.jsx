@@ -42,7 +42,8 @@ const TotalenOverzicht = ({
   customBeslag = [],
   setCustomBeslag,
   tabletsteun = { type: '', aantal: 0 },
-  setTabletsteun
+  setTabletsteun,
+  exportPDFRef
 }) => {
   // State for library modal
   const [showBibliotheek, setShowBibliotheek] = useState(false);
@@ -248,17 +249,12 @@ const TotalenOverzicht = ({
     generateOffertePDF({ projectInfo, groupInfo, kastenLijst, plaatMaterialen, arbeidRows, plaatRows, kantenbandRows, beslagRows, toestellenRows, schuifdeurRows, grandTotal });
   };
 
+  // Expose export function to sidebar via ref
+  if (exportPDFRef) exportPDFRef.current = handleExportPDF;
+
   return (
     <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-bold text-gray-800">Totaallijst Materialen & Arbeid</h2>
-        <button
-          onClick={handleExportPDF}
-          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium flex items-center gap-1.5"
-        >
-          PDF Offerte
-        </button>
-      </div>
+      <h2 className="text-lg font-bold text-gray-800 mb-3">Totaallijst Materialen & Arbeid</h2>
 
       <div className="space-y-3">
         {/* Labor */}

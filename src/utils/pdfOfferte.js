@@ -42,7 +42,23 @@ export const generateOffertePDF = ({
 
   // ====== Title block (reused on multiple pages) ======
   const today = new Date();
-  const drawTitleBlock = () => {
+  const drawTitleBlock = (compact = false) => {
+    if (compact) {
+      // Compact: single line with group, project, meubelnummer, date
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      const parts = [groupInfo?.naam, `Project: ${projectInfo.project || 'Naamloos'}`];
+      if (projectInfo.meubelnummer) parts.push(`Meubel: ${projectInfo.meubelnummer}`);
+      if (groupInfo?.klant) parts.push(`Klant: ${groupInfo.klant}`);
+      doc.text(parts.join('  |  '), margin, y + 4);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(120);
+      doc.text(today.toLocaleDateString('nl-BE'), pageWidth - margin, y + 4, { align: 'right' });
+      doc.setTextColor(0);
+      y += 8;
+      return;
+    }
+
     if (groupInfo?.naam) {
       doc.setFontSize(18);
       doc.setFont(undefined, 'bold');
@@ -125,30 +141,30 @@ export const generateOffertePDF = ({
   // ====== PAGE 2: Totaallijst Materialen & Arbeid ======
   doc.addPage();
   y = margin;
-  drawTitleBlock();
+  drawTitleBlock(true);
 
-  doc.setFontSize(14);
+  doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.text('Totaallijst Materialen & Arbeid', margin, y + 5);
-  y += 12;
+  doc.text('Totaallijst Materialen & Arbeid', margin, y + 4);
+  y += 7;
 
   // Reusable: add a section with title + table
   const DIM_COLOR = [180, 180, 180];
   const addSection = (title, head, body, colStyles = {}, zeroRows = []) => {
     if (body.length === 0) return;
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
-    doc.text(title, margin, y + 4);
-    y += 6;
+    doc.text(title, margin, y + 3);
+    y += 4;
 
     autoTable(doc, {
       startY: y,
       head: [head],
       body,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 8, cellPadding: 1.5 },
-      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: 255, fontStyle: 'bold', fontSize: 7 },
+      styles: { fontSize: 7, cellPadding: 1 },
+      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: 255, fontStyle: 'bold', fontSize: 6.5 },
       columnStyles: colStyles,
       willDrawCell: (data) => {
         if (data.section === 'body' && zeroRows[data.row.index]) {
@@ -157,7 +173,7 @@ export const generateOffertePDF = ({
         }
       },
     });
-    y = doc.lastAutoTable.finalY + 6;
+    y = doc.lastAutoTable.finalY + 3;
   };
 
   // --- Arbeid ---

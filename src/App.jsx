@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 // Data imports
 import { defaultAccessoires, defaultExtraBeslag, defaultArbeidParameters, defaultKeukentoestellen, defaultToestellenPrijzen } from './data/defaultMaterials';
@@ -75,6 +75,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [arbeidOverrides, setArbeidOverrides] = useState({});
   const [customBeslag, setCustomBeslag] = useState([]);
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
+  const exportPDFRef = useRef(null);
 
   const updateAccessoire = (field, value) => {
     setAccessoires(prev => ({ ...prev, [field]: value }));
@@ -507,6 +508,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           setCustomBeslag={setCustomBeslag}
           tabletsteun={tabletsteun}
           setTabletsteun={setTabletsteun}
+          exportPDFRef={exportPDFRef}
         />
 
         {/* Summary */}
@@ -572,19 +574,27 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         <div className="w-72 flex-shrink-0 hidden xl:block">
           <div className="sticky top-6 space-y-3">
             {projectId && (
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className={`w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 ${
-                  isSaving
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : hasUnsavedChanges
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
-              >
-                {isSaving ? '💾 Opslaan...' : '💾 Opslaan'}
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className={`w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 ${
+                    isSaving
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : hasUnsavedChanges
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  }`}
+                >
+                  {isSaving ? '💾 Opslaan...' : '💾 Opslaan'}
+                </button>
+                <button
+                  onClick={() => exportPDFRef.current?.()}
+                  className="w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  📄 PDF Offerte
+                </button>
+              </div>
             )}
             <FloatingKastenLijst
               kastenLijst={kabinet.kastenLijst}
