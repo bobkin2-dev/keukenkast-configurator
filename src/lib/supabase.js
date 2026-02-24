@@ -86,7 +86,7 @@ export const db = {
   getProject: async (projectId) => {
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('*')
+      .select('*, project_groups(naam, klant)')
       .eq('id', projectId)
       .single();
 

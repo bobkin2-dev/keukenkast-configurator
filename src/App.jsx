@@ -53,6 +53,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     project: initialData?.name || '',
     meubelnummer: initialData?.meubelnummer || ''
   });
+  const groupInfo = initialData?.project_groups || null;
 
   // UI toggles
   const [toonRendementParameters, setToonRendementParameters] = useState(false);
@@ -67,6 +68,13 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [toestellenPrijzen, setToestellenPrijzen] = useState(defaultToestellenPrijzen);
   const [schuifbeslagPrijzen, setSchuifbeslagPrijzen] = useState(defaultSchuifbeslagPrijzen);
   const [beslagBibliotheek, setBeslagBibliotheek] = useState([]);
+
+  // Totalen overrides (persisted with project)
+  const [extraAmounts, setExtraAmounts] = useState({});
+  const [priceOverrides, setPriceOverrides] = useState({});
+  const [arbeidOverrides, setArbeidOverrides] = useState({});
+  const [customBeslag, setCustomBeslag] = useState([]);
+  const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
 
   const updateAccessoire = (field, value) => {
     setAccessoires(prev => ({ ...prev, [field]: value }));
@@ -87,10 +95,20 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     extraBeslag,
     arbeidParameters,
     keukentoestellen,
+    extraAmounts,
+    priceOverrides,
+    arbeidOverrides,
+    customBeslag,
+    tabletsteun,
     setAccessoires,
     setExtraBeslag,
     setArbeidParameters,
-    setKeukentoestellen
+    setKeukentoestellen,
+    setExtraAmounts,
+    setPriceOverrides,
+    setArbeidOverrides,
+    setCustomBeslag,
+    setTabletsteun
   });
 
   // Load admin pricing (toestellen + schuifbeslag)
@@ -477,6 +495,18 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           plaatMaterialen={materials.plaatMaterialen}
           beslagBibliotheek={beslagBibliotheek}
           onSaveBeslagBibliotheek={saveBeslagBibliotheek}
+          projectInfo={projectInfo}
+          groupInfo={groupInfo}
+          extraAmounts={extraAmounts}
+          setExtraAmounts={setExtraAmounts}
+          priceOverrides={priceOverrides}
+          setPriceOverrides={setPriceOverrides}
+          arbeidOverrides={arbeidOverrides}
+          setArbeidOverrides={setArbeidOverrides}
+          customBeslag={customBeslag}
+          setCustomBeslag={setCustomBeslag}
+          tabletsteun={tabletsteun}
+          setTabletsteun={setTabletsteun}
         />
 
         {/* Summary */}

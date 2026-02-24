@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 import BeslagBibliotheekModal from './BeslagBibliotheekModal';
+import { generateOffertePDF } from '../utils/pdfOfferte';
 
 const TABLETSTEUN_TYPES = [
   { id: '287.45.459', label: 'Hafele 287.45.459 — 380 mm', prijs: 29.19 },
@@ -29,18 +30,20 @@ const TotalenOverzicht = ({
   schuifbeslagPrijzen = {},
   plaatMaterialen = [],
   beslagBibliotheek = [],
-  onSaveBeslagBibliotheek
+  onSaveBeslagBibliotheek,
+  projectInfo = {},
+  groupInfo = null,
+  extraAmounts = {},
+  setExtraAmounts,
+  priceOverrides = {},
+  setPriceOverrides,
+  arbeidOverrides = {},
+  setArbeidOverrides,
+  customBeslag = [],
+  setCustomBeslag,
+  tabletsteun = { type: '', aantal: 0 },
+  setTabletsteun
 }) => {
-  // State for extra amounts (manual additions)
-  const [extraAmounts, setExtraAmounts] = useState({});
-  // State for price overrides
-  const [priceOverrides, setPriceOverrides] = useState({});
-  // State for arbeid (work hours) overrides
-  const [arbeidOverrides, setArbeidOverrides] = useState({});
-  // State for custom meubelbeslag lines
-  const [customBeslag, setCustomBeslag] = useState([]);
-  // State for tabletsteun
-  const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
   // State for library modal
   const [showBibliotheek, setShowBibliotheek] = useState(false);
 
@@ -132,9 +135,132 @@ const TotalenOverzicht = ({
     (materiaalTablet[geselecteerdMateriaalTablet].hoogte / 1000) *
     materiaalTablet[geselecteerdMateriaalTablet].prijs;
 
+  // --- PDF Export ---
+  const handleExportPDF = () => {
+    const eff = (key, aantal, defaultPrijs, decimals) => {
+      const overridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+      const effectiefAantal = overridden ? extraAmounts[key] : aantal;
+      const effectiefPrijs = getOverride(key, defaultPrijs);
+      return { effectiefAantal, effectiefPrijs, aantalDisplay: decimals ? effectiefAantal.toFixed(decimals) : String(effectiefAantal) };
+    };
+
+    // Arbeid
+    const arbeidRows = [
+      { key: 'tekenwerk', label: 'Tekenwerk', defaultPrijs: 60 },
+      { key: 'montageWerkhuis', label: 'Montage werkhuis', defaultPrijs: 40 },
+      { key: 'plaatsing', label: 'Plaatsing', defaultPrijs: 40 },
+      { key: 'transport', label: 'Transport', defaultPrijs: 40 },
+    ].map(({ key, label, defaultPrijs }) => {
+      const uren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
+      const prijs = getOverride(`arbeid_${key}`, defaultPrijs);
+      return { label, uren, prijs, totaal: uren * prijs };
+    });
+
+    // Plaatmateriaal
+    const plaatDefs = [
+      { key: 'binnenkast', label: 'Binnenkast', aantal: totalen.platenBinnenkast, info: `${materiaalBinnenkast[geselecteerdMateriaalBinnen].naam} - ${materiaalBinnenkast[geselecteerdMateriaalBinnen].afmeting} mm`, defaultPlaatPrijs: binnenPlaatPrijs },
+      { key: 'rug', label: 'Rug', aantal: totalen.platenRug, info: alternatieveMateriaal.ruggenGebruiken ? materiaalBinnenkast[alternatieveMateriaal.ruggenMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
+      { key: 'leggers', label: 'Leggers', aantal: totalen.platenLeggers, info: alternatieveMateriaal.leggersGebruiken ? materiaalBinnenkast[alternatieveMateriaal.leggersMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
+      { key: 'buitenzijde', label: 'Buitenzijde', aantal: totalen.platenBuitenzijde, info: `${materiaalBuitenzijde[geselecteerdMateriaalBuiten].naam} - ${materiaalBuitenzijde[geselecteerdMateriaalBuiten].afmeting} mm`, defaultPlaatPrijs: buitenPlaatPrijs },
+      { key: 'tablet', label: 'Tablet', aantal: totalen.platenTablet, info: `${materiaalTablet[geselecteerdMateriaalTablet].naam} - ${materiaalTablet[geselecteerdMateriaalTablet].afmeting} mm`, defaultPlaatPrijs: tabletPlaatPrijs },
+      ...Object.entries(totalen.platenVrijeKast || {}).map(([matRef, { platen, mat }]) => ({
+        key: `vrijeKast_${matRef}`, label: 'Vrije Kast', aantal: platen,
+        info: `${mat.naam || 'Onbekend'} - ${mat.afmeting || `${mat.breedte}x${mat.hoogte}`} mm`,
+        defaultPlaatPrijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
+      })),
+    ];
+    const plaatRows = plaatDefs.map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
+      const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPlaatPrijs);
+      return { label, info, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs };
+    }).filter(r => r.aantal > 0);
+
+    // Kantenband
+    const kantenbandRows = [
+      { key: 'kantenbandStd', label: 'Standaard', aantal: totalen.kantenbandStandaard, defaultPrijs: accessoires.afplakkenStandaard },
+      { key: 'kantenbandSpec', label: 'Speciaal', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal },
+    ].map(({ key, label, aantal, defaultPrijs }) => {
+      const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPrijs);
+      return { label, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs };
+    }).filter(r => r.aantal > 0);
+
+    // Meubelbeslag (berekend + extra)
+    const beslagRows = [];
+    const allBeslagDefs = [
+      { key: 'kastpootjes', label: 'Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes },
+      { key: 'scharnier110', label: 'Scharnieren 110\u00B0', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110 },
+      { key: 'scharnier170', label: 'Scharnieren 155/170\u00B0', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170 },
+      { key: 'profielBK', label: 'Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, decimals: 1 },
+      { key: 'ophangsysteem', label: 'Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK },
+      { key: 'ladenStd', label: 'Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard },
+      { key: 'ladenGoedkoper', label: 'Laden goedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid },
+      { key: 'handgrepen', label: 'Handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen },
+      { key: 'led', label: 'LED', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed, decimals: 1 },
+      { key: 'handdoekdrager', label: 'Handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager },
+      { key: 'alubodem600', label: 'Alubodem 600mm', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600 },
+      { key: 'alubodem1200', label: 'Alubodem 1200mm', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200 },
+      { key: 'vuilbaksysteem', label: 'Vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem },
+      { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak },
+      { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot },
+      { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot },
+    ];
+    allBeslagDefs.forEach(({ key, label, aantal, defaultPrijs, decimals }) => {
+      const { effectiefAantal, effectiefPrijs, aantalDisplay } = eff(key, aantal, defaultPrijs, decimals);
+      if (effectiefAantal > 0) {
+        beslagRows.push({ label, aantalDisplay, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs });
+      }
+    });
+    // Tabletsteun
+    if (tabletsteun.type && tabletsteun.aantal > 0) {
+      const sel = TABLETSTEUN_TYPES.find(t => t.id === tabletsteun.type);
+      const effectiefPrijs = priceOverrides.tabletsteun ?? (sel?.prijs || 0);
+      beslagRows.push({ label: `Tabletsteun ${sel?.label || tabletsteun.type}`, aantalDisplay: String(tabletsteun.aantal), prijs: effectiefPrijs, totaal: tabletsteun.aantal * effectiefPrijs });
+    }
+    // Custom beslag
+    customBeslag.forEach(line => {
+      if (line.aantal > 0 && line.label) {
+        beslagRows.push({ label: line.label, aantalDisplay: String(line.aantal), prijs: line.prijs, totaal: line.aantal * line.prijs });
+      }
+    });
+
+    // Keukentoestellen
+    const toestellenRows = TOESTEL_TYPES.filter(t => keukentoestellen[t.id]?.geselecteerd).map(toestel => {
+      const sel = keukentoestellen[toestel.id];
+      const tier = sel.tier || 'medium';
+      const aantal = sel.aantal || 1;
+      const prijs = toestellenPrijzen?.[toestel.id]?.[tier] || 0;
+      return { naam: toestel.naam, model: sel.naam || '', klasse: TOESTEL_TIERS.find(t => t.id === tier)?.label || tier, aantal, prijs, totaal: aantal * prijs };
+    });
+
+    // Schuifdeursystemen
+    const schuifdeurRows = [];
+    (totalen.schuifdeursystemen || []).forEach(s => {
+      const prijs = schuifbeslagPrijzen[`systeem_${s.gewicht}`]?.[s.demping] || 0;
+      schuifdeurRows.push({ label: `Systeem ${SCHUIFDEUR_DEMPING.find(d => d.id === s.demping)?.label || s.demping} (${s.gewicht})`, aantal: s.aantal, prijs, totaal: s.aantal * prijs });
+    });
+    (totalen.profielen || []).forEach(p => {
+      const prijsKey = p.type === 'onderprofiel' ? 'onderprofiel' : `bovenprofiel_${p.gewicht}`;
+      const prijs = schuifbeslagPrijzen[prijsKey]?.[p.maat] || 0;
+      schuifdeurRows.push({ label: `${p.type === 'onderprofiel' ? 'Onderprofiel' : 'Bovenprofiel'} ${SCHUIFDEUR_PROFIEL.find(pr => pr.id === p.maat)?.label || p.maat} (${p.gewicht})`, aantal: p.aantal, prijs, totaal: p.aantal * prijs });
+    });
+
+    // Grand total
+    const sum = (rows) => rows.reduce((s, r) => s + (r.totaal || 0), 0);
+    const grandTotal = sum(arbeidRows) + sum(plaatRows) + sum(kantenbandRows) + sum(beslagRows) + sum(toestellenRows) + sum(schuifdeurRows);
+
+    generateOffertePDF({ projectInfo, groupInfo, kastenLijst, plaatMaterialen, arbeidRows, plaatRows, kantenbandRows, beslagRows, toestellenRows, schuifdeurRows, grandTotal });
+  };
+
   return (
     <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-      <h2 className="text-lg font-bold text-gray-800 mb-3">Totaallijst Materialen & Arbeid</h2>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-bold text-gray-800">Totaallijst Materialen & Arbeid</h2>
+        <button
+          onClick={handleExportPDF}
+          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium flex items-center gap-1.5"
+        >
+          PDF Offerte
+        </button>
+      </div>
 
       <div className="space-y-3">
         {/* Labor */}
