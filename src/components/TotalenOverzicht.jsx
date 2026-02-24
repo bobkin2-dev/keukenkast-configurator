@@ -153,7 +153,7 @@ const TotalenOverzicht = ({
     ].map(({ key, label, defaultPrijs }) => {
       const uren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
       const prijs = getOverride(`arbeid_${key}`, defaultPrijs);
-      return { label, uren, prijs, totaal: uren * prijs };
+      return { label, uren, prijs, totaal: uren * prijs, isZero: uren === 0 };
     });
 
     // Plaatmateriaal
@@ -171,8 +171,8 @@ const TotalenOverzicht = ({
     ];
     const plaatRows = plaatDefs.map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
       const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPlaatPrijs);
-      return { label, info, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs };
-    }).filter(r => r.aantal > 0);
+      return { label, info, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
+    });
 
     // Kantenband
     const kantenbandRows = [
@@ -180,8 +180,8 @@ const TotalenOverzicht = ({
       { key: 'kantenbandSpec', label: 'Speciaal', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal },
     ].map(({ key, label, aantal, defaultPrijs }) => {
       const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPrijs);
-      return { label, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs };
-    }).filter(r => r.aantal > 0);
+      return { label, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
+    });
 
     // Meubelbeslag (berekend + extra)
     const beslagRows = [];
@@ -205,9 +205,7 @@ const TotalenOverzicht = ({
     ];
     allBeslagDefs.forEach(({ key, label, aantal, defaultPrijs, decimals }) => {
       const { effectiefAantal, effectiefPrijs, aantalDisplay } = eff(key, aantal, defaultPrijs, decimals);
-      if (effectiefAantal > 0) {
-        beslagRows.push({ label, aantalDisplay, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs });
-      }
+      beslagRows.push({ label, aantalDisplay, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 });
     });
     // Tabletsteun
     if (tabletsteun.type && tabletsteun.aantal > 0) {

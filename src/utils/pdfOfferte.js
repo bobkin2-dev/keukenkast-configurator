@@ -131,7 +131,8 @@ export const generateOffertePDF = ({
   y += 12;
 
   // Reusable: add a section with title + table
-  const addSection = (title, head, body, colStyles = {}) => {
+  const DIM_COLOR = [180, 180, 180];
+  const addSection = (title, head, body, colStyles = {}, zeroRows = []) => {
     if (body.length === 0) return;
 
     doc.setFontSize(10);
@@ -147,6 +148,12 @@ export const generateOffertePDF = ({
       styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: SUB_HEADER_COLOR, textColor: 255, fontStyle: 'bold', fontSize: 7 },
       columnStyles: colStyles,
+      willDrawCell: (data) => {
+        if (data.section === 'body' && zeroRows[data.row.index]) {
+          data.cell.styles.textColor = DIM_COLOR;
+          data.cell.styles.fontStyle = 'normal';
+        }
+      },
     });
     y = doc.lastAutoTable.finalY + 6;
   };
@@ -156,7 +163,8 @@ export const generateOffertePDF = ({
     'Arbeid',
     ['Taak', 'Uren', '\u20AC/uur', 'Totaal'],
     arbeidRows.map(r => [r.label, r.uren.toFixed(1), euroInt(r.prijs), euroInt(r.totaal)]),
-    { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } }
+    { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } },
+    arbeidRows.map(r => r.isZero)
   );
 
   // --- Plaatmateriaal ---
@@ -164,28 +172,27 @@ export const generateOffertePDF = ({
     'Plaatmateriaal',
     ['Materiaal', 'Info', 'Aantal', 'Prijs/plaat', 'Totaal'],
     plaatRows.map(r => [r.label, r.info, r.aantal, euroInt(r.prijs), euroInt(r.totaal)]),
-    { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } }
+    { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
+    plaatRows.map(r => r.isZero)
   );
 
   // --- Kantenband ---
-  if (kantenbandRows.length > 0) {
-    addSection(
-      'Kantenband',
-      ['Type', 'Aantal', 'Prijs', 'Totaal'],
-      kantenbandRows.map(r => [r.label, r.aantal.toFixed(1), euro(r.prijs), euro(r.totaal)]),
-      { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } }
-    );
-  }
+  addSection(
+    'Kantenband',
+    ['Type', 'Aantal', 'Prijs', 'Totaal'],
+    kantenbandRows.map(r => [r.label, r.aantal.toFixed(1), euro(r.prijs), euro(r.totaal)]),
+    { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } },
+    kantenbandRows.map(r => r.isZero)
+  );
 
   // --- Meubelbeslag ---
-  if (beslagRows.length > 0) {
-    addSection(
-      'Meubelbeslag',
-      ['Item', 'Aantal', 'Prijs', 'Totaal'],
-      beslagRows.map(r => [r.label, r.aantalDisplay, euro(r.prijs), euro(r.totaal)]),
-      { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } }
-    );
-  }
+  addSection(
+    'Meubelbeslag',
+    ['Item', 'Aantal', 'Prijs', 'Totaal'],
+    beslagRows.map(r => [r.label, r.aantalDisplay, euro(r.prijs), euro(r.totaal)]),
+    { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } },
+    beslagRows.map(r => r.isZero)
+  );
 
   // --- Keukentoestellen ---
   if (toestellenRows.length > 0) {
