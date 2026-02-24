@@ -40,39 +40,40 @@ export const generateOffertePDF = ({
   const margin = 15;
   let y = margin;
 
-  // ====== PAGE 1: Title block + Kastenlijst ======
-
-  // Group name (title)
-  if (groupInfo?.naam) {
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text(groupInfo.naam, margin, y + 6);
-    y += 9;
-    if (groupInfo.klant) {
-      doc.setFontSize(11);
-      doc.setFont(undefined, 'normal');
-      doc.text(`Klant: ${groupInfo.klant}`, margin, y + 4);
-      y += 7;
-    }
-    y += 2;
-  }
-
-  // Project + meubelnummer
-  doc.setFontSize(11);
-  doc.setFont(undefined, 'normal');
-  doc.text(`Project: ${projectInfo.project || 'Naamloos'}`, margin, y + 4);
-  if (projectInfo.meubelnummer) {
-    doc.text(`Meubelnummer: ${projectInfo.meubelnummer}`, pageWidth / 2, y + 4);
-  }
-  y += 7;
-
-  // Date
+  // ====== Title block (reused on multiple pages) ======
   const today = new Date();
-  doc.setFontSize(9);
-  doc.setTextColor(120);
-  doc.text(`Datum: ${today.toLocaleDateString('nl-BE')}`, margin, y + 3);
-  doc.setTextColor(0);
-  y += 10;
+  const drawTitleBlock = () => {
+    if (groupInfo?.naam) {
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      doc.text(groupInfo.naam, margin, y + 6);
+      y += 9;
+      if (groupInfo.klant) {
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Klant: ${groupInfo.klant}`, margin, y + 4);
+        y += 7;
+      }
+      y += 2;
+    }
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Project: ${projectInfo.project || 'Naamloos'}`, margin, y + 4);
+    if (projectInfo.meubelnummer) {
+      doc.text(`Meubelnummer: ${projectInfo.meubelnummer}`, pageWidth / 2, y + 4);
+    }
+    y += 7;
+
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`Datum: ${today.toLocaleDateString('nl-BE')}`, margin, y + 3);
+    doc.setTextColor(0);
+    y += 10;
+  };
+
+  // ====== PAGE 1: Title block + Kastenlijst ======
+  drawTitleBlock();
 
   // Kastenlijst table
   doc.setFontSize(12);
@@ -124,6 +125,7 @@ export const generateOffertePDF = ({
   // ====== PAGE 2: Totaallijst Materialen & Arbeid ======
   doc.addPage();
   y = margin;
+  drawTitleBlock();
 
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
