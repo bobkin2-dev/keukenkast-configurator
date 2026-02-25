@@ -25,7 +25,8 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
 
   const filtered = bibliotheek.filter(item => {
     const matchZoek = !zoek || item.label.toLowerCase().includes(zoek.toLowerCase()) ||
-      (item.artikelnr && item.artikelnr.toLowerCase().includes(zoek.toLowerCase()));
+      (item.artikelnr && item.artikelnr.toLowerCase().includes(zoek.toLowerCase())) ||
+      (item.leverancier && item.leverancier.toLowerCase().includes(zoek.toLowerCase()));
     const matchCat = !activeCategory || item.categorie === activeCategory;
     return matchZoek && matchCat;
   });
@@ -75,6 +76,7 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
     const [form, setForm] = useState({
       label: item?.label || '',
       artikelnr: item?.artikelnr || '',
+      leverancier: item?.leverancier || '',
       prijs: item?.prijs || 0,
       eenheid: item?.eenheid || '/st',
       categorie: item?.categorie || BESLAG_CATEGORIES[0],
@@ -94,15 +96,27 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
               autoFocus
             />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-0.5">Artikelnr</label>
-            <input
-              type="text"
-              className="w-full px-2 py-1.5 border rounded text-sm"
-              value={form.artikelnr}
-              onChange={(e) => setForm(f => ({ ...f, artikelnr: e.target.value }))}
-              placeholder="bijv. 71B3550"
-            />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-600 mb-0.5">Artikelnr</label>
+              <input
+                type="text"
+                className="w-full px-2 py-1.5 border rounded text-sm"
+                value={form.artikelnr}
+                onChange={(e) => setForm(f => ({ ...f, artikelnr: e.target.value }))}
+                placeholder="bijv. 71B3550"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-600 mb-0.5">Leverancier</label>
+              <input
+                type="text"
+                className="w-full px-2 py-1.5 border rounded text-sm"
+                value={form.leverancier}
+                onChange={(e) => setForm(f => ({ ...f, leverancier: e.target.value }))}
+                placeholder="bijv. Blum"
+              />
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-0.5">Categorie</label>
@@ -178,7 +192,7 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
           <input
             type="text"
             className="flex-1 px-3 py-1.5 border rounded-lg text-sm"
-            placeholder="Zoeken op naam of artikelnr..."
+            placeholder="Zoeken op naam, artikelnr of leverancier..."
             value={zoek}
             onChange={(e) => setZoek(e.target.value)}
           />
@@ -259,6 +273,9 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
                               <span className="font-medium text-gray-800">{item.label}</span>
                               {item.artikelnr && (
                                 <span className="ml-2 text-xs text-gray-400">{item.artikelnr}</span>
+                              )}
+                              {item.leverancier && (
+                                <span className="ml-2 text-xs text-blue-400 font-medium">{item.leverancier}</span>
                               )}
                             </td>
                             <td className="py-1.5 px-1 text-right whitespace-nowrap text-gray-600">
