@@ -76,6 +76,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [arbeidOverrides, setArbeidOverrides] = useState({});
   const [customBeslag, setCustomBeslag] = useState([]);
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
+  const [infoOverrides, setInfoOverrides] = useState({});
   const exportPDFRef = useRef(null);
 
   const updateAccessoire = (field, value) => {
@@ -102,6 +103,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     arbeidOverrides,
     customBeslag,
     tabletsteun,
+    infoOverrides,
     setAccessoires,
     setExtraBeslag,
     setArbeidParameters,
@@ -110,7 +112,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setPriceOverrides,
     setArbeidOverrides,
     setCustomBeslag,
-    setTabletsteun
+    setTabletsteun,
+    setInfoOverrides
   });
 
   // Load admin pricing (toestellen + schuifbeslag)
@@ -332,13 +335,23 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Aantal</label>
-              <input
-                type="number"
-                min="1"
-                value={projectInfo.aantal}
-                onChange={(e) => setProjectInfo(prev => ({ ...prev, aantal: parseInt(e.target.value) || 1 }))}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-md text-center"
-              />
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setProjectInfo(prev => ({ ...prev, aantal: Math.max(1, prev.aantal - 1) }))}
+                  className="w-8 h-[42px] rounded-md bg-red-100 hover:bg-red-200 text-red-700 font-bold text-lg"
+                >-</button>
+                <input
+                  type="number"
+                  min="1"
+                  value={projectInfo.aantal}
+                  onChange={(e) => setProjectInfo(prev => ({ ...prev, aantal: parseInt(e.target.value) || 1 }))}
+                  className="w-14 px-2 py-2 border border-gray-300 rounded-md text-center"
+                />
+                <button
+                  onClick={() => setProjectInfo(prev => ({ ...prev, aantal: prev.aantal + 1 }))}
+                  className="w-8 h-[42px] rounded-md bg-green-100 hover:bg-green-200 text-green-700 font-bold text-lg"
+                >+</button>
+              </div>
             </div>
           </div>
         </div>
@@ -510,6 +523,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           setCustomBeslag={setCustomBeslag}
           tabletsteun={tabletsteun}
           setTabletsteun={setTabletsteun}
+          infoOverrides={infoOverrides}
+          setInfoOverrides={setInfoOverrides}
           exportPDFRef={exportPDFRef}
         />
 

@@ -43,6 +43,8 @@ const TotalenOverzicht = ({
   setCustomBeslag,
   tabletsteun = { type: '', aantal: 0 },
   setTabletsteun,
+  infoOverrides = {},
+  setInfoOverrides,
   exportPDFRef
 }) => {
   // State for library modal
@@ -172,7 +174,8 @@ const TotalenOverzicht = ({
     ];
     const plaatRows = plaatDefs.map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
       const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPlaatPrijs);
-      return { label, info, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
+      const effectiefInfo = (infoOverrides[key] !== undefined && infoOverrides[key] !== '') ? infoOverrides[key] : info;
+      return { label, info: effectiefInfo, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
     });
 
     // Kantenband
@@ -348,10 +351,28 @@ const TotalenOverzicht = ({
                 const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPlaatPrijs);
+                const infoOverridden = infoOverrides[key] !== undefined && infoOverrides[key] !== '';
+                const effectiefInfo = infoOverridden ? infoOverrides[key] : info;
                 return (
                   <tr key={key}>
                     <td className="py-1">{label}</td>
-                    <td className="py-1 text-xs text-gray-600">{info}</td>
+                    <td className="py-1">
+                      <input
+                        type="text"
+                        className={`w-full px-1 py-0.5 border rounded text-xs ${infoOverridden ? 'border-blue-400 bg-blue-50 text-gray-800' : 'text-gray-600'}`}
+                        value={effectiefInfo}
+                        onChange={(e) => setInfoOverrides(prev => ({ ...prev, [key]: e.target.value }))}
+                        onBlur={(e) => {
+                          if (e.target.value === info) {
+                            setInfoOverrides(prev => {
+                              const next = { ...prev };
+                              delete next[key];
+                              return next;
+                            });
+                          }
+                        }}
+                      />
+                    </td>
                     <td className="py-1 text-right font-semibold">{aantal}</td>
                     <td className="py-1 text-center">
                       <input
