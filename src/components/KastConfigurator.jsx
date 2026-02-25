@@ -57,6 +57,20 @@ const SingleKastConfigurator = ({
   };
 
   const isOpenCabinet = displayKast.isOpen === true;
+  const isDubbel = displayKast.isDubbel === true;
+
+  const handleToggleDubbel = (newDubbel) => {
+    if (newDubbel === isDubbel) return;
+    const newBreedte = newDubbel ? displayKast.breedte * 2 : Math.round(displayKast.breedte / 2);
+    const updates = { isDubbel: newDubbel, breedte: newBreedte };
+    if (!isOpenCabinet) {
+      updates.aantalDeuren = newDubbel ? 2 : 1;
+    }
+    setKast(prev => ({ ...prev, ...updates }));
+    if (isActive) {
+      setHuidigKast(prev => ({ ...prev, ...updates }));
+    }
+  };
 
   // Build counter fields: hide doors when open, always show the rest
   const counterFields = [
@@ -70,25 +84,48 @@ const SingleKastConfigurator = ({
     <div className={`${styles.bg} p-3 rounded-lg border-2 ${styles.border} ${isOpenCabinet ? 'ring-2 ring-yellow-400' : ''}`}>
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-bold text-gray-800">{emoji} {type}</h3>
-        {/* Open/Closed toggle */}
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <span className="text-xs text-gray-600">{isOpenCabinet ? 'Open' : 'Dicht'}</span>
-          <div
-            className={`relative w-10 h-5 rounded-full transition-colors ${isOpenCabinet ? 'bg-yellow-500' : 'bg-gray-300'}`}
-            onClick={() => {
-              const newVal = !displayKast.isOpen;
-              updateField('isOpen', newVal);
-              // When switching to open, force doors to 0
-              if (newVal) {
-                updateField('aantalDeuren', 0);
-              }
-            }}
-          >
+        <div className="flex items-center gap-3">
+          {/* Enkel/Dubbel toggle - not for Ladekast */}
+          {type !== 'Ladekast' && (
+            <div className="flex rounded-md overflow-hidden border border-gray-300 text-xs">
+              <button
+                onClick={() => handleToggleDubbel(false)}
+                className={`px-2 py-0.5 font-semibold transition-colors ${
+                  !isDubbel ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Enkel
+              </button>
+              <button
+                onClick={() => handleToggleDubbel(true)}
+                className={`px-2 py-0.5 font-semibold transition-colors ${
+                  isDubbel ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Dubbel
+              </button>
+            </div>
+          )}
+          {/* Open/Closed toggle */}
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <span className="text-xs text-gray-600">{isOpenCabinet ? 'Open' : 'Dicht'}</span>
             <div
-              className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isOpenCabinet ? 'translate-x-5' : 'translate-x-0.5'}`}
-            />
-          </div>
-        </label>
+              className={`relative w-10 h-5 rounded-full transition-colors ${isOpenCabinet ? 'bg-yellow-500' : 'bg-gray-300'}`}
+              onClick={() => {
+                const newVal = !displayKast.isOpen;
+                updateField('isOpen', newVal);
+                // When switching to open, force doors to 0
+                if (newVal) {
+                  updateField('aantalDeuren', 0);
+                }
+              }}
+            >
+              <div
+                className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isOpenCabinet ? 'translate-x-5' : 'translate-x-0.5'}`}
+              />
+            </div>
+          </label>
+        </div>
       </div>
 
       <div className="flex gap-3">
