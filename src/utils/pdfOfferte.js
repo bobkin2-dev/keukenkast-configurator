@@ -49,6 +49,7 @@ export const generateOffertePDF = ({
       doc.setFont(undefined, 'bold');
       const parts = [groupInfo?.naam, `Project: ${projectInfo.project || 'Naamloos'}`];
       if (projectInfo.meubelnummer) parts.push(`Meubel: ${projectInfo.meubelnummer}`);
+      if (projectInfo.aantal > 1) parts.push(`Aantal: ${projectInfo.aantal}`);
       if (groupInfo?.klant) parts.push(`Klant: ${groupInfo.klant}`);
       doc.text(parts.join('  |  '), margin, y + 4);
       doc.setFont(undefined, 'normal');
@@ -76,8 +77,11 @@ export const generateOffertePDF = ({
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
     doc.text(`Project: ${projectInfo.project || 'Naamloos'}`, margin, y + 4);
-    if (projectInfo.meubelnummer) {
-      doc.text(`Meubelnummer: ${projectInfo.meubelnummer}`, pageWidth / 2, y + 4);
+    const rightParts = [];
+    if (projectInfo.meubelnummer) rightParts.push(`Meubelnummer: ${projectInfo.meubelnummer}`);
+    if (projectInfo.aantal > 1) rightParts.push(`Aantal: ${projectInfo.aantal}`);
+    if (rightParts.length > 0) {
+      doc.text(rightParts.join('    '), pageWidth / 2, y + 4);
     }
     y += 7;
 

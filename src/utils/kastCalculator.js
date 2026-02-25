@@ -455,8 +455,8 @@ export const berekenKast = (kast, options = {}) => {
     ) / MM_TO_M;
   }
 
-  // Kastpootjes (only for Onderkast & Ladekast)
-  if (type === 'Onderkast' || type === 'Ladekast') {
+  // Kastpootjes (for floor-standing cabinets: Onderkast, Ladekast, Kolomkast)
+  if (type === 'Onderkast' || type === 'Ladekast' || type === 'Kolomkast') {
     result.kastpootjes = calculateKastpootjes(breedte);
   }
 

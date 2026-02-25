@@ -51,7 +51,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   // Project info
   const [projectInfo, setProjectInfo] = useState({
     project: initialData?.name || '',
-    meubelnummer: initialData?.meubelnummer || ''
+    meubelnummer: initialData?.meubelnummer || '',
+    aantal: initialData?.aantal || 1
   });
   const groupInfo = initialData?.project_groups || null;
 
@@ -193,15 +194,6 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
-            {onBackToHome && (
-              <button
-                onClick={onBackToHome}
-                className="text-gray-600 hover:text-gray-800 hover:bg-gray-200 p-2 rounded-lg transition"
-                title="Terug naar projecten"
-              >
-                ← Terug
-              </button>
-            )}
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Keukenkast Configurator</h1>
               {user && (
@@ -317,7 +309,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
 
         {/* Project Info */}
         <div className="bg-blue-50 p-4 rounded-lg mb-4 border-2 border-blue-200">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
               <input
@@ -336,6 +328,16 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
                 onChange={(e) => setProjectInfo(prev => ({ ...prev, meubelnummer: e.target.value }))}
                 placeholder="Meubelnummer"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Aantal</label>
+              <input
+                type="number"
+                min="1"
+                value={projectInfo.aantal}
+                onChange={(e) => setProjectInfo(prev => ({ ...prev, aantal: parseInt(e.target.value) || 1 }))}
+                className="w-20 px-3 py-2 border border-gray-300 rounded-md text-center"
               />
             </div>
           </div>
@@ -573,29 +575,39 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         {/* Floating sidebar: save button + cabinet list */}
         <div className="w-72 flex-shrink-0 hidden xl:block">
           <div className="sticky top-6 space-y-3">
-            {projectId && (
-              <div className="space-y-2">
+            <div className="space-y-2">
+              {projectId && (
+                <>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className={`w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 ${
+                      isSaving
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : hasUnsavedChanges
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {isSaving ? '💾 Opslaan...' : '💾 Opslaan'}
+                  </button>
+                  <button
+                    onClick={() => exportPDFRef.current?.()}
+                    className="w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    📄 PDF Offerte
+                  </button>
+                </>
+              )}
+              {onBackToHome && (
                 <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className={`w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 ${
-                    isSaving
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : hasUnsavedChanges
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  }`}
+                  onClick={onBackToHome}
+                  className="w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700"
                 >
-                  {isSaving ? '💾 Opslaan...' : '💾 Opslaan'}
+                  ← Terug
                 </button>
-                <button
-                  onClick={() => exportPDFRef.current?.()}
-                  className="w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white"
-                >
-                  📄 PDF Offerte
-                </button>
-              </div>
-            )}
+              )}
+            </div>
             <FloatingKastenLijst
               kastenLijst={kabinet.kastenLijst}
               voegZijpaneelToe={kabinet.voegZijpaneelToe}
