@@ -15,6 +15,7 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [newGroupNaam, setNewGroupNaam] = useState('');
   const [newGroupKlant, setNewGroupKlant] = useState('');
+  const [dragOverTarget, setDragOverTarget] = useState(null); // group ID or 'loose'
 
   const userIsAdmin = isAdmin(user?.email);
 
@@ -143,6 +144,55 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
     });
   };
 
+  // --- Drag & Drop ---
+  const handleMoveProject = async (projectId, newGroupId) => {
+    const { error } = await db.updateProject(projectId, { group_id: newGroupId });
+    if (error) {
+      setError('Kon offerte niet verplaatsen: ' + error.message);
+    } else {
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, group_id: newGroupId } : p
+      ));
+    }
+  };
+
+  const handleDragStart = (e, project) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ id: project.id, group_id: project.group_id }));
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.style.opacity = '0.4';
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDragOverTarget(null);
+  };
+
+  const handleDragOver = (e, targetId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverTarget(targetId);
+  };
+
+  const handleDragLeave = (e, targetId) => {
+    // Only clear if actually leaving the target (not entering a child)
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverTarget(prev => prev === targetId ? null : prev);
+    }
+  };
+
+  const handleDrop = async (e, targetGroupId) => {
+    e.preventDefault();
+    setDragOverTarget(null);
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      if (data.group_id !== targetGroupId) {
+        await handleMoveProject(data.id, targetGroupId);
+      }
+    } catch (err) {
+      // Ignore invalid drag data
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('nl-BE', {
@@ -158,13 +208,19 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
   const getProjectsForGroup = (groupId) => projects.filter(p => p.group_id === groupId).sort(sortByName);
   const looseProjects = projects.filter(p => !p.group_id).sort(sortByName);
 
-  // Reusable offerte row
+  // Reusable offerte row (draggable)
   const OfferteRow = ({ project }) => (
     <>
       <tr
-        className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition"
+        draggable="true"
+        onDragStart={(e) => handleDragStart(e, project)}
+        onDragEnd={handleDragEnd}
+        className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition group"
         onClick={() => onSelectProject(project.id)}
       >
+        <td className="py-2 px-1 text-center cursor-grab active:cursor-grabbing w-8" onClick={(e) => e.stopPropagation()}>
+          <span className="text-gray-300 group-hover:text-gray-400 text-sm select-none">&#x2807;</span>
+        </td>
         <td className="py-2 px-3 font-medium text-gray-800">
           {project.name || 'Naamloos'}
           {project.meubelnummer && (
@@ -208,6 +264,7 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
     <table className="w-full text-sm">
       <thead>
         <tr className="text-xs text-gray-400 border-b border-gray-200">
+          <th className="w-8"></th>
           <th className="text-left py-1.5 px-3 font-medium">Naam</th>
           <th className="text-left py-1.5 px-3 font-medium">Laatst bewerkt</th>
           <th className="text-right py-1.5 px-3 font-medium w-24"></th>
@@ -355,12 +412,23 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
               const groupProjects = getProjectsForGroup(group.id);
               const isExpanded = expandedGroups.has(group.id);
               const isEditing = editingGroup === group.id;
+              const isDragOver = dragOverTarget === group.id;
 
               return (
-                <div key={group.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div
+                  key={group.id}
+                  className={`bg-white rounded-xl shadow-sm border-2 overflow-hidden transition-colors ${
+                    isDragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, group.id)}
+                  onDragLeave={(e) => handleDragLeave(e, group.id)}
+                  onDrop={(e) => handleDrop(e, group.id)}
+                >
                   {/* Group header */}
                   <div
-                    className="flex items-center gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition"
+                    className={`flex items-center gap-3 px-5 py-3 border-b cursor-pointer transition ${
+                      isDragOver ? 'bg-blue-100 border-blue-300' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    }`}
                     onClick={() => !isEditing && toggleGroup(group.id)}
                   >
                     <span className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
@@ -455,8 +523,10 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
                   {/* Group content */}
                   {isExpanded && (
                     <div className="p-4">
-                      {groupProjects.length === 0 ? (
+                      {groupProjects.length === 0 && !isDragOver ? (
                         <p className="text-sm text-gray-400 italic mb-3">Nog geen offertes in deze groep.</p>
+                      ) : groupProjects.length === 0 && isDragOver ? (
+                        <p className="text-sm text-blue-500 italic mb-3">Sleep hier om toe te voegen...</p>
                       ) : (
                         <div className="mb-3">
                           <OfferteTable projectList={groupProjects} />
@@ -474,15 +544,32 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
               );
             })}
 
-            {/* Loose projects */}
-            {looseProjects.length > 0 && (
-              <div>
-                {groups.length > 0 && (
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Losse Offertes</h3>
-                )}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
-                  <OfferteTable projectList={looseProjects} />
+            {/* Loose projects drop zone — always visible when groups exist */}
+            {groups.length > 0 && (
+              <div
+                onDragOver={(e) => handleDragOver(e, 'loose')}
+                onDragLeave={(e) => handleDragLeave(e, 'loose')}
+                onDrop={(e) => handleDrop(e, null)}
+              >
+                <h3 className="text-lg font-semibold text-gray-700 mb-4">Losse Offertes</h3>
+                <div className={`rounded-xl shadow-sm border-2 overflow-hidden p-4 transition-colors ${
+                  dragOverTarget === 'loose' ? 'border-blue-400 bg-blue-50' : looseProjects.length > 0 ? 'bg-white border-gray-200' : 'bg-gray-50 border-dashed border-gray-300'
+                }`}>
+                  {looseProjects.length > 0 ? (
+                    <OfferteTable projectList={looseProjects} />
+                  ) : (
+                    <p className={`text-sm italic text-center py-2 ${dragOverTarget === 'loose' ? 'text-blue-500' : 'text-gray-400'}`}>
+                      {dragOverTarget === 'loose' ? 'Sleep hier om los te koppelen...' : 'Sleep een offerte hierheen om los te koppelen'}
+                    </p>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* Loose projects when no groups exist */}
+            {groups.length === 0 && looseProjects.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
+                <OfferteTable projectList={looseProjects} />
               </div>
             )}
           </div>
