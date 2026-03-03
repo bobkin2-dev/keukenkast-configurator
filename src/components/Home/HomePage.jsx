@@ -193,6 +193,38 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
     }
   };
 
+  const handleCopyProject = async (e, projectId) => {
+    e.stopPropagation();
+    // Load full project data
+    const { data: original, error: loadError } = await db.getProject(projectId);
+    if (loadError || !original) {
+      setError('Kon offerte niet kopiëren: ' + (loadError?.message || 'niet gevonden'));
+      return;
+    }
+    // Create new project with copied settings
+    const { data: newProject, error: createError } = await db.createProject({
+      name: (original.name || 'Naamloos') + ' (Kopie)',
+      meubelnummer: original.meubelnummer,
+      settings: original.settings,
+      group_id: original.group_id,
+    });
+    if (createError || !newProject) {
+      setError('Kon offerte niet kopiëren: ' + (createError?.message || 'aanmaken mislukt'));
+      return;
+    }
+    // Copy cabinets
+    if (original.cabinets && original.cabinets.length > 0) {
+      const copiedCabinets = original.cabinets.map(c => ({
+        ...c.config,
+        id: Date.now() + Math.random(),
+        timestamp: new Date().toLocaleString(),
+      }));
+      await db.saveCabinets(newProject.id, copiedCabinets);
+    }
+    // Open the copy so user can adjust
+    onSelectProject(newProject.id);
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('nl-BE', {
@@ -246,13 +278,22 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
               </button>
             </span>
           ) : (
-            <button
-              onClick={() => setDeleteConfirm(project.id)}
-              className="text-gray-300 hover:text-red-500 transition"
-              title="Verwijderen"
-            >
-              ✕
-            </button>
+            <span className="inline-flex gap-1">
+              <button
+                onClick={(e) => handleCopyProject(e, project.id)}
+                className="text-gray-300 hover:text-blue-500 transition"
+                title="Kopiëren"
+              >
+                ⧉
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(project.id)}
+                className="text-gray-300 hover:text-red-500 transition"
+                title="Verwijderen"
+              >
+                ✕
+              </button>
+            </span>
           )}
         </td>
       </tr>
