@@ -278,17 +278,17 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
               </button>
             </span>
           ) : (
-            <span className="inline-flex gap-1">
+            <span className="inline-flex gap-1.5">
               <button
                 onClick={(e) => handleCopyProject(e, project.id)}
-                className="text-gray-300 hover:text-blue-500 transition"
+                className="px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 text-xs font-medium transition border border-blue-200"
                 title="Kopiëren"
               >
-                ⧉
+                ⧉ Kopie
               </button>
               <button
                 onClick={() => setDeleteConfirm(project.id)}
-                className="text-gray-300 hover:text-red-500 transition"
+                className="px-2 py-1 rounded bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 text-xs font-medium transition border border-red-200"
                 title="Verwijderen"
               >
                 ✕

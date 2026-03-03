@@ -154,7 +154,8 @@ export const generateOffertePDF = ({
 
   // Reusable: add a section with title + table
   const DIM_COLOR = [180, 180, 180];
-  const addSection = (title, head, body, colStyles = {}, zeroRows = []) => {
+  const STRIPE_COLOR = [222, 226, 230];
+  const addSection = (title, head, body, colStyles = {}, zeroRows = [], { boldNonZero = false } = {}) => {
     if (body.length === 0) return;
 
     doc.setFontSize(9);
@@ -169,11 +170,16 @@ export const generateOffertePDF = ({
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1 },
       headStyles: { fillColor: SUB_HEADER_COLOR, textColor: 255, fontStyle: 'bold', fontSize: 6.5 },
+      alternateRowStyles: { fillColor: STRIPE_COLOR },
       columnStyles: colStyles,
       willDrawCell: (data) => {
-        if (data.section === 'body' && zeroRows[data.row.index]) {
-          data.cell.styles.textColor = DIM_COLOR;
-          data.cell.styles.fontStyle = 'normal';
+        if (data.section === 'body') {
+          if (zeroRows[data.row.index]) {
+            data.cell.styles.textColor = DIM_COLOR;
+            data.cell.styles.fontStyle = 'normal';
+          } else if (boldNonZero) {
+            data.cell.styles.fontStyle = 'bold';
+          }
         }
       },
     });
@@ -213,7 +219,8 @@ export const generateOffertePDF = ({
     ['Item', 'Aantal', 'Prijs', 'Totaal'],
     beslagRows.map(r => [r.label, r.aantalDisplay, euro(r.prijs), euro(r.totaal)]),
     { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } },
-    beslagRows.map(r => r.isZero)
+    beslagRows.map(r => r.isZero),
+    { boldNonZero: true }
   );
 
   // --- Keukentoestellen ---
