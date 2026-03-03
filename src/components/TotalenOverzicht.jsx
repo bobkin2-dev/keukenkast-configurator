@@ -122,7 +122,15 @@ const TotalenOverzicht = ({
   };
 
   const updateOverride = (key, value) => {
-    setPriceOverrides(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    if (value === '' || value === undefined) {
+      setPriceOverrides(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } else {
+      setPriceOverrides(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    }
   };
 
   if (kastenLijst.length === 0) return null;
@@ -141,7 +149,7 @@ const TotalenOverzicht = ({
   // --- PDF Export ---
   const handleExportPDF = () => {
     const eff = (key, aantal, defaultPrijs, decimals) => {
-      const overridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+      const overridden = extraAmounts[key] !== undefined;
       const effectiefAantal = overridden ? extraAmounts[key] : aantal;
       const effectiefPrijs = getOverride(key, defaultPrijs);
       return { effectiefAantal, effectiefPrijs, aantalDisplay: decimals ? effectiefAantal.toFixed(decimals) : String(effectiefAantal) };
@@ -348,7 +356,7 @@ const TotalenOverzicht = ({
                   };
                 }),
               ].map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
-                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const aantalOverridden = extraAmounts[key] !== undefined;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPlaatPrijs);
                 const infoOverridden = infoOverrides[key] !== undefined && infoOverrides[key] !== '';
@@ -386,7 +394,7 @@ const TotalenOverzicht = ({
                     </td>
                     <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(defaultPlaatPrijs)}</td>
                     <td className="py-1 text-center">
-                      <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(effectiefPrijs)} onChange={(e) => updateOverride(key, e.target.value)} />
+                      <input type="number" step="1" className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${priceOverrides[key] !== undefined ? 'border-blue-400 bg-blue-50' : ''}`} value={priceOverrides[key] !== undefined ? Math.ceil(priceOverrides[key]) : ''} placeholder={Math.ceil(defaultPlaatPrijs)} onChange={(e) => updateOverride(key, e.target.value)} />
                     </td>
                     <td className="py-1 text-right font-bold text-green-700">€{Math.ceil(effectiefAantal * effectiefPrijs)}</td>
                   </tr>
@@ -415,7 +423,7 @@ const TotalenOverzicht = ({
                 { key: 'kantenbandStd', label: 'Standaard', aantal: totalen.kantenbandStandaard, defaultPrijs: accessoires.afplakkenStandaard, unit: '/m' },
                 { key: 'kantenbandSpec', label: 'Speciaal', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal, unit: '/m' },
               ].map(({ key, label, aantal, defaultPrijs, unit }) => {
-                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const aantalOverridden = extraAmounts[key] !== undefined;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPrijs);
                 return (
@@ -435,7 +443,7 @@ const TotalenOverzicht = ({
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
                     <td className="py-1 text-center">
-                      <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={effectiefPrijs} onChange={(e) => updateOverride(key, e.target.value)} />
+                      <input type="number" step="0.01" className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${priceOverrides[key] !== undefined ? 'border-blue-400 bg-blue-50' : ''}`} value={priceOverrides[key] !== undefined ? priceOverrides[key] : ''} placeholder={defaultPrijs.toFixed(2)} onChange={(e) => updateOverride(key, e.target.value)} />
                     </td>
                     <td className="py-1 text-right font-bold text-green-700">€{(effectiefAantal * effectiefPrijs).toFixed(2)}</td>
                   </tr>
@@ -473,7 +481,7 @@ const TotalenOverzicht = ({
                 { key: 'ladenGoedkoper', label: 'Laden goedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid, unit: '/st' },
                 { key: 'handgrepen', label: 'Handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen, unit: '/st' },
               ].map(({ key, label, aantal, defaultPrijs, unit, decimals }) => {
-                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const aantalOverridden = extraAmounts[key] !== undefined;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPrijs);
                 const aantalDisplay = decimals ? aantal.toFixed(decimals) : aantal;
@@ -515,7 +523,7 @@ const TotalenOverzicht = ({
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
                     <td className="py-1 text-center">
-                      <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={effectiefPrijs} onChange={(e) => updateOverride(key, e.target.value)} />
+                      <input type="number" step="0.01" className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${priceOverrides[key] !== undefined ? 'border-blue-400 bg-blue-50' : ''}`} value={priceOverrides[key] !== undefined ? priceOverrides[key] : ''} placeholder={defaultPrijs.toFixed(2)} onChange={(e) => updateOverride(key, e.target.value)} />
                     </td>
                     <td className="py-1 text-right font-bold text-green-700">€{(effectiefAantal * effectiefPrijs).toFixed(2)}</td>
                   </tr>
@@ -538,7 +546,7 @@ const TotalenOverzicht = ({
                 { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot, unit: '/st' },
                 { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot, unit: '/st' },
               ].map(({ key, label, aantal, defaultPrijs, unit, decimals }) => {
-                const aantalOverridden = extraAmounts[key] !== undefined && extraAmounts[key] !== 0;
+                const aantalOverridden = extraAmounts[key] !== undefined;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPrijs);
                 const aantalDisplay = decimals ? aantal.toFixed(decimals) : aantal;
@@ -580,7 +588,7 @@ const TotalenOverzicht = ({
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
                     <td className="py-1 text-center">
-                      <input type="number" step="0.01" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={effectiefPrijs} onChange={(e) => updateOverride(key, e.target.value)} />
+                      <input type="number" step="0.01" className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${priceOverrides[key] !== undefined ? 'border-blue-400 bg-blue-50' : ''}`} value={priceOverrides[key] !== undefined ? priceOverrides[key] : ''} placeholder={defaultPrijs.toFixed(2)} onChange={(e) => updateOverride(key, e.target.value)} />
                     </td>
                     <td className="py-1 text-right font-bold text-green-700">€{(effectiefAantal * effectiefPrijs).toFixed(2)}</td>
                   </tr>

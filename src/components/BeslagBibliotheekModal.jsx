@@ -22,6 +22,11 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
   const [activeCategory, setActiveCategory] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [newItem, setNewItem] = useState(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkLeverancier, setBulkLeverancier] = useState('');
+  const [bulkCategorie, setBulkCategorie] = useState(BESLAG_CATEGORIES[0]);
+  const [bulkEenheid, setBulkEenheid] = useState('/st');
+  const [bulkRows, setBulkRows] = useState([{ label: '', artikelnr: '', prijs: '' }]);
 
   const filtered = bibliotheek.filter(item => {
     const matchZoek = !zoek || item.label.toLowerCase().includes(zoek.toLowerCase()) ||
@@ -70,6 +75,26 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
       onSelectItem({ label: item.label, aantal: 1, prijs: item.prijs });
     }
     onClose();
+  };
+
+  const handleBulkSave = () => {
+    const validRows = bulkRows.filter(r => r.label.trim());
+    if (validRows.length === 0) return;
+    const newItems = validRows.map(r => ({
+      label: r.label.trim(),
+      artikelnr: r.artikelnr.trim(),
+      leverancier: bulkLeverancier.trim(),
+      prijs: parseFloat(r.prijs) || 0,
+      eenheid: bulkEenheid,
+      categorie: bulkCategorie,
+    }));
+    onSave([...bibliotheek, ...newItems]);
+    setBulkRows([{ label: '', artikelnr: '', prijs: '' }]);
+    setBulkMode(false);
+  };
+
+  const updateBulkRow = (idx, field, value) => {
+    setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
   };
 
   const ItemForm = ({ item, onSaveForm, onCancel }) => {
@@ -197,10 +222,18 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
             onChange={(e) => setZoek(e.target.value)}
           />
           <button
-            onClick={() => setNewItem({})}
+            onClick={() => { setNewItem({}); setBulkMode(false); }}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium whitespace-nowrap"
           >
             + Nieuw item
+          </button>
+          <button
+            onClick={() => { setBulkMode(!bulkMode); setNewItem(null); }}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+              bulkMode ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-amber-100 hover:bg-amber-200 text-amber-800'
+            }`}
+          >
+            ⚡ Bulk toevoegen
           </button>
         </div>
 
@@ -229,6 +262,137 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
 
           {/* Items list */}
           <div className="flex-1 overflow-y-auto px-5 py-3">
+            {/* Bulk add form */}
+            {bulkMode && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <h4 className="text-sm font-bold text-amber-800 mb-2">Bulk toevoegen — zelfde leverancier</h4>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-0.5">Leverancier *</label>
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      value={bulkLeverancier}
+                      onChange={(e) => setBulkLeverancier(e.target.value)}
+                      placeholder="bijv. Blum"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-0.5">Categorie</label>
+                    <select
+                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      value={bulkCategorie}
+                      onChange={(e) => setBulkCategorie(e.target.value)}
+                    >
+                      {BESLAG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-0.5">Eenheid</label>
+                    <select
+                      className="w-full px-2 py-1.5 border rounded text-sm"
+                      value={bulkEenheid}
+                      onChange={(e) => setBulkEenheid(e.target.value)}
+                    >
+                      <option value="/st">/st</option>
+                      <option value="/m">/m</option>
+                      <option value="/set">/set</option>
+                      <option value="/paar">/paar</option>
+                    </select>
+                  </div>
+                </div>
+                <table className="w-full text-sm mb-2">
+                  <thead>
+                    <tr className="text-xs text-gray-500 border-b">
+                      <th className="text-left py-1 w-8">#</th>
+                      <th className="text-left py-1">Omschrijving *</th>
+                      <th className="text-left py-1 w-32">Artikelnr</th>
+                      <th className="text-left py-1 w-24">Prijs €</th>
+                      <th className="w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkRows.map((row, idx) => (
+                      <tr key={idx}>
+                        <td className="py-0.5 text-xs text-gray-400">{idx + 1}</td>
+                        <td className="py-0.5 pr-1">
+                          <input
+                            type="text"
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            value={row.label}
+                            onChange={(e) => updateBulkRow(idx, 'label', e.target.value)}
+                            placeholder="Omschrijving"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && row.label.trim()) {
+                                if (idx === bulkRows.length - 1) {
+                                  setBulkRows(prev => [...prev, { label: '', artikelnr: '', prijs: '' }]);
+                                  setTimeout(() => e.target.closest('tbody').querySelector(`tr:nth-child(${idx + 2}) input`)?.focus(), 50);
+                                }
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="py-0.5 pr-1">
+                          <input
+                            type="text"
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            value={row.artikelnr}
+                            onChange={(e) => updateBulkRow(idx, 'artikelnr', e.target.value)}
+                            placeholder="Artikelnr"
+                          />
+                        </td>
+                        <td className="py-0.5 pr-1">
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            value={row.prijs}
+                            onChange={(e) => updateBulkRow(idx, 'prijs', e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </td>
+                        <td className="py-0.5">
+                          {bulkRows.length > 1 && (
+                            <button
+                              onClick={() => setBulkRows(prev => prev.filter((_, i) => i !== idx))}
+                              className="text-gray-300 hover:text-red-500 text-xs"
+                            >✕</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setBulkRows(prev => [...prev, { label: '', artikelnr: '', prijs: '' }])}
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs font-medium"
+                  >
+                    + Rij toevoegen
+                  </button>
+                  <div className="flex gap-2">
+                    <span className="text-xs text-gray-400 self-center">
+                      {bulkRows.filter(r => r.label.trim()).length} item(s)
+                    </span>
+                    <button
+                      onClick={() => { setBulkMode(false); setBulkRows([{ label: '', artikelnr: '', prijs: '' }]); }}
+                      className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm"
+                    >
+                      Annuleren
+                    </button>
+                    <button
+                      onClick={handleBulkSave}
+                      disabled={!bulkRows.some(r => r.label.trim())}
+                      className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-sm font-medium disabled:opacity-40"
+                    >
+                      Alles opslaan ({bulkRows.filter(r => r.label.trim()).length})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* New item form */}
             {newItem && (
               <ItemForm
