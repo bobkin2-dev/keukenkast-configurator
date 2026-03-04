@@ -151,7 +151,7 @@ export const generateOffertePDF = ({
   // ====== PAGE 2: Totaallijst Materialen & Arbeid ======
   doc.addPage();
   y = margin;
-  drawTitleBlock(true);
+  drawTitleBlock();
 
   doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
