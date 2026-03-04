@@ -296,7 +296,7 @@ const TotalenOverzicht = ({
                 const effectiefPrijs = getOverride(`arbeid_${key}`, defaultPrijs);
                 return (
                   <tr key={key}>
-                    <td className="py-1">{label}</td>
+                    <td className="py-1">{label}{key === 'tekenwerk' && projectInfo.aantal > 1 && <span className="ml-1 text-xs text-blue-600 font-medium">(x{projectInfo.aantal})</span>}</td>
                     <td className="py-1 text-right font-semibold">{calculated.toFixed(1)}</td>
                     <td className="py-1 text-center">
                       <input
