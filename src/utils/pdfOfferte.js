@@ -70,7 +70,9 @@ export const generateOffertePDF = ({
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(...GRAY_ACCENT);
-    doc.text(today.toLocaleDateString('nl-BE'), pageWidth - margin, y + 6, { align: 'right' });
+    const topRight = [today.toLocaleDateString('nl-BE')];
+    if (projectInfo.aantal > 1) topRight.push(`Aantal: ${projectInfo.aantal}`);
+    doc.text(topRight.join('  |  '), pageWidth - margin, y + 6, { align: 'right' });
     doc.setTextColor(0);
     y += 12;
 
