@@ -309,17 +309,35 @@ const TotalenOverzicht = ({
                     <td className="py-1">{label}{key === 'tekenwerk' && projectInfo.aantal > 1 && <span className="ml-1 text-xs text-blue-600 font-medium">(x{projectInfo.aantal})</span>}</td>
                     <td className="py-1 text-right font-semibold">{calculated.toFixed(1)}</td>
                     <td className="py-1 text-center">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${
-                          urenOverridden ? 'border-blue-400 bg-blue-50' : ''
-                        }`}
-                        value={urenOverridden ? arbeidOverrides[key] : ''}
-                        placeholder={calculated.toFixed(1)}
-                        onChange={(e) => updateArbeidOverride(key, e.target.value)}
-                      />
+                      <div className="flex items-center justify-center gap-0.5">
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-red-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const current = urenOverridden ? arbeidOverrides[key] : calculated;
+                            const next = Math.max(0, +(current - 0.5).toFixed(1));
+                            updateArbeidOverride(key, next === calculated ? '' : String(next));
+                          }}
+                        >-</button>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          className={`w-14 px-0.5 py-0.5 border rounded text-center text-xs ${
+                            urenOverridden ? 'border-blue-400 bg-blue-50' : ''
+                          }`}
+                          value={urenOverridden ? arbeidOverrides[key] : ''}
+                          placeholder={calculated.toFixed(1)}
+                          onChange={(e) => updateArbeidOverride(key, e.target.value)}
+                        />
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const current = urenOverridden ? arbeidOverrides[key] : calculated;
+                            const next = +(current + 0.5).toFixed(1);
+                            updateArbeidOverride(key, String(next));
+                          }}
+                        >+</button>
+                      </div>
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs}/u</td>
                     <td className="py-1 text-center">
@@ -394,14 +412,32 @@ const TotalenOverzicht = ({
                     </td>
                     <td className="py-1 text-right font-semibold">{aantal}</td>
                     <td className="py-1 text-center">
-                      <input
-                        type="number"
-                        min="0"
-                        className={`w-14 px-1 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
-                        value={aantalOverridden ? extraAmounts[key] : ''}
-                        placeholder={aantal}
-                        onChange={(e) => updateExtra(key, e.target.value)}
-                      />
+                      <div className="flex items-center justify-center gap-0.5">
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-red-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const current = aantalOverridden ? extraAmounts[key] : aantal;
+                            const next = Math.max(0, current - 1);
+                            updateExtra(key, next === aantal ? '' : String(next));
+                          }}
+                        >-</button>
+                        <input
+                          type="number"
+                          min="0"
+                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                          value={aantalOverridden ? extraAmounts[key] : ''}
+                          placeholder={aantal}
+                          onChange={(e) => updateExtra(key, e.target.value)}
+                        />
+                        <button
+                          className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
+                          onClick={() => {
+                            const current = aantalOverridden ? extraAmounts[key] : aantal;
+                            const next = current + 1;
+                            updateExtra(key, String(next));
+                          }}
+                        >+</button>
+                      </div>
                     </td>
                     <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(defaultPlaatPrijs)}</td>
                     <td className="py-1 text-center">
