@@ -99,7 +99,7 @@ export const generateOffertePDF = ({
     if (projectInfo.meubelnummer) rightParts.push(`Meubelnr: ${projectInfo.meubelnummer}`);
     if (projectInfo.aantal > 1) rightParts.push(`Aantal: ${projectInfo.aantal}`);
     if (rightParts.length > 0) {
-      doc.text(rightParts.join('    '), pageWidth / 2, y + 4);
+      doc.text(rightParts.join('    '), pageWidth - margin, y + 4, { align: 'right' });
     }
     y += 10;
   };
