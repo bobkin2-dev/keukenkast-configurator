@@ -104,59 +104,7 @@ export const generateOffertePDF = ({
     y += 10;
   };
 
-  // ====== PAGE 1: Title block + Kastenlijst ======
-  drawTitleBlock();
-
-  // Kastenlijst table
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
-  doc.text('Kastenlijst', margin, y + 4);
-  y += 6;
-
-  const kastenBody = kastenLijst.map((kast, i) => {
-    let typeStr = kast.type;
-    if (kast.naam) typeStr += ` - ${kast.naam}`;
-    if (kast.isOpen) typeStr += ' (open)';
-    if (kast.isZijpaneel) typeStr += ' [ZP]';
-    if (isVrijeKast(kast.type)) {
-      const onderdelen = getOnderdelen(kast);
-      const active = Object.entries(onderdelen).filter(([, v]) => v).map(([k]) => k);
-      if (active.length > 0) typeStr += ` [${active.join(', ')}]`;
-      const matNaam = getVrijeKastMateriaalNaam(kast, plaatMaterialen);
-      if (matNaam) typeStr += `\n${matNaam}`;
-    }
-    return [
-      i + 1,
-      typeStr,
-      `${kast.hoogte} x ${kast.breedte} x ${kast.diepte}`,
-      kast.aantalLeggers || '-',
-      kast.aantalTussensteunen || '-',
-      kast.aantalDeuren || '-',
-      kast.aantalLades || '-',
-    ];
-  });
-
-  autoTable(doc, {
-    startY: y,
-    head: [['#', 'Type', 'H\u00D7B\u00D7D (mm)', 'Leggers', 'Steunen', 'Deuren', 'Lades']],
-    body: kastenBody,
-    margin: { left: margin, right: margin },
-    styles: { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold' },
-    columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 'auto' },
-      2: { cellWidth: 35, halign: 'right' },
-      3: { cellWidth: 16, halign: 'center' },
-      4: { cellWidth: 16, halign: 'center' },
-      5: { cellWidth: 16, halign: 'center' },
-      6: { cellWidth: 16, halign: 'center' },
-    },
-  });
-
-  // ====== PAGE 2: Totaallijst Materialen & Arbeid ======
-  doc.addPage();
-  y = margin;
+  // ====== PAGE 1: Totaallijst Materialen & Arbeid ======
   drawTitleBlock();
 
   doc.setFontSize(11);
@@ -269,6 +217,58 @@ export const generateOffertePDF = ({
   doc.setFont(undefined, 'bold');
   doc.text('TOTAAL', margin, y);
   doc.text(euro(grandTotal), pageWidth - margin, y, { align: 'right' });
+
+  // ====== PAGE 2: Kastenlijst ======
+  doc.addPage();
+  y = margin;
+  drawTitleBlock();
+
+  // Kastenlijst table
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text('Kastenlijst', margin, y + 4);
+  y += 6;
+
+  const kastenBody = kastenLijst.map((kast, i) => {
+    let typeStr = kast.type;
+    if (kast.naam) typeStr += ` - ${kast.naam}`;
+    if (kast.isOpen) typeStr += ' (open)';
+    if (kast.isZijpaneel) typeStr += ' [ZP]';
+    if (isVrijeKast(kast.type)) {
+      const onderdelen = getOnderdelen(kast);
+      const active = Object.entries(onderdelen).filter(([, v]) => v).map(([k]) => k);
+      if (active.length > 0) typeStr += ` [${active.join(', ')}]`;
+      const matNaam = getVrijeKastMateriaalNaam(kast, plaatMaterialen);
+      if (matNaam) typeStr += `\n${matNaam}`;
+    }
+    return [
+      i + 1,
+      typeStr,
+      `${kast.hoogte} x ${kast.breedte} x ${kast.diepte}`,
+      kast.aantalLeggers || '-',
+      kast.aantalTussensteunen || '-',
+      kast.aantalDeuren || '-',
+      kast.aantalLades || '-',
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [['#', 'Type', 'H\u00D7B\u00D7D (mm)', 'Leggers', 'Steunen', 'Deuren', 'Lades']],
+    body: kastenBody,
+    margin: { left: margin, right: margin },
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 35, halign: 'right' },
+      3: { cellWidth: 16, halign: 'center' },
+      4: { cellWidth: 16, halign: 'center' },
+      5: { cellWidth: 16, halign: 'center' },
+      6: { cellWidth: 16, halign: 'center' },
+    },
+  });
 
   // --- Footer on all pages ---
   const totalPages = doc.internal.getNumberOfPages();
