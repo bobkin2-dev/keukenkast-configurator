@@ -19,8 +19,10 @@ const getVrijeKastMateriaalNaam = (kast, plaatMaterialen) => {
 const euro = (val) => `\u20AC${val.toFixed(2)}`;
 const euroInt = (val) => `\u20AC${Math.round(val)}`;
 
-const HEADER_COLOR = [55, 65, 81];
-const SUB_HEADER_COLOR = [107, 114, 128];
+const HEADER_COLOR = [255, 242, 204];      // Cream/yellow (matching manual form)
+const SUB_HEADER_COLOR = [255, 242, 204];   // Same cream for sub-headers
+const HEADER_TEXT = [0, 0, 0];              // Black text on cream headers
+const GRAY_ACCENT = [174, 170, 170];        // Gray for secondary elements
 
 export const generateOffertePDF = ({
   projectInfo,
@@ -54,7 +56,7 @@ export const generateOffertePDF = ({
       if (projectInfo.aantal > 1) parts.push(`Aantal: ${projectInfo.aantal}`);
       doc.text(parts.join('  |  '), margin, y + 4);
       doc.setFont(undefined, 'normal');
-      doc.setTextColor(120);
+      doc.setTextColor(...GRAY_ACCENT);
       doc.text(today.toLocaleDateString('nl-BE'), pageWidth - margin, y + 4, { align: 'right' });
       doc.setTextColor(0);
       y += 8;
@@ -67,7 +69,7 @@ export const generateOffertePDF = ({
     doc.text('Calculatiebon', pageWidth / 2, y + 6, { align: 'center' });
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
-    doc.setTextColor(120);
+    doc.setTextColor(...GRAY_ACCENT);
     doc.text(today.toLocaleDateString('nl-BE'), pageWidth - margin, y + 6, { align: 'right' });
     doc.setTextColor(0);
     y += 12;
@@ -75,7 +77,7 @@ export const generateOffertePDF = ({
     // Dossier line
     const dossierParts = [groupInfo?.naam, groupInfo?.klant].filter(Boolean);
     const dossierVal = dossierParts.length > 0 ? dossierParts.join(' \u2014 ') : (projectInfo.project || 'Naamloos');
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont(undefined, 'bold');
     doc.text('Dossier:', margin, y + 4);
     doc.setFont(undefined, 'normal');
@@ -134,7 +136,7 @@ export const generateOffertePDF = ({
     body: kastenBody,
     margin: { left: margin, right: margin },
     styles: { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: HEADER_COLOR, textColor: 255, fontStyle: 'bold' },
+    headStyles: { fillColor: HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold' },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 'auto' },
@@ -158,7 +160,7 @@ export const generateOffertePDF = ({
 
   // Reusable: add a section with title + table
   const DIM_COLOR = [180, 180, 180];
-  const STRIPE_COLOR = [222, 226, 230];
+  const STRIPE_COLOR = [245, 245, 245];
   const addSection = (title, head, body, colStyles = {}, zeroRows = [], { boldNonZero = false } = {}) => {
     if (body.length === 0) return;
 
@@ -173,7 +175,7 @@ export const generateOffertePDF = ({
       body,
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1 },
-      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: 255, fontStyle: 'bold', fontSize: 6.5 },
+      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold', fontSize: 7 },
       alternateRowStyles: { fillColor: STRIPE_COLOR },
       columnStyles: colStyles,
       willDrawCell: (data) => {
@@ -249,7 +251,7 @@ export const generateOffertePDF = ({
 
   // --- Grand Total ---
   y += 2;
-  doc.setDrawColor(...HEADER_COLOR);
+  doc.setDrawColor(...GRAY_ACCENT);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
   y += 7;
