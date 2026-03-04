@@ -164,7 +164,8 @@ const TotalenOverzicht = ({
     ].map(({ key, label, defaultPrijs }) => {
       const uren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
       const prijs = getOverride(`arbeid_${key}`, defaultPrijs);
-      return { label, uren, prijs, totaal: uren * prijs, isZero: uren === 0 };
+      const pdfLabel = key === 'tekenwerk' && projectInfo.aantal > 1 ? `${label} (x${projectInfo.aantal})` : label;
+      return { label: pdfLabel, uren, prijs, totaal: uren * prijs, isZero: uren === 0 };
     });
 
     // Plaatmateriaal
