@@ -19,8 +19,8 @@ const getVrijeKastMateriaalNaam = (kast, plaatMaterialen) => {
 const euro = (val) => `\u20AC${val.toFixed(2)}`;
 const euroInt = (val) => `\u20AC${Math.round(val)}`;
 
-const HEADER_COLOR = [255, 242, 204];      // Cream/yellow (matching manual form)
-const SUB_HEADER_COLOR = [255, 242, 204];   // Same cream for sub-headers
+const HEADER_COLOR = [242, 218, 150];      // Golden yellow (print-friendly)
+const SUB_HEADER_COLOR = [242, 218, 150];   // Same golden for sub-headers
 const HEADER_TEXT = [0, 0, 0];              // Black text on cream headers
 const GRAY_ACCENT = [174, 170, 170];        // Gray for secondary elements
 
@@ -160,7 +160,7 @@ export const generateOffertePDF = ({
 
   // Reusable: add a section with title + table
   const DIM_COLOR = [180, 180, 180];
-  const STRIPE_COLOR = [245, 245, 245];
+  const STRIPE_COLOR = [225, 225, 225];
   const addSection = (title, head, body, colStyles = {}, zeroRows = [], { boldNonZero = false } = {}) => {
     if (body.length === 0) return;
 
