@@ -17,6 +17,23 @@ const BESLAG_CATEGORIES = [
   'Garderobe',
 ];
 
+const CATEGORY_EMOJI = {
+  'Scharnieren': '\uD83D\uDEAA',
+  'Ladesystemen': '\uD83D\uDDC4\uFE0F',
+  'Sloten': '\uD83D\uDD12',
+  'Verbindingsbeslag & Profielen': '\uD83D\uDD29',
+  'Schuifdeurbeslag': '\u2194\uFE0F',
+  'Bouwbeslag': '\uD83D\uDD28',
+  'Verlichting': '\uD83D\uDCA1',
+  'Bank- & Tabletdragers': '\uD83D\uDCD0',
+  'Kantoorinrichting': '\uD83D\uDDA5\uFE0F',
+  'Keuken & Badkamer': '\uD83C\uDF73',
+  'Multimedia & Specials': '\u26A1',
+  'Poten': '\uD83E\uDDB6',
+  'Wielen': '\u2638\uFE0F',
+  'Garderobe': '\uD83D\uDC54',
+};
+
 const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) => {
   const [zoek, setZoek] = useState('');
   const [activeCategory, setActiveCategory] = useState(null);
@@ -254,7 +271,7 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
                   onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
                   className={`w-full text-left px-4 py-2 text-sm transition ${activeCategory === cat ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-gray-100 text-gray-600'}`}
                 >
-                  {cat} {count > 0 && <span className="text-xs text-gray-400">({count})</span>}
+                  {CATEGORY_EMOJI[cat] && <span className="mr-1.5">{CATEGORY_EMOJI[cat]}</span>}{cat} {count > 0 && <span className="text-xs text-gray-400">({count})</span>}
                 </button>
               );
             })}
@@ -410,7 +427,7 @@ const BeslagBibliotheekModal = ({ bibliotheek, onSave, onClose, onSelectItem }) 
             ) : (
               sortedCategories.map(cat => (
                 <div key={cat} className="mb-4">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 px-1">{cat}</h3>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 px-1">{CATEGORY_EMOJI[cat] && <span className="mr-1">{CATEGORY_EMOJI[cat]}</span>}{cat}</h3>
                   <table className="w-full text-sm">
                     <tbody>
                       {itemsByCategory[cat].map(item => {
