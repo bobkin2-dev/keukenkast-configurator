@@ -67,7 +67,8 @@ export const useProjectState = ({
       arbeidOverrides,
       customBeslag,
       tabletsteun,
-      infoOverrides
+      infoOverrides,
+      aantal: projectInfo.aantal || 1,
     };
 
     const { error } = await db.saveProjectState(projectId, projectInfo, settings, kastenLijst);

@@ -52,7 +52,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [projectInfo, setProjectInfo] = useState({
     project: initialData?.name || '',
     meubelnummer: initialData?.meubelnummer || '',
-    aantal: initialData?.aantal || 1
+    aantal: initialData?.aantal || initialData?.settings?.aantal || 1
   });
   const groupInfo = initialData?.project_groups || null;
 
