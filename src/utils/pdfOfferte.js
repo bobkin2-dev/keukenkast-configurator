@@ -178,7 +178,7 @@ export const generateOffertePDF = ({
       headStyles: { fillColor: SUB_HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold', fontSize: 7 },
       alternateRowStyles: { fillColor: STRIPE_COLOR },
       columnStyles: colStyles,
-      willDrawCell: (data) => {
+      didParseCell: (data) => {
         if (data.section === 'body') {
           if (zeroRows[data.row.index]) {
             data.cell.styles.textColor = DIM_COLOR;
