@@ -75,22 +75,23 @@ export const useMaterials = (initialData) => {
   };
 
   // Load plate materials from Supabase
-  useEffect(() => {
-    const loadPlaatMaterialen = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('plaat_materialen')
-          .select('*')
-          .order('id', { ascending: true });
+  const reloadPlaatMaterialen = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('plaat_materialen')
+        .select('*')
+        .order('id', { ascending: true });
 
-        if (data && !error && data.length > 0) {
-          setPlaatMaterialen(data);
-        }
-      } catch (err) {
-        console.log('Using default plate materials');
+      if (data && !error && data.length > 0) {
+        setPlaatMaterialen(data);
       }
-    };
-    loadPlaatMaterialen();
+    } catch (err) {
+      console.log('Using default plate materials');
+    }
+  };
+
+  useEffect(() => {
+    reloadPlaatMaterialen();
   }, []);
 
   return {
@@ -104,6 +105,7 @@ export const useMaterials = (initialData) => {
     showPrijsAanpassing, setShowPrijsAanpassing,
     alternatieveMateriaal, setAlternatieveMateriaal,
     updateMateriaalPrijs,
+    reloadPlaatMaterialen,
     restoreSettings
   };
 };

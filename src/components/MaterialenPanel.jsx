@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
+import PlaatmateriaalBibliotheekModal from './PlaatmateriaalBibliotheekModal';
 
 // Map type key to the popular-use property name
 const typeToCategory = {
@@ -11,14 +12,17 @@ const typeToCategory = {
 const MaterialenPanel = ({
   type,
   materialen,
+  alleMaterialen,
   geselecteerd,
   label,
   color,
   showPrijsAanpassing,
   setShowPrijsAanpassing,
   setGeselecteerd,
-  updateMateriaalPrijs
+  updateMateriaalPrijs,
+  onReloadMaterialen,
 }) => {
+  const [showBibliotheek, setShowBibliotheek] = useState(false);
   const category = typeToCategory[type];
   // Split into popular and other materials
   const popularMaterials = materialen.filter(m => m[category]);
@@ -29,13 +33,22 @@ const MaterialenPanel = ({
     <div className={`bg-${color}-50 p-3 rounded-lg border-2 border-${color}-200 relative`}>
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-sm font-bold text-gray-800">{label}</h2>
-        <button
-          onClick={() => setShowPrijsAanpassing(prev => ({ ...prev, [type]: !prev[type] }))}
-          className="text-gray-600 hover:text-gray-800"
-          title="Prijzen aanpassen"
-        >
-          <Settings size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowBibliotheek(true)}
+            className="text-gray-500 hover:text-blue-600 text-sm"
+            title="Materiaal bibliotheek"
+          >
+            📚
+          </button>
+          <button
+            onClick={() => setShowPrijsAanpassing(prev => ({ ...prev, [type]: !prev[type] }))}
+            className="text-gray-600 hover:text-gray-800"
+            title="Prijzen aanpassen"
+          >
+            <Settings size={18} />
+          </button>
+        </div>
       </div>
 
       <select
@@ -101,6 +114,14 @@ const MaterialenPanel = ({
             </div>
           </div>
         </div>
+      )}
+
+      {showBibliotheek && (
+        <PlaatmateriaalBibliotheekModal
+          materialen={alleMaterialen}
+          onClose={() => setShowBibliotheek(false)}
+          onReload={onReloadMaterialen}
+        />
       )}
     </div>
   );

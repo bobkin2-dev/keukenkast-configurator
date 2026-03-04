@@ -363,6 +363,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
               key={type}
               type={type}
               materialen={materials[matKey]}
+              alleMaterialen={materials.plaatMaterialen}
               geselecteerd={materials[selectKey]}
               label={label}
               color={color}
@@ -370,6 +371,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
               setShowPrijsAanpassing={materials.setShowPrijsAanpassing}
               setGeselecteerd={materials[setKey]}
               updateMateriaalPrijs={materials.updateMateriaalPrijs}
+              onReloadMaterialen={materials.reloadPlaatMaterialen}
             />
           ))}
         </div>
