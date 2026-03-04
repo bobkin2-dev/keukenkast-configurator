@@ -70,9 +70,13 @@ export const generateOffertePDF = ({
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(...GRAY_ACCENT);
-    const topRight = [today.toLocaleDateString('nl-BE')];
-    if (projectInfo.aantal > 1) topRight.push(`Aantal: ${projectInfo.aantal}`);
-    doc.text(topRight.join('  |  '), pageWidth - margin, y + 6, { align: 'right' });
+    doc.text(today.toLocaleDateString('nl-BE'), pageWidth - margin, y + 6, { align: 'right' });
+    if (projectInfo.aantal > 1) {
+      doc.setTextColor(0);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Aantal: ${projectInfo.aantal}`, pageWidth - margin, y + 11, { align: 'right' });
+      doc.setFont(undefined, 'normal');
+    }
     doc.setTextColor(0);
     y += 12;
 
@@ -166,18 +170,18 @@ export const generateOffertePDF = ({
   const addSection = (title, head, body, colStyles = {}, zeroRows = [], { boldNonZero = false } = {}) => {
     if (body.length === 0) return;
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont(undefined, 'bold');
     doc.text(title, margin, y + 3);
-    y += 4;
+    y += 3.5;
 
     autoTable(doc, {
       startY: y,
       head: [head],
       body,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 9, cellPadding: 1.5 },
-      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold', fontSize: 8 },
+      styles: { fontSize: 8, cellPadding: 1.2 },
+      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold', fontSize: 7.5 },
       alternateRowStyles: { fillColor: STRIPE_COLOR },
       columnStyles: colStyles,
       didParseCell: (data) => {
@@ -195,7 +199,7 @@ export const generateOffertePDF = ({
         }
       },
     });
-    y = doc.lastAutoTable.finalY + 3;
+    y = doc.lastAutoTable.finalY + 2;
   };
 
   // --- Arbeid ---
