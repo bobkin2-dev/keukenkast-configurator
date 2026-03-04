@@ -174,11 +174,15 @@ export const generateOffertePDF = ({
       head: [head],
       body,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 7, cellPadding: 1 },
-      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold', fontSize: 7 },
+      styles: { fontSize: 9, cellPadding: 1.5 },
+      headStyles: { fillColor: SUB_HEADER_COLOR, textColor: HEADER_TEXT, fontStyle: 'bold', fontSize: 8 },
       alternateRowStyles: { fillColor: STRIPE_COLOR },
       columnStyles: colStyles,
       didParseCell: (data) => {
+        // Header columns: align right except first column
+        if (data.section === 'head' && data.column.index > 0) {
+          data.cell.styles.halign = 'right';
+        }
         if (data.section === 'body') {
           if (zeroRows[data.row.index]) {
             data.cell.styles.textColor = DIM_COLOR;
