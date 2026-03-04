@@ -44,13 +44,14 @@ export const generateOffertePDF = ({
   const today = new Date();
   const drawTitleBlock = (compact = false) => {
     if (compact) {
-      // Compact: single line with group, project, meubelnummer, date
+      // Compact: single line for page 2+
       doc.setFontSize(9);
       doc.setFont(undefined, 'bold');
-      const parts = [groupInfo?.naam, `Project: ${projectInfo.project || 'Naamloos'}`];
-      if (projectInfo.meubelnummer) parts.push(`Meubel: ${projectInfo.meubelnummer}`);
+      const parts = ['Calculatiebon'];
+      const dossier = groupInfo?.naam || projectInfo.project || 'Naamloos';
+      parts.push(`Dossier: ${dossier}`);
+      if (projectInfo.meubelnummer) parts.push(`Artikel: ${projectInfo.meubelnummer}`);
       if (projectInfo.aantal > 1) parts.push(`Aantal: ${projectInfo.aantal}`);
-      if (groupInfo?.klant) parts.push(`Klant: ${groupInfo.klant}`);
       doc.text(parts.join('  |  '), margin, y + 4);
       doc.setFont(undefined, 'normal');
       doc.setTextColor(120);
@@ -60,35 +61,38 @@ export const generateOffertePDF = ({
       return;
     }
 
-    if (groupInfo?.naam) {
-      doc.setFontSize(18);
-      doc.setFont(undefined, 'bold');
-      doc.text(groupInfo.naam, margin, y + 6);
-      y += 9;
-      if (groupInfo.klant) {
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'normal');
-        doc.text(`Klant: ${groupInfo.klant}`, margin, y + 4);
-        y += 7;
-      }
-      y += 2;
-    }
-
-    doc.setFontSize(11);
+    // Title
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Calculatiebon', pageWidth / 2, y + 6, { align: 'center' });
+    doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
-    doc.text(`Project: ${projectInfo.project || 'Naamloos'}`, margin, y + 4);
+    doc.setTextColor(120);
+    doc.text(today.toLocaleDateString('nl-BE'), pageWidth - margin, y + 6, { align: 'right' });
+    doc.setTextColor(0);
+    y += 12;
+
+    // Dossier line
+    const dossierParts = [groupInfo?.naam, groupInfo?.klant].filter(Boolean);
+    const dossierVal = dossierParts.length > 0 ? dossierParts.join(' \u2014 ') : (projectInfo.project || 'Naamloos');
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('Dossier:', margin, y + 4);
+    doc.setFont(undefined, 'normal');
+    doc.text(dossierVal, margin + 28, y + 4);
+    y += 7;
+
+    // Artikel line
+    doc.setFont(undefined, 'bold');
+    doc.text('Artikel:', margin, y + 4);
+    doc.setFont(undefined, 'normal');
+    doc.text(projectInfo.project || 'Naamloos', margin + 28, y + 4);
     const rightParts = [];
-    if (projectInfo.meubelnummer) rightParts.push(`Meubelnummer: ${projectInfo.meubelnummer}`);
+    if (projectInfo.meubelnummer) rightParts.push(`Meubelnr: ${projectInfo.meubelnummer}`);
     if (projectInfo.aantal > 1) rightParts.push(`Aantal: ${projectInfo.aantal}`);
     if (rightParts.length > 0) {
       doc.text(rightParts.join('    '), pageWidth / 2, y + 4);
     }
-    y += 7;
-
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text(`Datum: ${today.toLocaleDateString('nl-BE')}`, margin, y + 3);
-    doc.setTextColor(0);
     y += 10;
   };
 
