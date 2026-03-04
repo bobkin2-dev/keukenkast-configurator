@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 import BeslagBibliotheekModal from './BeslagBibliotheekModal';
+import PlaatmateriaalBibliotheekModal from './PlaatmateriaalBibliotheekModal';
 import { generateOffertePDF } from '../utils/pdfOfferte';
 
 const TABLETSTEUN_TYPES = [
@@ -41,14 +42,17 @@ const TotalenOverzicht = ({
   setArbeidOverrides,
   customBeslag = [],
   setCustomBeslag,
+  customPlaatmateriaal = [],
+  setCustomPlaatmateriaal,
   tabletsteun = { type: '', aantal: 0 },
   setTabletsteun,
   infoOverrides = {},
   setInfoOverrides,
   exportPDFRef
 }) => {
-  // State for library modal
+  // State for library modals
   const [showBibliotheek, setShowBibliotheek] = useState(false);
+  const [showPlaatBibliotheek, setShowPlaatBibliotheek] = useState(false);
 
   // Helper for safe array access
   const safeGet = (arr, idx) => arr?.[idx] || { breedte: 1000, hoogte: 1000, prijs: 0 };
@@ -185,6 +189,12 @@ const TotalenOverzicht = ({
       const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPlaatPrijs);
       const effectiefInfo = (infoOverrides[key] !== undefined && infoOverrides[key] !== '') ? infoOverrides[key] : info;
       return { label, info: effectiefInfo, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
+    });
+    // Custom plaatmateriaal rows
+    customPlaatmateriaal.forEach(line => {
+      if (line.aantal > 0 && line.label) {
+        plaatRows.push({ label: line.label, info: line.info || '', aantal: line.aantal, prijs: line.prijs, totaal: line.aantal * line.prijs });
+      }
     });
 
     // Kantenband
@@ -401,6 +411,77 @@ const TotalenOverzicht = ({
                   </tr>
                 );
               })}
+              {customPlaatmateriaal.map((line, idx) => (
+                <tr key={`customPlaat_${idx}`}>
+                  <td className="py-1">
+                    <input
+                      type="text"
+                      className="w-full min-w-0 px-1 py-0.5 border rounded text-xs"
+                      value={line.label}
+                      placeholder="Omschrijving"
+                      onChange={(e) => setCustomPlaatmateriaal(prev => prev.map((l, i) => i === idx ? { ...l, label: e.target.value } : l))}
+                    />
+                  </td>
+                  <td className="py-1">
+                    <input
+                      type="text"
+                      className="w-full px-1 py-0.5 border rounded text-xs text-gray-600"
+                      value={line.info || ''}
+                      placeholder="Info"
+                      onChange={(e) => setCustomPlaatmateriaal(prev => prev.map((l, i) => i === idx ? { ...l, info: e.target.value } : l))}
+                    />
+                  </td>
+                  <td className="py-1 text-right font-semibold">{line.aantal}</td>
+                  <td className="py-1 text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <button
+                        className="w-5 h-5 rounded bg-gray-200 hover:bg-red-200 text-xs font-bold leading-none"
+                        onClick={() => setCustomPlaatmateriaal(prev => prev.map((l, i) => i === idx ? { ...l, aantal: Math.max(0, l.aantal - 1) } : l))}
+                      >-</button>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-12 px-0.5 py-0.5 border rounded text-center text-xs"
+                        value={line.aantal}
+                        onChange={(e) => setCustomPlaatmateriaal(prev => prev.map((l, i) => i === idx ? { ...l, aantal: parseFloat(e.target.value) || 0 } : l))}
+                      />
+                      <button
+                        className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
+                        onClick={() => setCustomPlaatmateriaal(prev => prev.map((l, i) => i === idx ? { ...l, aantal: l.aantal + 1 } : l))}
+                      >+</button>
+                    </div>
+                  </td>
+                  <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(line.prijs)}</td>
+                  <td className="py-1 text-center">
+                    <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(line.prijs)} onChange={(e) => setCustomPlaatmateriaal(prev => prev.map((l, i) => i === idx ? { ...l, prijs: parseFloat(e.target.value) || 0 } : l))} />
+                  </td>
+                  <td className="py-1 text-right font-bold text-green-700">
+                    <div className="flex items-center justify-end gap-1">
+                      €{Math.ceil(line.aantal * line.prijs)}
+                      <button
+                        className="w-4 h-4 rounded bg-gray-200 hover:bg-red-300 text-xs leading-none text-red-600"
+                        onClick={() => setCustomPlaatmateriaal(prev => prev.filter((_, i) => i !== idx))}
+                        title="Verwijder"
+                      >×</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td colSpan={7} className="py-1">
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                      onClick={() => setCustomPlaatmateriaal(prev => [...prev, { label: '', info: '', aantal: 1, prijs: 0 }])}
+                    >+ Nieuwe lijn</button>
+                    <span className="text-xs text-gray-300">|</span>
+                    <button
+                      className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+                      onClick={() => setShowPlaatBibliotheek(true)}
+                    >📚 Bibliotheek</button>
+                  </div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -858,6 +939,16 @@ const TotalenOverzicht = ({
           onSave={onSaveBeslagBibliotheek}
           onClose={() => setShowBibliotheek(false)}
           onSelectItem={(item) => setCustomBeslag(prev => [...prev, item])}
+        />
+      )}
+
+      {/* Plaatmateriaal Bibliotheek Modal */}
+      {showPlaatBibliotheek && (
+        <PlaatmateriaalBibliotheekModal
+          materialen={plaatMaterialen}
+          onClose={() => setShowPlaatBibliotheek(false)}
+          onReload={() => {}}
+          onSelectItem={(item) => setCustomPlaatmateriaal(prev => [...prev, item])}
         />
       )}
     </div>

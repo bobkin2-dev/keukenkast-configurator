@@ -13,7 +13,7 @@ const CATEGORY_KEYS = {
   'Tablet': 'tablet',
 };
 
-const PlaatmateriaalBibliotheekModal = ({ materialen, onClose, onReload }) => {
+const PlaatmateriaalBibliotheekModal = ({ materialen, onClose, onReload, onSelectItem }) => {
   const [zoek, setZoek] = useState('');
   const [activeCategory, setActiveCategory] = useState(null);
   const [editItem, setEditItem] = useState(null);
@@ -433,8 +433,21 @@ const PlaatmateriaalBibliotheekModal = ({ materialen, onClose, onReload }) => {
                             <td className="py-1.5 px-1 text-right whitespace-nowrap text-gray-600">
                               €{mat.prijs.toFixed(2)}/m²
                             </td>
-                            <td className="py-1.5 px-1 text-right w-20">
+                            <td className="py-1.5 px-1 text-right w-28">
                               <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition">
+                                {onSelectItem && (
+                                  <button
+                                    onClick={() => onSelectItem({
+                                      label: mat.naam,
+                                      info: `${mat.afmeting} mm`,
+                                      aantal: 1,
+                                      prijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
+                                    })}
+                                    className="px-2 py-0.5 bg-green-100 hover:bg-green-200 text-green-700 rounded text-xs font-medium"
+                                  >
+                                    + Toevoegen
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => setEditItem(mat.id)}
                                   className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs"

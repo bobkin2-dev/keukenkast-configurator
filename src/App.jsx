@@ -75,6 +75,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [priceOverrides, setPriceOverrides] = useState({});
   const [arbeidOverrides, setArbeidOverrides] = useState({});
   const [customBeslag, setCustomBeslag] = useState([]);
+  const [customPlaatmateriaal, setCustomPlaatmateriaal] = useState([]);
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
   const [infoOverrides, setInfoOverrides] = useState({});
   const exportPDFRef = useRef(null);
@@ -102,6 +103,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     priceOverrides,
     arbeidOverrides,
     customBeslag,
+    customPlaatmateriaal,
     tabletsteun,
     infoOverrides,
     setAccessoires,
@@ -112,6 +114,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setPriceOverrides,
     setArbeidOverrides,
     setCustomBeslag,
+    setCustomPlaatmateriaal,
     setTabletsteun,
     setInfoOverrides
   });
@@ -523,6 +526,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           setArbeidOverrides={setArbeidOverrides}
           customBeslag={customBeslag}
           setCustomBeslag={setCustomBeslag}
+          customPlaatmateriaal={customPlaatmateriaal}
+          setCustomPlaatmateriaal={setCustomPlaatmateriaal}
           tabletsteun={tabletsteun}
           setTabletsteun={setTabletsteun}
           infoOverrides={infoOverrides}
