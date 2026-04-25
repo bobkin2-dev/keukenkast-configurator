@@ -53,14 +53,14 @@ const addFillerOnderdelen = (result, kast, afvalfactorBuiten) => {
   const sideW = kast.sideFillerBreedte || 0;
   if (topH > 0) {
     result.onderdelen.push({
-      naam: 'Vulplaat boven',
+      naam: 'Paslat boven',
       m2: ((breedte + sideW) * topH) / MM2_TO_M2 * afvalfactorBuiten,
       materiaalType: 'buitenzijde'
     });
   }
   if (sideW > 0) {
     result.onderdelen.push({
-      naam: 'Vulplaat zij',
+      naam: 'Paslat zij',
       m2: (hoogte * sideW) / MM2_TO_M2 * afvalfactorBuiten,
       materiaalType: 'buitenzijde'
     });

@@ -3,118 +3,82 @@ import { colorStyles, toestelOpties, complexiteitOpties, CABINET_TYPE_CONFIG, CU
 import Counter from './Counter';
 import { KastPreview, VrijeKastPreview } from './KastPreview';
 
-// Vulplaat section (standard cabinets) — single dimension per filler
-const VulplaatSection = ({ topH, sideW, onChangeTop, onChangeSide }) => {
-  const hasFillers = topH > 0 || sideW > 0;
-  const [show, setShow] = useState(false);
-  const isShown = show || hasFillers;
-
-  if (!isShown) {
-    return (
+// Paslat section for STANDARD cabinets — single dimension per filler
+// (top filler hoogte, side filler breedte; the other dimension comes from the cabinet)
+const PaslatStandaardSection = ({ topH, sideW, onChangeTop, onChangeSide, onClose }) => (
+  <div className="bg-blue-50 border border-blue-200 rounded p-2 space-y-1">
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-semibold text-blue-800">Paslaten</span>
       <button
-        onClick={() => setShow(true)}
-        className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-      >
-        + Vulplaat
-      </button>
-    );
-  }
-  return (
-    <div className="bg-blue-50 border border-blue-200 rounded p-2 space-y-1">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-blue-800">Vulplaten</span>
-        <button
-          onClick={() => { onChangeTop(0); onChangeSide(0); setShow(false); }}
-          className="text-xs text-gray-400 hover:text-red-500"
-          title="Verwijder vulplaten"
-        >✕</button>
+        onClick={onClose}
+        className="text-xs text-gray-400 hover:text-red-500"
+        title="Verwijder paslaten"
+      >✕</button>
+    </div>
+    <div className="grid grid-cols-2 gap-2">
+      <div>
+        <label className="text-xs text-gray-600">Bovenkant hoogte (mm)</label>
+        <input
+          type="number"
+          min="0"
+          value={topH}
+          onChange={(e) => onChangeTop(parseInt(e.target.value) || 0)}
+          className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+        />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-xs text-gray-600">Top hoogte (mm)</label>
+      <div>
+        <label className="text-xs text-gray-600">Zijkant breedte (mm)</label>
+        <input
+          type="number"
+          min="0"
+          value={sideW}
+          onChange={(e) => onChangeSide(parseInt(e.target.value) || 0)}
+          className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+        />
+      </div>
+    </div>
+  </div>
+);
+
+// Paslat section for CUSTOM cabinets — free-form rectangles (W × H) per paslat
+const PaslatCustomSection = ({ paslatBovenkant = { breedte: 0, hoogte: 0 }, paslatZijkant = { breedte: 0, hoogte: 0 }, onChange, onClose }) => (
+  <div className="bg-blue-50 border border-blue-200 rounded p-2 space-y-2">
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-semibold text-blue-800">Paslaten (in buitenzijde materiaal)</span>
+      <button
+        onClick={onClose}
+        className="text-xs text-gray-400 hover:text-red-500"
+        title="Verwijder paslaten"
+      >✕</button>
+    </div>
+    {[
+      { key: 'paslatBovenkant', label: 'Paslat bovenkant', val: paslatBovenkant },
+      { key: 'paslatZijkant', label: 'Paslat zijkant', val: paslatZijkant },
+    ].map(({ key, label, val }) => (
+      <div key={key}>
+        <label className="text-xs text-gray-600">{label}</label>
+        <div className="grid grid-cols-2 gap-2">
           <input
             type="number"
             min="0"
-            value={topH}
-            onChange={(e) => onChangeTop(parseInt(e.target.value) || 0)}
+            placeholder="Breedte (mm)"
+            value={val.breedte || 0}
+            onChange={(e) => onChange(key, { ...val, breedte: parseInt(e.target.value) || 0 })}
             className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
           />
-        </div>
-        <div>
-          <label className="text-xs text-gray-600">Zij breedte (mm)</label>
           <input
             type="number"
             min="0"
-            value={sideW}
-            onChange={(e) => onChangeSide(parseInt(e.target.value) || 0)}
+            placeholder="Hoogte (mm)"
+            value={val.hoogte || 0}
+            onChange={(e) => onChange(key, { ...val, hoogte: parseInt(e.target.value) || 0 })}
             className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
           />
         </div>
       </div>
-    </div>
-  );
-};
-
-// Paslat section (custom cabinets) — free-form rectangles W × H per paslat
-const PaslatSection = ({ paslatBovenkant = { breedte: 0, hoogte: 0 }, paslatZijkant = { breedte: 0, hoogte: 0 }, onChange }) => {
-  const hasAny = (paslatBovenkant.breedte > 0 && paslatBovenkant.hoogte > 0)
-              || (paslatZijkant.breedte > 0 && paslatZijkant.hoogte > 0);
-  const [show, setShow] = useState(false);
-  const isShown = show || hasAny;
-
-  if (!isShown) {
-    return (
-      <button
-        onClick={() => setShow(true)}
-        className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-      >
-        + Paslat
-      </button>
-    );
-  }
-  return (
-    <div className="bg-blue-50 border border-blue-200 rounded p-2 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-blue-800">Paslaten (in buitenzijde materiaal)</span>
-        <button
-          onClick={() => {
-            onChange('paslatBovenkant', { breedte: 0, hoogte: 0 });
-            onChange('paslatZijkant', { breedte: 0, hoogte: 0 });
-            setShow(false);
-          }}
-          className="text-xs text-gray-400 hover:text-red-500"
-          title="Verwijder paslaten"
-        >✕</button>
-      </div>
-      {[
-        { key: 'paslatBovenkant', label: 'Paslat bovenkant', val: paslatBovenkant },
-        { key: 'paslatZijkant', label: 'Paslat zijkant', val: paslatZijkant },
-      ].map(({ key, label, val }) => (
-        <div key={key}>
-          <label className="text-xs text-gray-600">{label}</label>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="number"
-              min="0"
-              placeholder="Breedte (mm)"
-              value={val.breedte || 0}
-              onChange={(e) => onChange(key, { ...val, breedte: parseInt(e.target.value) || 0 })}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
-            />
-            <input
-              type="number"
-              min="0"
-              placeholder="Hoogte (mm)"
-              value={val.hoogte || 0}
-              onChange={(e) => onChange(key, { ...val, hoogte: parseInt(e.target.value) || 0 })}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+    ))}
+  </div>
+);
 
 // Single cabinet configurator
 const SingleKastConfigurator = ({
@@ -171,6 +135,9 @@ const SingleKastConfigurator = ({
 
   const isOpenCabinet = displayKast.isOpen === true;
   const isDubbel = displayKast.isDubbel === true;
+  const hasPaslat = (displayKast.topFillerHoogte || 0) > 0 || (displayKast.sideFillerBreedte || 0) > 0;
+  const [showPaslat, setShowPaslat] = useState(false);
+  const paslatVisible = showPaslat || hasPaslat;
 
   const handleToggleDubbel = (newDubbel) => {
     if (newDubbel === isDubbel) return;
@@ -283,13 +250,20 @@ const SingleKastConfigurator = ({
             ))}
           </div>
 
-          {/* Vulplaten (top + side fillers) */}
-          <VulplaatSection
-            topH={displayKast.topFillerHoogte || 0}
-            sideW={displayKast.sideFillerBreedte || 0}
-            onChangeTop={(v) => updateField('topFillerHoogte', v)}
-            onChangeSide={(v) => updateField('sideFillerBreedte', v)}
-          />
+          {/* Paslaten (top + side fillers) — visibility controlled by action button below */}
+          {paslatVisible && (
+            <PaslatStandaardSection
+              topH={displayKast.topFillerHoogte || 0}
+              sideW={displayKast.sideFillerBreedte || 0}
+              onChangeTop={(v) => updateField('topFillerHoogte', v)}
+              onChangeSide={(v) => updateField('sideFillerBreedte', v)}
+              onClose={() => {
+                updateField('topFillerHoogte', 0);
+                updateField('sideFillerBreedte', 0);
+                setShowPaslat(false);
+              }}
+            />
+          )}
 
           {/* Toestellen button selector - only for Kolomkast */}
           {type === 'Kolomkast' && (
@@ -314,7 +288,7 @@ const SingleKastConfigurator = ({
           )}
 
           {/* Buttons */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => voegKastToe({ type, ...kast })}
               className={`${styles.button} text-white px-3 py-2 rounded-md font-semibold text-sm`}
@@ -326,6 +300,17 @@ const SingleKastConfigurator = ({
               className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-md font-semibold text-sm"
             >
               Zijpaneel
+            </button>
+            <button
+              onClick={() => setShowPaslat(s => !s)}
+              className={`${
+                hasPaslat
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                  : 'bg-blue-100 hover:bg-blue-200 text-blue-800'
+              } px-3 py-2 rounded-md font-semibold text-sm`}
+              title={hasPaslat ? 'Paslat actief — klik om te tonen/verbergen' : 'Paslat toevoegen'}
+            >
+              Paslat{hasPaslat ? ' ✓' : ''}
             </button>
           </div>
         </div>
@@ -558,6 +543,12 @@ const CustomKastConfigurator = ({
   const isTablet = selectedType === 'Tablet';
   const isVaatwasser = selectedType === 'Vaatwasserdeur';
 
+  const pb = customKast.paslatBovenkant || { breedte: 0, hoogte: 0 };
+  const pz = customKast.paslatZijkant || { breedte: 0, hoogte: 0 };
+  const hasPaslat = (pb.breedte > 0 && pb.hoogte > 0) || (pz.breedte > 0 && pz.hoogte > 0);
+  const [showPaslat, setShowPaslat] = useState(false);
+  const paslatVisible = showPaslat || hasPaslat;
+
   // Dimension fields vary per type
   const dimensionFields = isVaatwasser
     ? [{ field: 'hoogte', label: 'Hoogte (mm)' }, { field: 'breedte', label: 'Breedte (mm)' }]
@@ -678,14 +669,21 @@ const CustomKastConfigurator = ({
         )}
 
         {/* Paslaten (free-form fillers in buitenzijde material) */}
-        <PaslatSection
-          paslatBovenkant={customKast.paslatBovenkant || { breedte: 0, hoogte: 0 }}
-          paslatZijkant={customKast.paslatZijkant || { breedte: 0, hoogte: 0 }}
-          onChange={(field, value) => updateField(field, value)}
-        />
+        {paslatVisible && (
+          <PaslatCustomSection
+            paslatBovenkant={customKast.paslatBovenkant || { breedte: 0, hoogte: 0 }}
+            paslatZijkant={customKast.paslatZijkant || { breedte: 0, hoogte: 0 }}
+            onChange={(field, value) => updateField(field, value)}
+            onClose={() => {
+              updateField('paslatBovenkant', { breedte: 0, hoogte: 0 });
+              updateField('paslatZijkant', { breedte: 0, hoogte: 0 });
+              setShowPaslat(false);
+            }}
+          />
+        )}
 
         {/* Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => voegKastToe({ ...customKast })}
             className={`${styles.button} text-white px-3 py-2 rounded-md font-semibold text-sm`}
@@ -697,6 +695,17 @@ const CustomKastConfigurator = ({
             className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-md font-semibold text-sm"
           >
             Zijpaneel
+          </button>
+          <button
+            onClick={() => setShowPaslat(s => !s)}
+            className={`${
+              hasPaslat
+                ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                : 'bg-blue-100 hover:bg-blue-200 text-blue-800'
+            } px-3 py-2 rounded-md font-semibold text-sm`}
+            title={hasPaslat ? 'Paslat actief — klik om te tonen/verbergen' : 'Paslat toevoegen'}
+          >
+            Paslat{hasPaslat ? ' ✓' : ''}
           </button>
         </div>
       </div>

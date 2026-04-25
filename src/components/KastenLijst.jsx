@@ -122,8 +122,8 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                     )}
                     {(() => {
                       const fillers = [];
-                      if ((kast.topFillerHoogte || 0) > 0) fillers.push(`top ${kast.topFillerHoogte}mm`);
-                      if ((kast.sideFillerBreedte || 0) > 0) fillers.push(`zij ${kast.sideFillerBreedte}mm`);
+                      if ((kast.topFillerHoogte || 0) > 0) fillers.push(`paslat boven ${kast.topFillerHoogte}mm`);
+                      if ((kast.sideFillerBreedte || 0) > 0) fillers.push(`paslat zij ${kast.sideFillerBreedte}mm`);
                       if (kast.paslatBovenkant && kast.paslatBovenkant.breedte > 0 && kast.paslatBovenkant.hoogte > 0) {
                         fillers.push(`paslat boven ${kast.paslatBovenkant.breedte}×${kast.paslatBovenkant.hoogte}`);
                       }
