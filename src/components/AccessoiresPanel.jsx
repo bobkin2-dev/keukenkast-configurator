@@ -15,7 +15,7 @@ const AccessoiresPanel = ({ accessoires, updateAccessoire }) => (
             className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
           >
             <option value="110">110° - €{accessoires.scharnier110.toFixed(2)}/st</option>
-            <option value="170">155-170° - €{accessoires.scharnier170.toFixed(2)}/st</option>
+            <option value="170">155-170°/180° - €{accessoires.scharnier170.toFixed(2)}/st</option>
           </select>
         </div>
 

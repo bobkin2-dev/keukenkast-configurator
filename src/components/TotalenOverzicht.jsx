@@ -92,10 +92,11 @@ const TotalenOverzicht = ({
       bestekbak: prev.bestekbak ?? extraBeslag.prijsBestekbak,
       slot: prev.slot ?? extraBeslag.prijsSlot,
       cylinderslot: prev.cylinderslot ?? extraBeslag.prijsCylinderslot,
+      kitwerk: prev.kitwerk ?? (extraBeslag.prijsKitwerk ?? 4),
       arbeid_tekenwerk: prev.arbeid_tekenwerk ?? 60,
-      arbeid_montageWerkhuis: prev.arbeid_montageWerkhuis ?? 40,
-      arbeid_plaatsing: prev.arbeid_plaatsing ?? 40,
-      arbeid_transport: prev.arbeid_transport ?? 40,
+      arbeid_montageWerkhuis: prev.arbeid_montageWerkhuis ?? 45,
+      arbeid_plaatsing: prev.arbeid_plaatsing ?? 45,
+      arbeid_transport: prev.arbeid_transport ?? 45,
     }));
   }, [materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet, accessoires, extraBeslag]);
 
@@ -162,9 +163,9 @@ const TotalenOverzicht = ({
     // Arbeid
     const arbeidRows = [
       { key: 'tekenwerk', label: 'Tekenwerk', defaultPrijs: 60 },
-      { key: 'montageWerkhuis', label: 'Montage werkhuis', defaultPrijs: 40 },
-      { key: 'plaatsing', label: 'Plaatsing', defaultPrijs: 40 },
-      { key: 'transport', label: 'Transport', defaultPrijs: 40 },
+      { key: 'montageWerkhuis', label: 'Montage werkhuis', defaultPrijs: 45 },
+      { key: 'plaatsing', label: 'Plaatsing', defaultPrijs: 45 },
+      { key: 'transport', label: 'Transport', defaultPrijs: 45 },
     ].map(({ key, label, defaultPrijs }) => {
       const uren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
       const prijs = getOverride(`arbeid_${key}`, defaultPrijs);
@@ -211,7 +212,7 @@ const TotalenOverzicht = ({
     const allBeslagDefs = [
       { key: 'kastpootjes', label: 'Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes },
       { key: 'scharnier110', label: 'Scharnieren 110\u00B0', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110 },
-      { key: 'scharnier170', label: 'Scharnieren 155/170\u00B0', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170 },
+      { key: 'scharnier170', label: 'Scharnieren 155/170\u00B0/180\u00B0', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170 },
       { key: 'profielBK', label: 'Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, decimals: 1 },
       { key: 'ophangsysteem', label: 'Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK },
       { key: 'ladenStd', label: 'Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard },
@@ -225,6 +226,7 @@ const TotalenOverzicht = ({
       { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak },
       { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot },
       { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot },
+      { key: 'kitwerk', label: 'Kitwerk', aantal: extraBeslag.kitwerk || 0, defaultPrijs: (extraBeslag.prijsKitwerk ?? 4), decimals: 1 },
     ];
     allBeslagDefs.forEach(({ key, label, aantal, defaultPrijs, decimals }) => {
       const { effectiefAantal, effectiefPrijs, aantalDisplay } = eff(key, aantal, defaultPrijs, decimals);
@@ -296,9 +298,9 @@ const TotalenOverzicht = ({
             <tbody>
               {[
                 { key: 'tekenwerk', label: 'Tekenwerk', defaultPrijs: 60 },
-                { key: 'montageWerkhuis', label: 'Montage werkhuis', defaultPrijs: 40 },
-                { key: 'plaatsing', label: 'Plaatsing', defaultPrijs: 40 },
-                { key: 'transport', label: 'Transport', defaultPrijs: 40 },
+                { key: 'montageWerkhuis', label: 'Montage werkhuis', defaultPrijs: 45 },
+                { key: 'plaatsing', label: 'Plaatsing', defaultPrijs: 45 },
+                { key: 'transport', label: 'Transport', defaultPrijs: 45 },
               ].map(({ key, label, defaultPrijs }) => {
                 const calculated = arbeidUren[key];
                 const urenOverridden = arbeidOverrides[key] !== undefined;
@@ -592,7 +594,7 @@ const TotalenOverzicht = ({
               {[
                 { key: 'kastpootjes', label: 'Kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes, unit: '/st' },
                 { key: 'scharnier110', label: 'Scharnieren 110°', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110, unit: '/st' },
-                { key: 'scharnier170', label: 'Scharnieren 155/170°', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170, unit: '/st' },
+                { key: 'scharnier170', label: 'Scharnieren 155/170°/180°', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170, unit: '/st' },
                 { key: 'profielBK', label: 'Profiel BK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK, unit: '/m', decimals: 1 },
                 { key: 'ophangsysteem', label: 'Ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK, unit: '/st' },
                 { key: 'ladenStd', label: 'Laden standaard', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard, unit: '/st' },
@@ -663,6 +665,7 @@ const TotalenOverzicht = ({
                 { key: 'bestekbak', label: 'Bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak, unit: '/st' },
                 { key: 'slot', label: 'Slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot, unit: '/st' },
                 { key: 'cylinderslot', label: 'Cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot, unit: '/st' },
+                { key: 'kitwerk', label: 'Kitwerk', aantal: extraBeslag.kitwerk || 0, defaultPrijs: (extraBeslag.prijsKitwerk ?? 4), unit: '/m', decimals: 1 },
               ].map(({ key, label, aantal, defaultPrijs, unit, decimals }) => {
                 const aantalOverridden = extraAmounts[key] !== undefined;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;

@@ -149,7 +149,9 @@ export const defaultExtraBeslag = {
   slot: 0,
   prijsSlot: 10,
   cylinderslot: 0,
-  prijsCylinderslot: 25
+  prijsCylinderslot: 25,
+  kitwerk: 0,
+  prijsKitwerk: 4
 };
 
 // Default arbeid parameters

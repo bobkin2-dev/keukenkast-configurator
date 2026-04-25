@@ -577,7 +577,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
                 <p className="text-gray-700">Afplakken speciaal: €{accessoires.afplakkenSpeciaal.toFixed(2)}/m</p>
                 <p className="text-gray-700">Kastpootjes: €{accessoires.kastpootjes.toFixed(2)}/st</p>
                 <p className="text-gray-700">
-                  Scharnieren: {accessoires.scharnierType === '110' ? '110°' : '155-170°'} -
+                  Scharnieren: {accessoires.scharnierType === '110' ? '110°' : '155-170°/180°'} -
                   €{accessoires.scharnierType === '110' ? accessoires.scharnier110.toFixed(2) : accessoires.scharnier170.toFixed(2)}/st
                 </p>
                 <p className="text-gray-700">Profiel BK: €{accessoires.profielBK.toFixed(2)}/m</p>
