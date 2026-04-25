@@ -318,12 +318,12 @@ const KastenVooraanzicht = ({ kastenLijst, setKastenLijst }) => {
                     }}
                   >
                     {showLabel && (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', lineHeight: 1.1 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', lineHeight: 1.1, pointerEvents: 'none' }}>
                         {SHORT_LABEL[b.kast.type] || b.kast.type}
                       </span>
                     )}
                     {showDims && (
-                      <span style={{ fontSize: 9, color: '#6b7280', lineHeight: 1.1, marginTop: 2 }}>
+                      <span style={{ fontSize: 9, color: '#6b7280', lineHeight: 1.1, marginTop: 2, pointerEvents: 'none' }}>
                         {b.kast.breedte}×{b.kast.hoogte}
                       </span>
                     )}
@@ -335,6 +335,7 @@ const KastenVooraanzicht = ({ kastenLijst, setKastenLijst }) => {
               {draggedId !== null && dropZones.map((zone, i) => {
                 const rect = zoneRect(zone);
                 const isHovered = hoveredZoneIdx === i;
+                const ZONE_W = 48;
                 return (
                   <div
                     key={`zone-${i}`}
@@ -343,11 +344,11 @@ const KastenVooraanzicht = ({ kastenLijst, setKastenLijst }) => {
                     onDrop={(e) => handleZoneDrop(e, zone)}
                     style={{
                       position: 'absolute',
-                      left: zone.x - 14,
+                      left: zone.x - ZONE_W / 2,
                       top: rect.top,
-                      width: 28,
+                      width: ZONE_W,
                       height: rect.height,
-                      backgroundColor: isHovered ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+                      backgroundColor: isHovered ? 'rgba(59, 130, 246, 0.18)' : 'transparent',
                       borderLeft: isHovered ? '3px solid #3b82f6' : '3px solid transparent',
                       transition: 'background-color 0.1s, border-color 0.1s',
                       zIndex: 10,
