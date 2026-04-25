@@ -67,7 +67,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
     aantalLeggers: 0,
     aantalDeuren: 0,
     aantalTussensteunen: 0,
-    hplOnderdelen: { LZ: false, RZ: false, BK: false, OK: false, RUG: false },
+    hplOnderdelen: { LZ: false, RZ: false, BK: false, OK: false, RUG: false, VK: false },
     effectieveUren: 3,
     complexiteit: 'gemiddeld',
     notities: ''
@@ -364,7 +364,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
         aantalLeggers: 0,
         aantalDeuren: 0,
         aantalTussensteunen: 0,
-        hplOnderdelen: { LZ: false, RZ: false, BK: false, OK: false, RUG: false },
+        hplOnderdelen: { LZ: false, RZ: false, BK: false, OK: false, RUG: false, VK: false },
         effectieveUren: 3,
         complexiteit: 'gemiddeld',
         notities: ''
@@ -1024,7 +1024,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                 <div className="mb-3">
                   <label className="text-xs text-gray-600 block mb-1">HPL Onderdelen</label>
                   <div className="flex gap-4">
-                    {['LZ', 'RZ', 'BK', 'OK', 'RUG'].map(onderdeel => (
+                    {['LZ', 'RZ', 'BK', 'OK', 'RUG', 'VK'].map(onderdeel => (
                       <label key={onderdeel} className="flex items-center gap-1 text-sm">
                         <input
                           type="checkbox"

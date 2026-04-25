@@ -98,7 +98,8 @@ export const defaultVrijeKast = {
     RZ: false,
     BK: false,
     OK: false,
-    RUG: false
+    RUG: false,
+    VK: false
   }
 };
 

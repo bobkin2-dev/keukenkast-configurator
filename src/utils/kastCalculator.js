@@ -246,6 +246,16 @@ export const berekenKast = (kast, options = {}) => {
       });
       // No edge banding for back panel
     }
+    if (onderdelen.VK) {
+      // Front panel: same orientation as back, but fully exposed → full-perimeter edge banding
+      result.onderdelen.push({
+        naam: 'Vrije Kast VK',
+        m2: (breedte * hoogte) / MM2_TO_M2 * afvalfactorBuiten,
+        materiaalType: 'vrijeKast',
+        vrijeKastMateriaalRef: materiaalRef
+      });
+      result.afplakken += (2 * breedte + 2 * hoogte) / MM_TO_M;
+    }
 
     // Doors on Vrije Kast
     if (aantalDeuren > 0) {

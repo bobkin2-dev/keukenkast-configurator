@@ -441,8 +441,8 @@ const VrijeKastConfigurator = ({
           {/* Parts selection */}
           <div>
             <label className="text-xs text-gray-600 block mb-1">Onderdelen</label>
-            <div className="grid grid-cols-5 gap-2">
-              {['LZ', 'RZ', 'BK', 'OK', 'RUG'].map(onderdeel => (
+            <div className="grid grid-cols-6 gap-2">
+              {['LZ', 'RZ', 'BK', 'OK', 'RUG', 'VK'].map(onderdeel => (
                 <label key={onderdeel} className="flex items-center gap-1 text-xs">
                   <input
                     type="checkbox"

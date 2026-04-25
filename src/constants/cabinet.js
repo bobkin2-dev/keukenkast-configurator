@@ -98,4 +98,4 @@ export const COMPLEXITEIT_UREN = {
 };
 
 // Vrije Kast onderdelen labels
-export const VRIJE_KAST_ONDERDELEN = ['LZ', 'RZ', 'BK', 'OK', 'RUG'];
+export const VRIJE_KAST_ONDERDELEN = ['LZ', 'RZ', 'BK', 'OK', 'RUG', 'VK'];
