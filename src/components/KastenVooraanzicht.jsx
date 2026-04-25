@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CABINET_TYPE_CONFIG } from '../constants/cabinet';
 
-// Classify a cabinet for layout purposes
-// Returns 'upper' | 'base' | 'tall' | 'skip'
+// Classify a cabinet for layout: 'upper' | 'base' | 'tall' | 'skip'
 const classifyKast = (kast) => {
-  if (kast.isZijpaneel) return 'skip';
+  if (!kast || kast.isZijpaneel) return 'skip';
   const t = kast.type;
   if (t === 'Bovenkast') return 'upper';
   if (t === 'Onderkast' || t === 'Ladekast') return 'base';
@@ -21,9 +20,9 @@ const classifyKast = (kast) => {
   return 'skip';
 };
 
-// Color per cabinet type
+// Color key per type
 const getColorKey = (kast) => {
-  const t = kast.type;
+  const t = kast?.type;
   if (CABINET_TYPE_CONFIG[t]) return CABINET_TYPE_CONFIG[t].colorClass;
   if (t === 'Vaatwasserdeur') return 'rose';
   if (t === 'Onderkast Schuifdeur') return 'teal';
@@ -32,7 +31,7 @@ const getColorKey = (kast) => {
   return 'gray';
 };
 
-// Tailwind color → hex (SVG can't use Tailwind classes)
+// Tailwind-equivalent hex pairs
 const COLOR_HEX = {
   purple: { fill: '#f5f3ff', stroke: '#a78bfa' },
   green:  { fill: '#ecfdf5', stroke: '#34d399' },
@@ -45,7 +44,6 @@ const COLOR_HEX = {
   gray:   { fill: '#f9fafb', stroke: '#9ca3af' },
 };
 
-// Short labels for blocks
 const SHORT_LABEL = {
   'Bovenkast': 'BK',
   'Onderkast': 'OK',
@@ -58,48 +56,72 @@ const SHORT_LABEL = {
   'Open Nis HPL': 'VRK',
 };
 
-const KastenVooraanzicht = ({ kastenLijst }) => {
+// Whether the dragged kind can be inserted between items of `targetKind`
+const isCompatibleTrack = (draggedKind, targetKind) => {
+  if (draggedKind === 'tall') return true; // tall can go anywhere
+  if (draggedKind === 'upper') return targetKind === 'upper' || targetKind === 'tall';
+  if (draggedKind === 'base') return targetKind === 'base' || targetKind === 'tall';
+  return false;
+};
+
+const KastenVooraanzicht = ({ kastenLijst, setKastenLijst }) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [draggedId, setDraggedId] = useState(null);
+  const [hoveredZoneIdx, setHoveredZoneIdx] = useState(null);
+
+  // ── Layout (always computes from current kastenLijst) ──────
+  const layout = useMemo(() => {
+    let topX = 0;
+    let bottomX = 0;
+    let maxHoogte = 0;
+    const blocks = [];
+
+    kastenLijst.forEach((kast, idx) => {
+      const kind = classifyKast(kast);
+      if (kind === 'skip') return;
+      const w = kast.breedte || 0;
+      const h = kast.hoogte || 0;
+      if (h > maxHoogte) maxHoogte = h;
+
+      if (kind === 'upper') {
+        blocks.push({ x: topX, w, h, kind, kast, idx });
+        topX += w;
+      } else if (kind === 'base') {
+        blocks.push({ x: bottomX, w, h, kind, kast, idx });
+        bottomX += w;
+      } else if (kind === 'tall') {
+        const newX = Math.max(topX, bottomX);
+        blocks.push({ x: newX, w, h, kind, kast, idx });
+        topX = newX + w;
+        bottomX = newX + w;
+      }
+    });
+
+    return {
+      blocks,
+      topX,
+      bottomX,
+      totalWidthMm: Math.max(topX, bottomX, 1),
+      drawingHeightMm: Math.max(2100, maxHoogte, 1),
+      maxHoogte
+    };
+  }, [kastenLijst]);
 
   if (!kastenLijst || kastenLijst.length === 0) return null;
 
-  // ── Compute layout ──────────────────────────────────────────
-  let topX = 0;
-  let bottomX = 0;
-  let maxHoogte = 0;
-  const blocks = [];
+  const { blocks, topX, bottomX, totalWidthMm, drawingHeightMm, maxHoogte } = layout;
 
-  kastenLijst.forEach((kast, idx) => {
-    const kind = classifyKast(kast);
-    if (kind === 'skip') return;
-    const w = kast.breedte || 0;
-    const h = kast.hoogte || 0;
-    if (h > maxHoogte) maxHoogte = h;
+  // Pixel scale
+  const TARGET_HEIGHT_PX = 240;
+  const scale = TARGET_HEIGHT_PX / drawingHeightMm;
+  const containerW = totalWidthMm * scale;
+  const containerH = drawingHeightMm * scale;
 
-    if (kind === 'upper') {
-      blocks.push({ x: topX, w, h, kind, kast, idx });
-      topX += w;
-    } else if (kind === 'base') {
-      blocks.push({ x: bottomX, w, h, kind, kast, idx });
-      bottomX += w;
-    } else if (kind === 'tall') {
-      const newX = Math.max(topX, bottomX);
-      blocks.push({ x: newX, w, h, kind, kast, idx });
-      topX = newX + w;
-      bottomX = newX + w;
-    }
-  });
-
-  const totalWidthMm = Math.max(topX, bottomX, 1);
-  const drawingHeightMm = Math.max(2100, maxHoogte, 1);
-
-  // ── Compute tally ───────────────────────────────────────────
+  // ── Tally ──────────────────────────────────────────────────
   const counts = {};
   const widths = {};
   kastenLijst.forEach(k => {
-    if (k.isZijpaneel) return;
-    const kind = classifyKast(k);
-    if (kind === 'skip') return;
+    if (classifyKast(k) === 'skip') return;
     const t = k.type;
     counts[t] = (counts[t] || 0) + 1;
     widths[t] = (widths[t] || 0) + (k.breedte || 0);
@@ -108,11 +130,103 @@ const KastenVooraanzicht = ({ kastenLijst }) => {
   const topGap = totalWidthMm - topX;
   const bottomGap = totalWidthMm - bottomX;
 
-  // ── SVG sizing ──────────────────────────────────────────────
-  const TARGET_HEIGHT_PX = 240;
-  const scale = TARGET_HEIGHT_PX / drawingHeightMm;
-  const svgW = totalWidthMm * scale;
-  const svgH = drawingHeightMm * scale;
+  // ── Drop zones (only computed during drag) ─────────────────
+  const draggedBlock = draggedId !== null ? blocks.find(b => b.kast.id === draggedId) : null;
+  const draggedKind = draggedBlock ? draggedBlock.kind : null;
+
+  const dropZones = useMemo(() => {
+    if (!draggedBlock) return [];
+
+    // Items in the dragged item's track (excluding the dragged item itself)
+    const trackBlocks = blocks.filter(b =>
+      b.kast.id !== draggedId && isCompatibleTrack(draggedKind, b.kind)
+    );
+
+    if (trackBlocks.length === 0) {
+      // Empty track: one drop zone at the far left
+      return [{
+        beforeKastId: null,
+        x: 4,
+        kind: draggedKind,
+      }];
+    }
+
+    const zones = [];
+    // Before first
+    zones.push({
+      beforeKastId: trackBlocks[0].kast.id,
+      x: trackBlocks[0].x * scale,
+      kind: trackBlocks[0].kind === 'tall' ? 'tall' : draggedKind,
+    });
+    // Between each pair
+    for (let i = 0; i < trackBlocks.length - 1; i++) {
+      const left = trackBlocks[i];
+      const right = trackBlocks[i + 1];
+      const midMm = (left.x + left.w + right.x) / 2;
+      zones.push({
+        beforeKastId: right.kast.id,
+        x: midMm * scale,
+        kind: 'tall', // always show full-height indicator for between-tracks situations
+      });
+    }
+    // After last
+    const last = trackBlocks[trackBlocks.length - 1];
+    zones.push({
+      beforeKastId: null, // append to end
+      x: (last.x + last.w) * scale,
+      kind: last.kind === 'tall' ? 'tall' : draggedKind,
+    });
+
+    return zones;
+  }, [draggedId, draggedKind, blocks, scale]);
+
+  const handleDragStart = (e, kast) => {
+    setDraggedId(kast.id);
+    e.dataTransfer.effectAllowed = 'move';
+    // Some browsers need data set for drag to work
+    try { e.dataTransfer.setData('text/plain', String(kast.id)); } catch {}
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setHoveredZoneIdx(null);
+  };
+
+  const handleZoneDragOver = (e, idx) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setHoveredZoneIdx(idx);
+  };
+
+  const handleZoneDrop = (e, zone) => {
+    e.preventDefault();
+    if (draggedId === null) return;
+    const draggedKast = kastenLijst.find(k => k.id === draggedId);
+    if (!draggedKast) return;
+
+    const without = kastenLijst.filter(k => k.id !== draggedId);
+    let newList;
+    if (zone.beforeKastId === null) {
+      newList = [...without, draggedKast];
+    } else {
+      const targetIdx = without.findIndex(k => k.id === zone.beforeKastId);
+      if (targetIdx === -1) {
+        newList = [...without, draggedKast];
+      } else {
+        newList = [...without.slice(0, targetIdx), draggedKast, ...without.slice(targetIdx)];
+      }
+    }
+    setKastenLijst(newList);
+    setDraggedId(null);
+    setHoveredZoneIdx(null);
+  };
+
+  // Per-zone visual height/top
+  const zoneRect = (zone) => {
+    if (zone.kind === 'tall') return { top: 0, height: containerH };
+    if (zone.kind === 'upper') return { top: 0, height: containerH * 0.45 };
+    return { top: containerH * 0.55, height: containerH * 0.45 };
+  };
 
   return (
     <div className="bg-white p-4 rounded-lg mb-4 border-2 border-gray-300 shadow-md">
@@ -128,7 +242,7 @@ const KastenVooraanzicht = ({ kastenLijst }) => {
 
       {isOpen && (
         <div className="mt-3 space-y-3">
-          {/* Tally: counts + widths per type */}
+          {/* Tally per type */}
           <div className="flex flex-wrap gap-2 text-xs">
             {Object.entries(counts).map(([type, count]) => {
               const colorKey = getColorKey({ type });
@@ -151,71 +265,105 @@ const KastenVooraanzicht = ({ kastenLijst }) => {
             <span>Ondertrack: <strong>{bottomX}mm</strong>{bottomGap > 0 && <span className="text-amber-600 ml-1">(− {bottomGap}mm gat)</span>}</span>
             <span>Totale wand: <strong>{totalWidthMm}mm</strong></span>
             <span>Hoogste kast: <strong>{maxHoogte}mm</strong></span>
+            {draggedId === null && setKastenLijst && (
+              <span className="ml-auto text-gray-400 italic">Sleep een kast om te herschikken</span>
+            )}
           </div>
 
-          {/* SVG drawing */}
+          {/* Drawing */}
           <div className="overflow-x-auto bg-gray-50 p-3 rounded border border-gray-200">
-            <svg width={svgW} height={svgH} style={{ display: 'block' }}>
+            <div
+              className="relative"
+              style={{ width: containerW, height: containerH, minWidth: 120 }}
+            >
               {/* Floor line */}
-              <line x1="0" y1={svgH} x2={svgW} y2={svgH} stroke="#9ca3af" strokeWidth="1.5" />
-              {/* Ceiling reference line (top of tallest cabinet) */}
-              <line x1="0" y1="0" x2={svgW} y2="0" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="3 3" />
+              <div
+                className="absolute left-0 right-0"
+                style={{ bottom: 0, height: 0, borderBottom: '1.5px solid #9ca3af' }}
+              />
+              {/* Ceiling reference */}
+              <div
+                className="absolute left-0 right-0"
+                style={{ top: 0, height: 0, borderTop: '1px dashed #e5e7eb' }}
+              />
 
-              {blocks.map((b, i) => {
+              {/* Cabinet blocks */}
+              {blocks.map((b) => {
                 const colorKey = getColorKey(b.kast);
                 const c = COLOR_HEX[colorKey] || COLOR_HEX.gray;
                 const x = b.x * scale;
                 const w = b.w * scale;
                 const h = b.h * scale;
-                // upper anchored top (y=0); base/tall anchored bottom (y = svgH - h)
-                const y = b.kind === 'upper' ? 0 : svgH - h;
+                const top = b.kind === 'upper' ? 0 : containerH - h;
                 const showLabel = w > 28 && h > 14;
                 const showDims = w > 50 && h > 28;
+                const isDragging = draggedId === b.kast.id;
 
                 return (
-                  <g key={b.idx}>
-                    <rect
-                      x={x}
-                      y={y}
-                      width={w}
-                      height={h}
-                      fill={c.fill}
-                      stroke={c.stroke}
-                      strokeWidth="1.5"
-                    />
+                  <div
+                    key={b.kast.id}
+                    draggable={!!setKastenLijst}
+                    onDragStart={(e) => handleDragStart(e, b.kast)}
+                    onDragEnd={handleDragEnd}
+                    title={`${b.kast.type} — ${b.kast.breedte}×${b.kast.hoogte}×${b.kast.diepte || 0}mm`}
+                    style={{
+                      position: 'absolute',
+                      left: x,
+                      top: top,
+                      width: w,
+                      height: h,
+                      backgroundColor: c.fill,
+                      border: `1.5px solid ${c.stroke}`,
+                      cursor: setKastenLijst ? 'grab' : 'default',
+                      opacity: isDragging ? 0.4 : 1,
+                      transition: 'opacity 0.1s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      userSelect: 'none',
+                    }}
+                  >
                     {showLabel && (
-                      <text
-                        x={x + w / 2}
-                        y={y + h / 2 - (showDims ? 6 : 0)}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fontSize="11"
-                        fontWeight="600"
-                        fill="#374151"
-                        style={{ pointerEvents: 'none' }}
-                      >
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#374151', lineHeight: 1.1 }}>
                         {SHORT_LABEL[b.kast.type] || b.kast.type}
-                      </text>
+                      </span>
                     )}
                     {showDims && (
-                      <text
-                        x={x + w / 2}
-                        y={y + h / 2 + 8}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fontSize="9"
-                        fill="#6b7280"
-                        style={{ pointerEvents: 'none' }}
-                      >
+                      <span style={{ fontSize: 9, color: '#6b7280', lineHeight: 1.1, marginTop: 2 }}>
                         {b.kast.breedte}×{b.kast.hoogte}
-                      </text>
+                      </span>
                     )}
-                    {/* Hover title for full info */}
-                    <title>{`${b.kast.type} — ${b.kast.breedte}×${b.kast.hoogte}×${b.kast.diepte || 0}mm`}</title>
-                  </g>
+                  </div>
                 );
               })}
-            </svg>
+
+              {/* Drop zones (drag indicators) */}
+              {draggedId !== null && dropZones.map((zone, i) => {
+                const rect = zoneRect(zone);
+                const isHovered = hoveredZoneIdx === i;
+                return (
+                  <div
+                    key={`zone-${i}`}
+                    onDragOver={(e) => handleZoneDragOver(e, i)}
+                    onDragLeave={() => setHoveredZoneIdx(prev => prev === i ? null : prev)}
+                    onDrop={(e) => handleZoneDrop(e, zone)}
+                    style={{
+                      position: 'absolute',
+                      left: zone.x - 14,
+                      top: rect.top,
+                      width: 28,
+                      height: rect.height,
+                      backgroundColor: isHovered ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+                      borderLeft: isHovered ? '3px solid #3b82f6' : '3px solid transparent',
+                      transition: 'background-color 0.1s, border-color 0.1s',
+                      zIndex: 10,
+                    }}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

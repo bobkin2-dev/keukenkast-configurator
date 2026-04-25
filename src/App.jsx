@@ -465,7 +465,10 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         />
 
         {/* Front-view drawing of all cabinets */}
-        <KastenVooraanzicht kastenLijst={kabinet.kastenLijst} />
+        <KastenVooraanzicht
+          kastenLijst={kabinet.kastenLijst}
+          setKastenLijst={kabinet.setKastenLijst}
+        />
 
         {/* Cabinets List */}
         <KastenLijst
