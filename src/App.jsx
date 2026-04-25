@@ -11,6 +11,7 @@ import { supabase } from './lib/supabase';
 // Component imports
 import MaterialenPanel from './components/MaterialenPanel';
 import KastConfigurator from './components/KastConfigurator';
+import KastenVooraanzicht from './components/KastenVooraanzicht';
 import KastenLijst from './components/KastenLijst';
 import FloatingKastenLijst from './components/FloatingKastenLijst';
 import TotalenOverzicht from './components/TotalenOverzicht';
@@ -462,6 +463,9 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           voegZijpaneelToeVoorType={kabinet.voegZijpaneelToeVoorType}
           plaatMaterialen={materials.plaatMaterialen}
         />
+
+        {/* Front-view drawing of all cabinets */}
+        <KastenVooraanzicht kastenLijst={kabinet.kastenLijst} />
 
         {/* Cabinets List */}
         <KastenLijst
