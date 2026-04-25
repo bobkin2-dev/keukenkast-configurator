@@ -204,11 +204,16 @@ const TotalenOverzicht = ({
         defaultPlaatPrijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
       })),
     ];
-    const plaatRows = plaatDefs.map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
-      const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPlaatPrijs);
-      const effectiefInfo = (infoOverrides[key] !== undefined && infoOverrides[key] !== '') ? infoOverrides[key] : info;
-      return { label, info: effectiefInfo, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
-    });
+    const plaatRows = plaatDefs
+      .filter(({ key }) =>
+        !(key === 'rug' && !alternatieveMateriaal.ruggenGebruiken) &&
+        !(key === 'leggers' && !alternatieveMateriaal.leggersGebruiken)
+      )
+      .map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
+        const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPlaatPrijs);
+        const effectiefInfo = (infoOverrides[key] !== undefined && infoOverrides[key] !== '') ? infoOverrides[key] : info;
+        return { label, info: effectiefInfo, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
+      });
     // Custom plaatmateriaal rows
     customPlaatmateriaal.forEach(line => {
       if (line.aantal > 0 && line.label) {
@@ -404,7 +409,10 @@ const TotalenOverzicht = ({
                     defaultPlaatPrijs: plaatPrijs
                   };
                 }),
-              ].map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
+              ].filter(row =>
+                !(row.key === 'rug' && !alternatieveMateriaal.ruggenGebruiken) &&
+                !(row.key === 'leggers' && !alternatieveMateriaal.leggersGebruiken)
+              ).map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
                 const aantalOverridden = extraAmounts[key] !== undefined;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
                 const effectiefPrijs = getOverride(key, defaultPlaatPrijs);
