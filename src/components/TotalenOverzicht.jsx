@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 import BeslagBibliotheekModal from './BeslagBibliotheekModal';
@@ -57,7 +57,15 @@ const TotalenOverzicht = ({
   // Helper for safe array access
   const safeGet = (arr, idx) => arr?.[idx] || { breedte: 1000, hoogte: 1000, prijs: 0 };
 
-  // Initialize price overrides when materials change
+  // Track previous material dropdown selections so we can detect a *user* change
+  // and refill the price overrides with the new material's price/plate.
+  const prevSelectionRef = useRef({
+    binnen: geselecteerdMateriaalBinnen,
+    buiten: geselecteerdMateriaalBuiten,
+    tablet: geselecteerdMateriaalTablet
+  });
+
+  // Initialize / refresh price overrides when materials change
   useEffect(() => {
     const binnenMat = safeGet(materiaalBinnenkast, geselecteerdMateriaalBinnen);
     const buitenMat = safeGet(materiaalBuitenzijde, geselecteerdMateriaalBuiten);
@@ -67,13 +75,23 @@ const TotalenOverzicht = ({
     const buitenPrijs = (buitenMat.breedte / 1000) * (buitenMat.hoogte / 1000) * buitenMat.prijs;
     const tabletPrijs = (tabletMat.breedte / 1000) * (tabletMat.hoogte / 1000) * tabletMat.prijs;
 
+    const prevSel = prevSelectionRef.current;
+    const binnenChanged = prevSel.binnen !== geselecteerdMateriaalBinnen;
+    const buitenChanged = prevSel.buiten !== geselecteerdMateriaalBuiten;
+    const tabletChanged = prevSel.tablet !== geselecteerdMateriaalTablet;
+    prevSelectionRef.current = {
+      binnen: geselecteerdMateriaalBinnen,
+      buiten: geselecteerdMateriaalBuiten,
+      tablet: geselecteerdMateriaalTablet
+    };
+
     setPriceOverrides(prev => ({
       ...prev,
-      binnenkast: prev.binnenkast ?? binnenPrijs,
-      rug: prev.rug ?? binnenPrijs,
-      leggers: prev.leggers ?? binnenPrijs,
-      buitenzijde: prev.buitenzijde ?? buitenPrijs,
-      tablet: prev.tablet ?? tabletPrijs,
+      binnenkast: binnenChanged ? binnenPrijs : (prev.binnenkast ?? binnenPrijs),
+      rug: binnenChanged ? binnenPrijs : (prev.rug ?? binnenPrijs),
+      leggers: binnenChanged ? binnenPrijs : (prev.leggers ?? binnenPrijs),
+      buitenzijde: buitenChanged ? buitenPrijs : (prev.buitenzijde ?? buitenPrijs),
+      tablet: tabletChanged ? tabletPrijs : (prev.tablet ?? tabletPrijs),
       kantenbandStd: prev.kantenbandStd ?? accessoires.afplakkenStandaard,
       kantenbandSpec: prev.kantenbandSpec ?? accessoires.afplakkenSpeciaal,
       kastpootjes: prev.kastpootjes ?? accessoires.kastpootjes,
