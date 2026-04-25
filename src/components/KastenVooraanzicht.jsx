@@ -107,8 +107,6 @@ const KastenVooraanzicht = ({ kastenLijst, setKastenLijst }) => {
     };
   }, [kastenLijst]);
 
-  if (!kastenLijst || kastenLijst.length === 0) return null;
-
   const { blocks, topX, bottomX, totalWidthMm, drawingHeightMm, maxHoogte } = layout;
 
   // Pixel scale
@@ -116,6 +114,50 @@ const KastenVooraanzicht = ({ kastenLijst, setKastenLijst }) => {
   const scale = TARGET_HEIGHT_PX / drawingHeightMm;
   const containerW = totalWidthMm * scale;
   const containerH = drawingHeightMm * scale;
+
+  // ── Drop zones (only meaningful during drag — but the hook must run every render) ──
+  const draggedBlock = draggedId !== null ? blocks.find(b => b.kast.id === draggedId) : null;
+  const draggedKind = draggedBlock ? draggedBlock.kind : null;
+
+  const dropZones = useMemo(() => {
+    if (!draggedBlock) return [];
+
+    const trackBlocks = blocks.filter(b =>
+      b.kast.id !== draggedId && isCompatibleTrack(draggedKind, b.kind)
+    );
+
+    if (trackBlocks.length === 0) {
+      return [{ beforeKastId: null, x: 4, kind: draggedKind }];
+    }
+
+    const zones = [];
+    zones.push({
+      beforeKastId: trackBlocks[0].kast.id,
+      x: trackBlocks[0].x * scale,
+      kind: trackBlocks[0].kind === 'tall' ? 'tall' : draggedKind,
+    });
+    for (let i = 0; i < trackBlocks.length - 1; i++) {
+      const left = trackBlocks[i];
+      const right = trackBlocks[i + 1];
+      const midMm = (left.x + left.w + right.x) / 2;
+      zones.push({
+        beforeKastId: right.kast.id,
+        x: midMm * scale,
+        kind: 'tall',
+      });
+    }
+    const last = trackBlocks[trackBlocks.length - 1];
+    zones.push({
+      beforeKastId: null,
+      x: (last.x + last.w) * scale,
+      kind: last.kind === 'tall' ? 'tall' : draggedKind,
+    });
+
+    return zones;
+  }, [draggedId, draggedKind, blocks, scale, draggedBlock]);
+
+  // Early return — must come AFTER all hooks
+  if (!kastenLijst || kastenLijst.length === 0) return null;
 
   // ── Tally ──────────────────────────────────────────────────
   const counts = {};
@@ -129,56 +171,6 @@ const KastenVooraanzicht = ({ kastenLijst, setKastenLijst }) => {
 
   const topGap = totalWidthMm - topX;
   const bottomGap = totalWidthMm - bottomX;
-
-  // ── Drop zones (only computed during drag) ─────────────────
-  const draggedBlock = draggedId !== null ? blocks.find(b => b.kast.id === draggedId) : null;
-  const draggedKind = draggedBlock ? draggedBlock.kind : null;
-
-  const dropZones = useMemo(() => {
-    if (!draggedBlock) return [];
-
-    // Items in the dragged item's track (excluding the dragged item itself)
-    const trackBlocks = blocks.filter(b =>
-      b.kast.id !== draggedId && isCompatibleTrack(draggedKind, b.kind)
-    );
-
-    if (trackBlocks.length === 0) {
-      // Empty track: one drop zone at the far left
-      return [{
-        beforeKastId: null,
-        x: 4,
-        kind: draggedKind,
-      }];
-    }
-
-    const zones = [];
-    // Before first
-    zones.push({
-      beforeKastId: trackBlocks[0].kast.id,
-      x: trackBlocks[0].x * scale,
-      kind: trackBlocks[0].kind === 'tall' ? 'tall' : draggedKind,
-    });
-    // Between each pair
-    for (let i = 0; i < trackBlocks.length - 1; i++) {
-      const left = trackBlocks[i];
-      const right = trackBlocks[i + 1];
-      const midMm = (left.x + left.w + right.x) / 2;
-      zones.push({
-        beforeKastId: right.kast.id,
-        x: midMm * scale,
-        kind: 'tall', // always show full-height indicator for between-tracks situations
-      });
-    }
-    // After last
-    const last = trackBlocks[trackBlocks.length - 1];
-    zones.push({
-      beforeKastId: null, // append to end
-      x: (last.x + last.w) * scale,
-      kind: last.kind === 'tall' ? 'tall' : draggedKind,
-    });
-
-    return zones;
-  }, [draggedId, draggedKind, blocks, scale]);
 
   const handleDragStart = (e, kast) => {
     setDraggedId(kast.id);
