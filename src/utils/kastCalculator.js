@@ -41,32 +41,91 @@ const calculateKastpootjes = (breedte) => {
   return Math.ceil(breedte / 600) * 2 + 2;
 };
 
+// Push filler onderdelen onto a cabinet result.
+// Standard cabinets use one-dimension vulplaten; custom cabinets use free-form paslaten.
+// All fillers go into the buitenzijde material.
+const addFillerOnderdelen = (result, kast, afvalfactorBuiten) => {
+  const breedte = kast.breedte || 0;
+  const hoogte = kast.hoogte || 0;
+
+  // Standard vulplaten: top filler spans (W + sideW) × H_top, side filler spans H × sideW
+  const topH = kast.topFillerHoogte || 0;
+  const sideW = kast.sideFillerBreedte || 0;
+  if (topH > 0) {
+    result.onderdelen.push({
+      naam: 'Vulplaat boven',
+      m2: ((breedte + sideW) * topH) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'buitenzijde'
+    });
+  }
+  if (sideW > 0) {
+    result.onderdelen.push({
+      naam: 'Vulplaat zij',
+      m2: (hoogte * sideW) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'buitenzijde'
+    });
+  }
+
+  // Custom paslaten: free-form rectangles (W × H)
+  const pb = kast.paslatBovenkant;
+  if (pb && (pb.breedte || 0) > 0 && (pb.hoogte || 0) > 0) {
+    result.onderdelen.push({
+      naam: 'Paslat bovenkant',
+      m2: (pb.breedte * pb.hoogte) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'buitenzijde'
+    });
+  }
+  const pz = kast.paslatZijkant;
+  if (pz && (pz.breedte || 0) > 0 && (pz.hoogte || 0) > 0) {
+    result.onderdelen.push({
+      naam: 'Paslat zijkant',
+      m2: (pz.breedte * pz.hoogte) / MM2_TO_M2 * afvalfactorBuiten,
+      materiaalType: 'buitenzijde'
+    });
+  }
+};
+
 /**
  * Calculate montage hours for a single cabinet
  * @param {Object} kast - Cabinet configuration
  * @param {Object} params - Production parameters (from AdminSettings)
  * @returns {number} Hours of montage work
  */
+// 15 min per filler (vulplaat or paslat)
+const FILLER_HOURS = 0.25;
+
+const countFillers = (kast) => {
+  let n = 0;
+  // Standard vulplaten (single dimension each)
+  if ((kast.topFillerHoogte || 0) > 0) n++;
+  if ((kast.sideFillerBreedte || 0) > 0) n++;
+  // Custom paslaten (rectangles)
+  if (kast.paslatBovenkant && (kast.paslatBovenkant.breedte || 0) > 0 && (kast.paslatBovenkant.hoogte || 0) > 0) n++;
+  if (kast.paslatZijkant && (kast.paslatZijkant.breedte || 0) > 0 && (kast.paslatZijkant.hoogte || 0) > 0) n++;
+  return n;
+};
+
 export const berekenMontageUren = (kast, params) => {
   if (kast.isZijpaneel) return 0.17; // ~10 min for side panel
 
   const { type, complexiteit } = kast;
+  const fillerExtra = countFillers(kast) * FILLER_HOURS;
 
   // Vrije Kast (and legacy Open Nis HPL) uses complexity-based hours
   if (isVrijeKast(type)) {
-    return COMPLEXITEIT_UREN[complexiteit || 'gemiddeld'] || 3;
+    return (COMPLEXITEIT_UREN[complexiteit || 'gemiddeld'] || 3) + fillerExtra;
   }
 
   // Tablet: fixed 2u + 1u if spatwand
   if (type === 'Tablet') {
-    return 2 + (kast.spatwand ? 1 : 0);
+    return 2 + (kast.spatwand ? 1 : 0) + fillerExtra;
   }
 
-  if (!params) return 1.5; // fallback
+  if (!params) return 1.5 + fillerExtra; // fallback
 
   // Standard cabinet + custom types: base montage × type multiplier
   const typeMultiplier = params.typeMultipliers?.[type] || 1.0;
-  return (params.baseMontageUren || 1.5) * typeMultiplier;
+  return (params.baseMontageUren || 1.5) * typeMultiplier + fillerExtra;
 };
 
 /**
@@ -234,6 +293,7 @@ export const berekenKast = (kast, options = {}) => {
     result.afplakken = 2 * (breedte + hoogte) / MM_TO_M;
     // 1 handle
     result.handgrepen = 1;
+    addFillerOnderdelen(result, kast, afvalfactorBuiten);
     return result;
   }
 
@@ -287,6 +347,7 @@ export const berekenKast = (kast, options = {}) => {
       maat: kast.schuifdeurBovenprofiel || '2_5m',
       aantal: 1
     });
+    addFillerOnderdelen(result, kast, afvalfactorBuiten);
     return result;
   }
 
@@ -346,6 +407,7 @@ export const berekenKast = (kast, options = {}) => {
       maat: kast.schuifdeurOnderprofiel || '2_5m',
       aantal: 1
     });
+    addFillerOnderdelen(result, kast, afvalfactorBuiten);
     return result;
   }
 
@@ -369,6 +431,7 @@ export const berekenKast = (kast, options = {}) => {
         materiaalType: 'buitenzijde'
       });
     }
+    addFillerOnderdelen(result, kast, afvalfactorBuiten);
     return result;
   }
 
@@ -473,6 +536,9 @@ export const berekenKast = (kast, options = {}) => {
   if (aantalLades > 0) {
     result.ladenStandaard = aantalLades;
   }
+
+  // Vulplaten (top + side fillers, optional)
+  addFillerOnderdelen(result, kast, afvalfactorBuiten);
 
   return result;
 };

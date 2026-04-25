@@ -34,7 +34,9 @@ export const defaultBovenkast = {
   aantalLades: 0,
   aantalDeuren: 1,
   aantalTussensteunen: 0,
-  isOpen: false
+  isOpen: false,
+  topFillerHoogte: 0,
+  sideFillerBreedte: 0
 };
 
 export const defaultKolomkast = {
@@ -46,7 +48,9 @@ export const defaultKolomkast = {
   aantalLades: 0,
   aantalDeuren: 1,
   aantalTussensteunen: 0,
-  isOpen: false
+  isOpen: false,
+  topFillerHoogte: 0,
+  sideFillerBreedte: 0
 };
 
 export const defaultOnderkast = {
@@ -58,7 +62,9 @@ export const defaultOnderkast = {
   aantalLades: 0,
   aantalDeuren: 1,
   aantalTussensteunen: 0,
-  isOpen: false
+  isOpen: false,
+  topFillerHoogte: 0,
+  sideFillerBreedte: 0
 };
 
 export const defaultLadekast = {
@@ -70,7 +76,9 @@ export const defaultLadekast = {
   aantalLades: 3,
   aantalDeuren: 0,
   aantalTussensteunen: 0,
-  isOpen: false
+  isOpen: false,
+  topFillerHoogte: 0,
+  sideFillerBreedte: 0
 };
 
 export const defaultVrijeKast = {
@@ -114,6 +122,9 @@ export const defaultCustomKast = {
   schuifdeurOnderprofiel: '2_5m',
   // Tablet options
   spatwand: false,
+  // Paslaten (free-form fillers, optional)
+  paslatBovenkant: { breedte: 0, hoogte: 0 },
+  paslatZijkant: { breedte: 0, hoogte: 0 },
 };
 
 // Default accessoires

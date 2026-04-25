@@ -120,6 +120,22 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                         </span>
                       </>
                     )}
+                    {(() => {
+                      const fillers = [];
+                      if ((kast.topFillerHoogte || 0) > 0) fillers.push(`top ${kast.topFillerHoogte}mm`);
+                      if ((kast.sideFillerBreedte || 0) > 0) fillers.push(`zij ${kast.sideFillerBreedte}mm`);
+                      if (kast.paslatBovenkant && kast.paslatBovenkant.breedte > 0 && kast.paslatBovenkant.hoogte > 0) {
+                        fillers.push(`paslat boven ${kast.paslatBovenkant.breedte}×${kast.paslatBovenkant.hoogte}`);
+                      }
+                      if (kast.paslatZijkant && kast.paslatZijkant.breedte > 0 && kast.paslatZijkant.hoogte > 0) {
+                        fillers.push(`paslat zij ${kast.paslatZijkant.breedte}×${kast.paslatZijkant.hoogte}`);
+                      }
+                      return fillers.length > 0 ? (
+                        <span className="text-xs text-blue-600 block">
+                          🧩 {fillers.join(', ')}
+                        </span>
+                      ) : null;
+                    })()}
                   </td>
                   <td className="py-2 px-2 text-right text-gray-700 font-mono text-xs">
                     {kast.hoogte}×{kast.breedte}×{kast.diepte}
