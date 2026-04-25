@@ -10,7 +10,6 @@ import { supabase } from './lib/supabase';
 
 // Component imports
 import MaterialenPanel from './components/MaterialenPanel';
-import AccessoiresPanel from './components/AccessoiresPanel';
 import KastConfigurator from './components/KastConfigurator';
 import KastenLijst from './components/KastenLijst';
 import FloatingKastenLijst from './components/FloatingKastenLijst';
@@ -80,10 +79,6 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [infoOverrides, setInfoOverrides] = useState({});
   const exportPDFRef = useRef(null);
 
-  const updateAccessoire = (field, value) => {
-    setAccessoires(prev => ({ ...prev, [field]: value }));
-  };
-
   // Custom hooks
   const { notifications, addNotification } = useNotifications();
   const materials = useMaterials(initialData);
@@ -119,14 +114,14 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setInfoOverrides
   });
 
-  // Load admin pricing (toestellen + schuifbeslag)
+  // Load admin pricing (toestellen + schuifbeslag + accessoires defaults)
   useEffect(() => {
     const loadAdminPricing = async () => {
       try {
         const { data, error } = await supabase
           .from('admin_settings')
           .select('*')
-          .in('key', ['keukentoestellen_prijzen', 'schuifbeslag_prijzen', 'beslag_bibliotheek']);
+          .in('key', ['keukentoestellen_prijzen', 'schuifbeslag_prijzen', 'beslag_bibliotheek', 'accessoires_defaults']);
 
         if (data && !error) {
           data.forEach(row => {
@@ -138,6 +133,12 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             }
             if (row.key === 'beslag_bibliotheek') {
               setBeslagBibliotheek(row.value || []);
+            }
+            if (row.key === 'accessoires_defaults') {
+              // Only seed for NEW projects — never overwrite saved project values
+              if (!initialData?.settings?.accessoires) {
+                setAccessoires(prev => ({ ...prev, ...row.value }));
+              }
             }
           });
         }
@@ -440,12 +441,6 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             </div>
           </div>
         </div>
-
-        {/* Accessories Panel */}
-        <AccessoiresPanel
-          accessoires={accessoires}
-          updateAccessoire={updateAccessoire}
-        />
 
         {/* Cabinet Configurators */}
         <KastConfigurator

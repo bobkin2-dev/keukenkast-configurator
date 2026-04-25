@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { defaultPlaatMaterialen, TOESTEL_TYPES, TOESTEL_TIERS, defaultToestellenPrijzen } from '../../data/defaultMaterials';
+import { defaultPlaatMaterialen, TOESTEL_TYPES, TOESTEL_TIERS, defaultToestellenPrijzen, defaultAccessoires } from '../../data/defaultMaterials';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL, defaultSchuifbeslagPrijzen } from '../../constants/cabinet';
 
 // Default production parameters (as of 22 feb 2026)
@@ -55,6 +55,9 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
   const [toestellenPrijzen, setToestellenPrijzen] = useState(defaultToestellenPrijzen);
   const [schuifbeslagPrijzen, setSchuifbeslagPrijzen] = useState(defaultSchuifbeslagPrijzen);
 
+  // Accessoires defaults state (admin-managed seed prices for new projects)
+  const [accessoiresDefaults, setAccessoiresDefaults] = useState(defaultAccessoires);
+
   // Open Nis voorbeelden state
   const [openNisVoorbeelden, setOpenNisVoorbeelden] = useState([]);
   const [nieuwVoorbeeld, setNieuwVoorbeeld] = useState({
@@ -77,6 +80,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
       loadSchuifbeslagPrijzen();
       loadVoorbeelden();
       loadPlaatMaterialen();
+      loadAccessoiresDefaults();
     }
   }, [isOpen]);
 
@@ -169,6 +173,42 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       console.error('Error saving schuifbeslag prijzen:', err);
+      alert('Fout bij opslaan: ' + err.message);
+    }
+  };
+
+  const loadAccessoiresDefaults = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('key', 'accessoires_defaults')
+        .single();
+
+      if (data && !error) {
+        setAccessoiresDefaults({ ...defaultAccessoires, ...data.value });
+      }
+    } catch (err) {
+      console.log('No accessoires defaults found, using fallback');
+    }
+  };
+
+  const saveAccessoiresDefaults = async () => {
+    if (!isAdmin) return;
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({
+          key: 'accessoires_defaults',
+          value: accessoiresDefaults,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+
+      if (error) throw error;
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Error saving accessoires defaults:', err);
       alert('Fout bij opslaan: ' + err.message);
     }
   };
@@ -432,6 +472,7 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
               { id: 'algemeen', label: 'Algemeen', icon: '📊' },
               { id: 'materialen', label: 'Plaat Materialen', icon: '🪵' },
               { id: 'types', label: 'Kast Types', icon: '🗄️' },
+              { id: 'accessoires', label: 'Accessoires', icon: '🔧' },
               { id: 'toestellen', label: 'Keukentoestellen', icon: '🍳' },
               { id: 'schuifbeslag', label: 'Schuifbeslag', icon: '🚪' },
               { id: 'voorbeelden', label: 'Vrije Kast Voorbeelden', icon: '📋' }
@@ -697,6 +738,58 @@ const AdminSettings = ({ isOpen, onClose, isAdmin }) => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {activeTab === 'accessoires' && (
+            <div className="space-y-6">
+              <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
+                <h3 className="font-semibold text-rose-800 mb-2">🔧 Standaard Accessoires Prijzen</h3>
+                <p className="text-sm text-rose-700">
+                  Deze prijzen worden gebruikt als startwaarden voor <strong>nieuwe</strong> projecten.
+                  Bestaande projecten behouden hun eigen opgeslagen prijzen.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'afplakkenStandaard', label: 'Afplakken Standaard', unit: '€/m', step: '0.1' },
+                  { key: 'afplakkenSpeciaal', label: 'Afplakken Speciaal', unit: '€/m', step: '0.1' },
+                  { key: 'kastpootjes', label: 'Kastpootjes', unit: '€/st', step: '0.01' },
+                  { key: 'scharnier110', label: 'Scharnieren 110°', unit: '€/st', step: '0.01' },
+                  { key: 'scharnier170', label: 'Scharnieren 155/170°/180°', unit: '€/st', step: '0.01' },
+                  { key: 'profielBK', label: 'Profiel BK', unit: '€/m', step: '0.1' },
+                  { key: 'ophangsysteemBK', label: 'Ophangsysteem BK', unit: '€/st', step: '0.01' },
+                  { key: 'ladeStandaard', label: 'Laden Standaard', unit: '€/st', step: '1' },
+                  { key: 'ladeGroteHoeveelheid', label: 'Laden Grote Hoeveelheid', unit: '€/st', step: '1' },
+                  { key: 'handgrepen', label: 'Handgrepen', unit: '€/st', step: '0.1' },
+                ].map(({ key, label, unit, step }) => (
+                  <div key={key} className="bg-gray-50 p-3 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-sm">€</span>
+                      <input
+                        type="number"
+                        step={step}
+                        value={accessoiresDefaults[key] ?? 0}
+                        onChange={(e) => setAccessoiresDefaults(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
+                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500"
+                        disabled={!isAdmin}
+                      />
+                      <span className="text-xs text-gray-500 whitespace-nowrap">{unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {isAdmin && (
+                <button
+                  onClick={saveAccessoiresDefaults}
+                  className="bg-rose-500 hover:bg-rose-600 text-white py-2 px-6 rounded-lg font-semibold"
+                >
+                  Accessoires Defaults Opslaan
+                </button>
+              )}
             </div>
           )}
 
