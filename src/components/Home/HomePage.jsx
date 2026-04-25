@@ -144,6 +144,12 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
     });
   };
 
+  const allExpanded = groups.length > 0 && groups.every(g => expandedGroups.has(g.id));
+  const toggleAllGroups = () => {
+    if (allExpanded) setExpandedGroups(new Set());
+    else setExpandedGroups(new Set(groups.map(g => g.id)));
+  };
+
   // --- Drag & Drop ---
   const handleMoveProject = async (projectId, newGroupId) => {
     const { error } = await db.updateProject(projectId, { group_id: newGroupId });
@@ -352,6 +358,15 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-gray-800">Mijn Projecten</h2>
           <div className="flex gap-3">
+            {groups.length > 0 && (
+              <button
+                onClick={toggleAllGroups}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium flex items-center gap-2 transition text-sm"
+                title={allExpanded ? 'Alle groepen inklappen' : 'Alle groepen uitklappen'}
+              >
+                {allExpanded ? '📁 Alles inklappen' : '📂 Alles uitklappen'}
+              </button>
+            )}
             <button
               onClick={() => setShowNewGroup(true)}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium flex items-center gap-2 transition text-sm"
