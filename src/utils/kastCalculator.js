@@ -13,7 +13,7 @@ const KERF_NESTED = 14; // chipboard nested cuts (M-prefix)
 const KERF_CUT = 4;     // standard cuts
 
 // Materials starting with "M" are chipboard nested → larger kerf
-const getKerfForMaterial = (mat) => {
+export const getKerfForMaterial = (mat) => {
   const naam = (mat?.naam || '').trim();
   return /^m/i.test(naam) ? KERF_NESTED : KERF_CUT;
 };

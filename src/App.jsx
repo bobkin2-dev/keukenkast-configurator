@@ -16,6 +16,7 @@ import KastenLijst from './components/KastenLijst';
 import CustomPlaatRequests from './components/CustomPlaatRequests';
 import FloatingKastenLijst from './components/FloatingKastenLijst';
 import TotalenOverzicht from './components/TotalenOverzicht';
+import NestingResultaten from './components/NestingResultaten';
 import DebugTabel from './components/DebugTabel';
 import KeukentoestellenPanel from './components/KeukentoestellenPanel';
 import AdminSettings from './components/Admin/AdminSettings';
@@ -559,6 +560,23 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           infoOverrides={infoOverrides}
           setInfoOverrides={setInfoOverrides}
           exportPDFRef={exportPDFRef}
+        />
+
+        {/* Nesting Resultaten */}
+        <NestingResultaten
+          kastenLijst={kabinet.kastenLijst}
+          materiaalBinnenkast={materials.materiaalBinnenkast}
+          materiaalBuitenzijde={materials.materiaalBuitenzijde}
+          materiaalTablet={materials.materiaalTablet}
+          geselecteerdMateriaalBinnen={materials.geselecteerdMateriaalBinnen}
+          geselecteerdMateriaalBuiten={materials.geselecteerdMateriaalBuiten}
+          geselecteerdMateriaalTablet={materials.geselecteerdMateriaalTablet}
+          alternatieveMateriaal={materials.alternatieveMateriaal}
+          plaatMaterialen={materials.plaatMaterialen}
+          productionParams={productionParams}
+          rendementBinnenzijde={materials.rendementBinnenzijde}
+          rendementBuitenzijde={materials.rendementBuitenzijde}
+          nestingBuffer={nestingBuffer}
         />
 
         {/* Summary */}
