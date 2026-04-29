@@ -27,7 +27,8 @@ export const berekenTotalen = (
   geselecteerdMateriaalBuiten,
   geselecteerdMateriaalTablet,
   productionParams,
-  plaatMaterialen = []
+  plaatMaterialen = [],
+  nestingOptions = {} // { useNesting, nestingBuffer }
 ) => {
   // Validate inputs
   if (!kastenLijst || !Array.isArray(kastenLijst)) {
@@ -45,12 +46,13 @@ export const berekenTotalen = (
     productionParams
   });
 
-  // Convert to flat format with plate counts
+  // Convert to flat format with plate counts (m² × afvalfactor OR nesting)
   const flat = convertToFlatTotalen(
     aggTotalen,
     { materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, plaatMaterialen },
     { geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet },
-    alternatieveMateriaal
+    alternatieveMateriaal,
+    nestingOptions
   );
 
   return flat;

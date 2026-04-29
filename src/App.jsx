@@ -78,6 +78,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [customBeslag, setCustomBeslag] = useState([]);
   const [customPlaatmateriaal, setCustomPlaatmateriaal] = useState([]);
   const [customPlaatRequests, setCustomPlaatRequests] = useState([]);
+  const [nestingMode, setNestingMode] = useState(false);
+  const [nestingBuffer, setNestingBuffer] = useState(0.05); // 5% residual buffer
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
   const [infoOverrides, setInfoOverrides] = useState({});
   const exportPDFRef = useRef(null);
@@ -103,6 +105,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     customBeslag,
     customPlaatmateriaal,
     customPlaatRequests,
+    nestingMode,
+    nestingBuffer,
     tabletsteun,
     infoOverrides,
     setAccessoires,
@@ -115,6 +119,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setCustomBeslag,
     setCustomPlaatmateriaal,
     setCustomPlaatRequests,
+    setNestingMode,
+    setNestingBuffer,
     setTabletsteun,
     setInfoOverrides
   });
@@ -179,7 +185,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     materials.geselecteerdMateriaalBuiten,
     materials.geselecteerdMateriaalTablet,
     productionParams,
-    materials.plaatMaterialen
+    materials.plaatMaterialen,
+    { useNesting: nestingMode, nestingBuffer }
   ), [
     kabinet.kastenLijst,
     materials.rendementBinnenzijde,
@@ -192,7 +199,9 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     materials.geselecteerdMateriaalBuiten,
     materials.geselecteerdMateriaalTablet,
     productionParams,
-    materials.plaatMaterialen
+    materials.plaatMaterialen,
+    nestingMode,
+    nestingBuffer
   ]);
 
   const arbeidUren = useMemo(() =>
@@ -541,6 +550,10 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           customPlaatmateriaal={customPlaatmateriaal}
           setCustomPlaatmateriaal={setCustomPlaatmateriaal}
           customPlaatRequests={customPlaatRequests}
+          nestingMode={nestingMode}
+          setNestingMode={setNestingMode}
+          nestingBuffer={nestingBuffer}
+          setNestingBuffer={setNestingBuffer}
           tabletsteun={tabletsteun}
           setTabletsteun={setTabletsteun}
           infoOverrides={infoOverrides}

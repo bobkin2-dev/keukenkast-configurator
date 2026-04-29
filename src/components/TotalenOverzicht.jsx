@@ -75,6 +75,10 @@ const TotalenOverzicht = ({
   customPlaatmateriaal = [],
   setCustomPlaatmateriaal,
   customPlaatRequests = [],
+  nestingMode = false,
+  setNestingMode,
+  nestingBuffer = 0.05,
+  setNestingBuffer,
   tabletsteun = { type: '', aantal: 0 },
   setTabletsteun,
   infoOverrides = {},
@@ -410,7 +414,40 @@ const TotalenOverzicht = ({
 
         {/* Plate materials */}
         <div className="bg-white p-3 rounded border">
-          <h3 className="font-bold text-gray-700 mb-2">Plaatmateriaal</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-gray-700">Plaatmateriaal</h3>
+            {setNestingMode && (
+              <div className="flex items-center gap-3 text-xs">
+                <label className="flex items-center gap-1.5 cursor-pointer text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={nestingMode}
+                    onChange={(e) => setNestingMode(e.target.checked)}
+                    className="rounded"
+                  />
+                  Nesting (i.p.v. m² × verlies)
+                </label>
+                {nestingMode && setNestingBuffer && (
+                  <label className="flex items-center gap-1 text-gray-600">
+                    <span>Buffer:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      step="1"
+                      value={Math.round((nestingBuffer || 0) * 100)}
+                      onChange={(e) => setNestingBuffer((parseFloat(e.target.value) || 0) / 100)}
+                      className="w-12 px-1 py-0.5 border border-gray-300 rounded text-center"
+                    />
+                    <span>%</span>
+                  </label>
+                )}
+                {nestingMode && (
+                  <span className="text-blue-600 text-[10px]">M-prefix → kerf 14mm · overig → 4mm</span>
+                )}
+              </div>
+            )}
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-gray-500 border-b">
