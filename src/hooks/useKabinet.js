@@ -103,6 +103,12 @@ export const useKabinet = ({ initialData, addNotification }) => {
     addNotification(`${kast.type} gekopieerd - ${dimensions}`);
   }, [addNotification]);
 
+  // Update cabinet in-place
+  const updateKast = useCallback((id, updates) => {
+    setKastenLijst(prev => prev.map(k => k.id === id ? { ...k, ...updates } : k));
+    addNotification('Kast bijgewerkt', 'bg-blue-500');
+  }, [addNotification]);
+
   // Remove cabinet
   const verwijderKast = useCallback((id) => {
     setKastenLijst(prev => prev.filter(kast => kast.id !== id));
@@ -121,6 +127,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
     voegZijpaneelToe,
     voegZijpaneelToeVoorType,
     kopieerKast,
+    updateKast,
     verwijderKast
   };
 };
