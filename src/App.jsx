@@ -13,6 +13,7 @@ import MaterialenPanel from './components/MaterialenPanel';
 import KastConfigurator from './components/KastConfigurator';
 import KastenVooraanzicht from './components/KastenVooraanzicht';
 import KastenLijst from './components/KastenLijst';
+import CustomPlaatRequests from './components/CustomPlaatRequests';
 import FloatingKastenLijst from './components/FloatingKastenLijst';
 import TotalenOverzicht from './components/TotalenOverzicht';
 import DebugTabel from './components/DebugTabel';
@@ -76,6 +77,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [arbeidOverrides, setArbeidOverrides] = useState({});
   const [customBeslag, setCustomBeslag] = useState([]);
   const [customPlaatmateriaal, setCustomPlaatmateriaal] = useState([]);
+  const [customPlaatRequests, setCustomPlaatRequests] = useState([]);
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
   const [infoOverrides, setInfoOverrides] = useState({});
   const exportPDFRef = useRef(null);
@@ -100,6 +102,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     arbeidOverrides,
     customBeslag,
     customPlaatmateriaal,
+    customPlaatRequests,
     tabletsteun,
     infoOverrides,
     setAccessoires,
@@ -111,6 +114,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setArbeidOverrides,
     setCustomBeslag,
     setCustomPlaatmateriaal,
+    setCustomPlaatRequests,
     setTabletsteun,
     setInfoOverrides
   });
@@ -497,6 +501,12 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           toestellenPrijzen={toestellenPrijzen}
         />
 
+        {/* Custom plate requests (project-specific plates with auto-nesting) */}
+        <CustomPlaatRequests
+          requests={customPlaatRequests}
+          setRequests={setCustomPlaatRequests}
+        />
+
         {/* Totals Overview */}
         <TotalenOverzicht
           kastenLijst={kabinet.kastenLijst}
@@ -530,6 +540,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           setCustomBeslag={setCustomBeslag}
           customPlaatmateriaal={customPlaatmateriaal}
           setCustomPlaatmateriaal={setCustomPlaatmateriaal}
+          customPlaatRequests={customPlaatRequests}
           tabletsteun={tabletsteun}
           setTabletsteun={setTabletsteun}
           infoOverrides={infoOverrides}

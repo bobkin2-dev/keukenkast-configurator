@@ -3,7 +3,37 @@ import { TOESTEL_TYPES, TOESTEL_TIERS } from '../data/defaultMaterials';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 import BeslagBibliotheekModal from './BeslagBibliotheekModal';
 import PlaatmateriaalBibliotheekModal from './PlaatmateriaalBibliotheekModal';
+import { packParts } from '../utils/binPack';
 import { generateOffertePDF } from '../utils/pdfOfferte';
+
+// Run the same packing logic the CustomPlaatRequests UI does
+// to derive plate counts + cost for the totals/PDF.
+const computeCustomPlaatRequestRows = (customPlaatRequests = []) => {
+  return customPlaatRequests.map(req => {
+    const validParts = (req.parts || []).filter(p =>
+      (p.length || 0) > 0 && (p.width || 0) > 0 && (p.amount || 0) > 0
+    );
+    const result = packParts({
+      plateLength: req.length || 0,
+      plateWidth: req.width || 0,
+      parts: validParts,
+      grain: !!req.grain,
+      kerf: 4,
+    });
+    const platesNeeded = result.plates.length;
+    const m2PerPlate = ((req.length || 0) * (req.width || 0)) / 1_000_000;
+    const pricePerPlate = req.priceMode === 'perM2'
+      ? m2PerPlate * (req.price || 0)
+      : (req.price || 0);
+    return {
+      key: `customReq_${req.id}`,
+      label: req.platename || 'Op maat plaat',
+      info: `${req.length}×${req.width}${req.grain ? ' · grain' : ''}`,
+      aantal: platesNeeded,
+      defaultPlaatPrijs: pricePerPlate,
+    };
+  });
+};
 
 const TABLETSTEUN_TYPES = [
   { id: '287.45.459', label: 'Hafele 287.45.459 — 380 mm', prijs: 29.19 },
@@ -44,6 +74,7 @@ const TotalenOverzicht = ({
   setCustomBeslag,
   customPlaatmateriaal = [],
   setCustomPlaatmateriaal,
+  customPlaatRequests = [],
   tabletsteun = { type: '', aantal: 0 },
   setTabletsteun,
   infoOverrides = {},
@@ -203,6 +234,7 @@ const TotalenOverzicht = ({
         info: `${mat.naam || 'Onbekend'} - ${mat.afmeting || `${mat.breedte}x${mat.hoogte}`} mm`,
         defaultPlaatPrijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
       })),
+      ...computeCustomPlaatRequestRows(customPlaatRequests),
     ];
     const plaatRows = plaatDefs
       .filter(({ key }) =>
@@ -409,6 +441,8 @@ const TotalenOverzicht = ({
                     defaultPlaatPrijs: plaatPrijs
                   };
                 }),
+                // Custom plate request rows (auto-nested)
+                ...computeCustomPlaatRequestRows(customPlaatRequests),
               ].filter(row =>
                 !(row.key === 'rug' && !alternatieveMateriaal.ruggenGebruiken) &&
                 !(row.key === 'leggers' && !alternatieveMateriaal.leggersGebruiken)
