@@ -178,9 +178,8 @@ const NestingResultaten = ({
     ? safeMat(materiaalBinnenkast, alternatieveMateriaal.leggersMateriaal)
     : null;
 
-  if (!kastenLijst || kastenLijst.length === 0) return null;
-
   // Total plates summary across all sections (for header badge)
+  // NOTE: must be declared before any early return to avoid a hook-order violation
   const totalPlates = useMemo(() => {
     const tally = (rects, mat) => {
       if (!rects?.length || !mat?.breedte) return 0;
@@ -199,6 +198,9 @@ const NestingResultaten = ({
     });
     return n;
   }, [binnenRects, binnenMat, rugMat, leggersMat, rectsByType, buitenMat, tabletMat, rectsVrijeKast, nestingBuffer]);
+
+  // Early return AFTER all hooks (moving this above any hook causes a hook-order violation)
+  if (!kastenLijst || kastenLijst.length === 0) return null;
 
   return (
     <div className="bg-cyan-50 p-4 rounded-lg mb-4 border-2 border-cyan-200">
