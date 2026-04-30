@@ -83,6 +83,10 @@ const TotalenOverzicht = ({
   setTabletsteun,
   infoOverrides = {},
   setInfoOverrides,
+  priceOverrideLocks = {},
+  setPriceOverrideLocks,
+  marge = 25,
+  setMarge,
   exportPDFRef
 }) => {
   // State for library modals
@@ -120,13 +124,28 @@ const TotalenOverzicht = ({
       tablet: geselecteerdMateriaalTablet
     };
 
-    setPriceOverrides(prev => ({
+    setPriceOverrides(prev => {
+      // When the dropdown selection changes AND the plate row is NOT locked, seed the
+      // override input with the new DB price so the user sees the right starting value.
+      // Locked rows are never touched here — the user's value is preserved on reload.
+      const nextBinnen = (binnenChanged && !priceOverrideLocks?.binnenkast)
+        ? binnenPrijs : (prev.binnenkast ?? binnenPrijs);
+      const nextRug = (binnenChanged && !priceOverrideLocks?.rug)
+        ? binnenPrijs : (prev.rug ?? binnenPrijs);
+      const nextLeggers = (binnenChanged && !priceOverrideLocks?.leggers)
+        ? binnenPrijs : (prev.leggers ?? binnenPrijs);
+      const nextBuiten = (buitenChanged && !priceOverrideLocks?.buitenzijde)
+        ? buitenPrijs : (prev.buitenzijde ?? buitenPrijs);
+      const nextTablet = (tabletChanged && !priceOverrideLocks?.tablet)
+        ? tabletPrijs : (prev.tablet ?? tabletPrijs);
+
+      return {
       ...prev,
-      binnenkast: binnenChanged ? binnenPrijs : (prev.binnenkast ?? binnenPrijs),
-      rug: binnenChanged ? binnenPrijs : (prev.rug ?? binnenPrijs),
-      leggers: binnenChanged ? binnenPrijs : (prev.leggers ?? binnenPrijs),
-      buitenzijde: buitenChanged ? buitenPrijs : (prev.buitenzijde ?? buitenPrijs),
-      tablet: tabletChanged ? tabletPrijs : (prev.tablet ?? tabletPrijs),
+      binnenkast: nextBinnen,
+      rug: nextRug,
+      leggers: nextLeggers,
+      buitenzijde: nextBuiten,
+      tablet: nextTablet,
       kantenbandStd: prev.kantenbandStd ?? accessoires.afplakkenStandaard,
       kantenbandSpec: prev.kantenbandSpec ?? accessoires.afplakkenSpeciaal,
       kastpootjes: prev.kastpootjes ?? accessoires.kastpootjes,
@@ -150,8 +169,9 @@ const TotalenOverzicht = ({
       arbeid_montageWerkhuis: prev.arbeid_montageWerkhuis ?? 45,
       arbeid_plaatsing: prev.arbeid_plaatsing ?? 45,
       arbeid_transport: prev.arbeid_transport ?? 45,
-    }));
-  }, [materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet, accessoires, extraBeslag]);
+      };
+    });
+  }, [materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet, accessoires, extraBeslag, priceOverrideLocks]);
 
   const getOverride = (key, defaultVal) => priceOverrides[key] ?? defaultVal;
 
@@ -246,7 +266,10 @@ const TotalenOverzicht = ({
         !(key === 'leggers' && !alternatieveMateriaal.leggersGebruiken)
       )
       .map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
-        const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPlaatPrijs);
+        const aantalOverridden = extraAmounts[key] !== undefined;
+        const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
+        const isLocked = !!priceOverrideLocks?.[key];
+        const effectiefPrijs = isLocked ? (priceOverrides[key] ?? defaultPlaatPrijs) : defaultPlaatPrijs;
         const effectiefInfo = (infoOverrides[key] !== undefined && infoOverrides[key] !== '') ? infoOverrides[key] : info;
         return { label, info: effectiefInfo, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
       });
@@ -456,7 +479,8 @@ const TotalenOverzicht = ({
                 <th className="text-right py-1">Aantal</th>
                 <th className="text-center py-1">Override</th>
                 <th className="text-right py-1">Prijs/plaat</th>
-                <th className="text-center py-1">Override €</th>
+                <th className="text-center py-1 w-7" title="Vergrendel prijs voor deze offerte">🔒</th>
+                <th className="text-center py-1">Eigen prijs</th>
                 <th className="text-right py-1 font-bold text-gray-700">Totaal €</th>
               </tr>
             </thead>
@@ -486,9 +510,24 @@ const TotalenOverzicht = ({
               ).map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
                 const aantalOverridden = extraAmounts[key] !== undefined;
                 const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
-                const effectiefPrijs = getOverride(key, defaultPlaatPrijs);
+                const isLocked = !!priceOverrideLocks?.[key];
+                // When locked: use the override value (seed it if not yet set); when unlocked: use DB price
+                const effectiefPrijs = isLocked
+                  ? (priceOverrides[key] ?? defaultPlaatPrijs)
+                  : defaultPlaatPrijs;
                 const infoOverridden = infoOverrides[key] !== undefined && infoOverrides[key] !== '';
                 const effectiefInfo = infoOverridden ? infoOverrides[key] : info;
+                const handleToggleLock = () => {
+                  if (isLocked) {
+                    setPriceOverrideLocks(prev => { const n = {...prev}; delete n[key]; return n; });
+                  } else {
+                    // Seed override with current DB price when locking for the first time
+                    if (priceOverrides[key] === undefined) {
+                      updateOverride(key, Math.ceil(defaultPlaatPrijs));
+                    }
+                    setPriceOverrideLocks(prev => ({ ...prev, [key]: true }));
+                  }
+                };
                 return (
                   <tr key={key}>
                     <td className="py-1">{label}</td>
@@ -538,9 +577,32 @@ const TotalenOverzicht = ({
                         >+</button>
                       </div>
                     </td>
-                    <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(defaultPlaatPrijs)}</td>
+                    <td className="py-1 text-right text-xs font-semibold text-gray-500">€{Math.ceil(defaultPlaatPrijs)}</td>
                     <td className="py-1 text-center">
-                      <input type="number" step="1" className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${priceOverrides[key] !== undefined ? 'border-blue-400 bg-blue-50' : ''}`} value={priceOverrides[key] !== undefined ? Math.ceil(priceOverrides[key]) : ''} placeholder={Math.ceil(defaultPlaatPrijs)} onChange={(e) => updateOverride(key, e.target.value)} />
+                      <button
+                        onClick={handleToggleLock}
+                        className={`w-6 h-6 rounded text-sm leading-none transition-colors ${
+                          isLocked
+                            ? 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-red-100 hover:text-red-600 hover:border-red-300'
+                            : 'bg-gray-100 text-gray-400 hover:bg-blue-100 hover:text-blue-600'
+                        }`}
+                        title={isLocked ? 'Prijs vergrendeld — klik om te ontgrendelen' : 'Klik om eigen prijs te vergrendelen'}
+                      >
+                        {isLocked ? '🔒' : '🔓'}
+                      </button>
+                    </td>
+                    <td className="py-1 text-center">
+                      <input
+                        type="number"
+                        step="1"
+                        disabled={!isLocked}
+                        className={`w-16 px-1 py-0.5 border rounded text-center text-xs ${
+                          isLocked ? 'border-blue-400 bg-blue-50 font-semibold text-blue-900' : 'opacity-30 bg-gray-50 cursor-not-allowed'
+                        }`}
+                        value={priceOverrides[key] !== undefined ? Math.ceil(priceOverrides[key]) : ''}
+                        placeholder={Math.ceil(defaultPlaatPrijs)}
+                        onChange={(e) => updateOverride(key, e.target.value)}
+                      />
                     </td>
                     <td className="py-1 text-right font-bold text-green-700">€{Math.ceil(effectiefAantal * effectiefPrijs)}</td>
                   </tr>
@@ -586,7 +648,8 @@ const TotalenOverzicht = ({
                       >+</button>
                     </div>
                   </td>
-                  <td className="py-1 text-right text-xs font-semibold">€{Math.ceil(line.prijs)}</td>
+                  <td className="py-1 text-right text-xs font-semibold text-gray-500">€{Math.ceil(line.prijs)}</td>
+                  <td className="py-1">{/* no lock for custom rows */}</td>
                   <td className="py-1 text-center">
                     <input type="number" step="1" className="w-16 px-1 py-0.5 border rounded text-center text-xs" value={Math.ceil(line.prijs)} onChange={(e) => setCustomPlaatmateriaal(prev => prev.map((l, i) => i === idx ? { ...l, prijs: parseFloat(e.target.value) || 0 } : l))} />
                   </td>
@@ -603,7 +666,7 @@ const TotalenOverzicht = ({
                 </tr>
               ))}
               <tr>
-                <td colSpan={7} className="py-1">
+                <td colSpan={8} className="py-1">
                   <div className="flex items-center gap-2">
                     <button
                       className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
@@ -1063,6 +1126,154 @@ const TotalenOverzicht = ({
                   </tr>
                 </tbody>
               </table>
+            </div>
+          );
+        })()}
+        {/* Grand total + margin summary */}
+        {(() => {
+          // Arbeid
+          const arbeidTotal = [
+            { key: 'tekenwerk', defaultPrijs: 60 },
+            { key: 'montageWerkhuis', defaultPrijs: 45 },
+            { key: 'plaatsing', defaultPrijs: 45 },
+            { key: 'transport', defaultPrijs: 45 },
+          ].reduce((sum, { key, defaultPrijs }) => {
+            const effectiefUren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
+            const effectiefPrijs = getOverride(`arbeid_${key}`, defaultPrijs);
+            return sum + effectiefUren * effectiefPrijs;
+          }, 0);
+
+          // Plaatmateriaal (calculated rows + custom rows)
+          const plaatKeysBase = [
+            { key: 'binnenkast', aantal: totalen.platenBinnenkast, defaultPlaatPrijs: binnenPlaatPrijs },
+            { key: 'rug',       aantal: totalen.platenRug,        defaultPlaatPrijs: binnenPlaatPrijs, hide: !alternatieveMateriaal.ruggenGebruiken },
+            { key: 'leggers',   aantal: totalen.platenLeggers,    defaultPlaatPrijs: binnenPlaatPrijs, hide: !alternatieveMateriaal.leggersGebruiken },
+            { key: 'buitenzijde', aantal: totalen.platenBuitenzijde, defaultPlaatPrijs: buitenPlaatPrijs },
+            { key: 'tablet',    aantal: totalen.platenTablet,     defaultPlaatPrijs: tabletPlaatPrijs },
+            ...Object.entries(totalen.platenVrijeKast || {}).map(([matRef, { platen, mat }]) => ({
+              key: `vrijeKast_${matRef}`, aantal: platen,
+              defaultPlaatPrijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
+            })),
+            ...computeCustomPlaatRequestRows(customPlaatRequests).map(r => ({
+              key: r.key, aantal: r.aantal, defaultPlaatPrijs: r.defaultPlaatPrijs,
+            })),
+          ];
+          const plaatTotal = plaatKeysBase
+            .filter(r => !r.hide)
+            .reduce((sum, { key, aantal, defaultPlaatPrijs }) => {
+              const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
+              const isLocked = !!priceOverrideLocks?.[key];
+              const effectiefPrijs = isLocked ? (priceOverrides[key] ?? defaultPlaatPrijs) : defaultPlaatPrijs;
+              return sum + Math.ceil(effectiefAantal * effectiefPrijs);
+            }, 0)
+            + customPlaatmateriaal.reduce((sum, l) => sum + Math.ceil(l.aantal * l.prijs), 0);
+
+          // Kantenband
+          const kantenbandTotal = [
+            { key: 'kantenbandStd', aantal: totalen.kantenbandStandaard, defaultPrijs: accessoires.afplakkenStandaard },
+            { key: 'kantenbandSpec', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal },
+          ].reduce((sum, { key, aantal, defaultPrijs }) => {
+            const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
+            const effectiefPrijs = getOverride(key, defaultPrijs);
+            return sum + effectiefAantal * effectiefPrijs;
+          }, 0);
+
+          // Beslag (calculated + extra + tabletsteun + custom)
+          const allBeslagKeys = [
+            { key: 'kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes },
+            { key: 'scharnier110', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110 },
+            { key: 'scharnier170', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170 },
+            { key: 'profielBK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK },
+            { key: 'ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK },
+            { key: 'ladenStd', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard },
+            { key: 'ladenGoedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid },
+            { key: 'handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen },
+            { key: 'led', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed },
+            { key: 'handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager },
+            { key: 'alubodem600', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600 },
+            { key: 'alubodem1200', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200 },
+            { key: 'vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem },
+            { key: 'bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak },
+            { key: 'slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot },
+            { key: 'cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot },
+            { key: 'kitwerk', aantal: extraBeslag.kitwerk || 0, defaultPrijs: extraBeslag.prijsKitwerk ?? 4 },
+          ];
+          const beslagTotal = allBeslagKeys.reduce((sum, { key, aantal, defaultPrijs }) => {
+            const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
+            return sum + effectiefAantal * getOverride(key, defaultPrijs);
+          }, 0)
+          + (() => {
+            const sel = TABLETSTEUN_TYPES.find(t => t.id === tabletsteun.type);
+            const p = priceOverrides.tabletsteun ?? (sel?.prijs || 0);
+            return tabletsteun.aantal * p;
+          })()
+          + customBeslag.reduce((sum, l) => sum + l.aantal * l.prijs, 0);
+
+          // Toestellen
+          const toestellenTotal = TOESTEL_TYPES.filter(t => keukentoestellen[t.id]?.geselecteerd)
+            .reduce((sum, toestel) => {
+              const sel = keukentoestellen[toestel.id];
+              return sum + (sel.aantal || 1) * (toestellenPrijzen?.[toestel.id]?.[sel.tier || 'medium'] || 0);
+            }, 0);
+
+          // Schuifbeslag
+          const schuifdeurTotal = [
+            ...(totalen.schuifdeursystemen || []).map(s => ({
+              prijs: schuifbeslagPrijzen[`systeem_${s.gewicht}`]?.[s.demping] || 0,
+              aantal: s.aantal,
+            })),
+            ...(totalen.profielen || []).map(p => ({
+              prijs: schuifbeslagPrijzen[p.type === 'onderprofiel' ? 'onderprofiel' : `bovenprofiel_${p.gewicht}`]?.[p.maat] || 0,
+              aantal: p.aantal,
+            })),
+          ].reduce((sum, { prijs, aantal }) => sum + prijs * aantal, 0);
+
+          const grandTotal = arbeidTotal + plaatTotal + kantenbandTotal + beslagTotal + toestellenTotal + schuifdeurTotal;
+          const margeEuro = grandTotal * (marge / 100);
+          const totalInclMarge = grandTotal + margeEuro;
+
+          return (
+            <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+              <h3 className="font-bold text-gray-800 text-base mb-3">Totaaloverzicht</h3>
+              <div className="space-y-1 text-sm">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-gray-500 mb-2">
+                  <div className="flex justify-between"><span>Arbeid</span><span>€{Math.ceil(arbeidTotal)}</span></div>
+                  <div className="flex justify-between"><span>Plaatmateriaal</span><span>€{Math.ceil(plaatTotal)}</span></div>
+                  <div className="flex justify-between"><span>Kantenband</span><span>€{kantenbandTotal.toFixed(0)}</span></div>
+                  <div className="flex justify-between"><span>Meubelbeslag</span><span>€{beslagTotal.toFixed(0)}</span></div>
+                  {toestellenTotal > 0 && <div className="flex justify-between"><span>Keukentoestellen</span><span>€{toestellenTotal.toFixed(0)}</span></div>}
+                  {schuifdeurTotal > 0 && <div className="flex justify-between"><span>Schuifbeslag</span><span>€{schuifdeurTotal.toFixed(0)}</span></div>}
+                </div>
+
+                <div className="border-t pt-2 flex justify-between font-semibold text-gray-700">
+                  <span>Subtotaal (excl. marge)</span>
+                  <span>€{Math.ceil(grandTotal)}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Marge</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="200"
+                        step="1"
+                        value={marge}
+                        onChange={(e) => setMarge && setMarge(parseFloat(e.target.value) || 0)}
+                        className="w-14 px-1.5 py-0.5 border border-gray-300 rounded text-center text-sm font-semibold"
+                      />
+                      <span className="text-gray-500 text-sm">%</span>
+                    </div>
+                  </div>
+                  <span className="text-orange-600 font-semibold">+ €{Math.ceil(margeEuro)}</span>
+                </div>
+
+                <div className="border-t-2 border-gray-400 pt-2 flex justify-between items-center">
+                  <span className="font-bold text-gray-800 text-base">Totaal incl. marge</span>
+                  <span className="font-bold text-green-700 text-xl">€{Math.ceil(totalInclMarge)}</span>
+                </div>
+              </div>
             </div>
           );
         })()}

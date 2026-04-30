@@ -85,13 +85,11 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [infoOverrides, setInfoOverrides] = useState({});
   // Project/quote-specific custom materials (override the dropdown per category)
   const [customProjectMaterialen, setCustomProjectMaterialen] = useState({ binnen: null, buiten: null, tablet: null });
-  // Per-category price locks: override dropdown list price for this quote only
-  // Stored separately so Supabase reloads never wipe the user's value
-  const [materiaalPrijsLocks, setMateriaalPrijsLocks] = useState({
-    binnen: { locked: false, prijs: null },
-    buiten: { locked: false, prijs: null },
-    tablet: { locked: false, prijs: null },
-  });
+  // Per plate-row price locks in the totaallijst (keyed by plate row key e.g. 'binnenkast', 'buitenzijde', …)
+  // Stored separately so Supabase reloads can never wipe the user's locked price
+  const [priceOverrideLocks, setPriceOverrideLocks] = useState({});
+  // Quote margin percentage for the grand-total summary box
+  const [marge, setMarge] = useState(25);
   const exportPDFRef = useRef(null);
 
   // Custom hooks
@@ -135,8 +133,10 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setTabletsteun,
     setInfoOverrides,
     setCustomProjectMaterialen,
-    materiaalPrijsLocks,
-    setMateriaalPrijsLocks,
+    priceOverrideLocks,
+    setPriceOverrideLocks,
+    marge,
+    setMarge,
   });
 
   // Load admin pricing (toestellen + schuifbeslag + accessoires defaults)
@@ -186,23 +186,16 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     }
   };
 
-  // Apply a price lock to a specific index in a material array.
-  // Returns the same array reference when lock is off (no unnecessary rerenders).
-  const patchWithPrijsLock = (matArr, idx, lock) => {
-    if (!lock?.locked || lock.prijs == null) return matArr;
-    return matArr.map((mat, i) => i === idx ? { ...mat, prijs: lock.prijs } : mat);
-  };
-
-  // Effective material arrays: custom project material takes priority, then price lock, then dropdown
+  // Effective material arrays: custom project material takes priority, otherwise use the dropdown
   const effectiveMaterialenBinnen = customProjectMaterialen.binnen
     ? [customProjectMaterialen.binnen]
-    : patchWithPrijsLock(materials.materiaalBinnenkast, materials.geselecteerdMateriaalBinnen, materiaalPrijsLocks.binnen);
+    : materials.materiaalBinnenkast;
   const effectiveMaterialenBuiten = customProjectMaterialen.buiten
     ? [customProjectMaterialen.buiten]
-    : patchWithPrijsLock(materials.materiaalBuitenzijde, materials.geselecteerdMateriaalBuiten, materiaalPrijsLocks.buiten);
+    : materials.materiaalBuitenzijde;
   const effectiveMaterialenTablet = customProjectMaterialen.tablet
     ? [customProjectMaterialen.tablet]
-    : patchWithPrijsLock(materials.materiaalTablet, materials.geselecteerdMateriaalTablet, materiaalPrijsLocks.tablet);
+    : materials.materiaalTablet;
   const effectiveGeselecteerdBinnen = customProjectMaterialen.binnen ? 0 : materials.geselecteerdMateriaalBinnen;
   const effectiveGeselecteerdBuiten = customProjectMaterialen.buiten ? 0 : materials.geselecteerdMateriaalBuiten;
   const effectiveGeselecteerdTablet = customProjectMaterialen.tablet ? 0 : materials.geselecteerdMateriaalTablet;
@@ -426,10 +419,6 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
               onCustomMateriaalChange={(mat) =>
                 setCustomProjectMaterialen(prev => ({ ...prev, [type]: mat }))
               }
-              priceLock={materiaalPrijsLocks[type]}
-              onPriceLockChange={(lock) =>
-                setMateriaalPrijsLocks(prev => ({ ...prev, [type]: lock }))
-              }
             />
           ))}
         </div>
@@ -599,6 +588,10 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           setTabletsteun={setTabletsteun}
           infoOverrides={infoOverrides}
           setInfoOverrides={setInfoOverrides}
+          priceOverrideLocks={priceOverrideLocks}
+          setPriceOverrideLocks={setPriceOverrideLocks}
+          marge={marge}
+          setMarge={setMarge}
           exportPDFRef={exportPDFRef}
         />
 
