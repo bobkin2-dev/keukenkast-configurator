@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Settings } from 'lucide-react';
 import PlaatmateriaalBibliotheekModal from './PlaatmateriaalBibliotheekModal';
 
 // Map type key to the popular-use property name
@@ -26,13 +25,13 @@ const MaterialenPanel = ({
   geselecteerd,
   label,
   color,
-  showPrijsAanpassing,
-  setShowPrijsAanpassing,
   setGeselecteerd,
-  updateMateriaalPrijs,
   onReloadMaterialen,
   customMateriaal,
   onCustomMateriaalChange,
+  // Price lock: { locked: bool, prijs: number|null }
+  priceLock,
+  onPriceLockChange,
 }) => {
   const [showBibliotheek, setShowBibliotheek] = useState(false);
   const [showCustomForm, setShowCustomForm] = useState(!!customMateriaal);
@@ -44,6 +43,10 @@ const MaterialenPanel = ({
   const hasOthers = otherMaterials.length > 0;
 
   const isCustomActive = !!customMateriaal?.naam;
+  const isLocked = !!priceLock?.locked;
+
+  // Current database price of the selected material
+  const dbPrijs = materialen[geselecteerd]?.prijs ?? 0;
 
   // Local draft for the custom form (separate from committed state)
   const [draft, setDraft] = useState(customMateriaal || emptyCustom());
@@ -66,6 +69,19 @@ const MaterialenPanel = ({
     setShowCustomForm(false);
   };
 
+  const handleToggleLock = () => {
+    if (isLocked) {
+      onPriceLockChange({ locked: false, prijs: null });
+    } else {
+      // Seed with current database price so user can see what they're overriding
+      onPriceLockChange({ locked: true, prijs: dbPrijs });
+    }
+  };
+
+  const handleLockPriceChange = (val) => {
+    onPriceLockChange({ locked: true, prijs: parseFloat(val) || 0 });
+  };
+
   return (
     <div className={`bg-${color}-50 p-3 rounded-lg border-2 border-${color}-200 relative`}>
       <div className="flex justify-between items-center mb-2">
@@ -76,23 +92,19 @@ const MaterialenPanel = ({
               Eigen ✓
             </span>
           )}
+          {isLocked && !isCustomActive && (
+            <span className="text-xs bg-blue-100 text-blue-800 border border-blue-300 rounded px-1.5 py-0.5 font-semibold">
+              🔒 Prijs vergrendeld
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowBibliotheek(true)}
-            className="text-gray-500 hover:text-blue-600 text-sm"
-            title="Materiaal bibliotheek"
-          >
-            📚
-          </button>
-          <button
-            onClick={() => setShowPrijsAanpassing(prev => ({ ...prev, [type]: !prev[type] }))}
-            className="text-gray-600 hover:text-gray-800"
-            title="Prijzen aanpassen"
-          >
-            <Settings size={18} />
-          </button>
-        </div>
+        <button
+          onClick={() => setShowBibliotheek(true)}
+          className="text-gray-500 hover:text-blue-600 text-sm"
+          title="Materiaal bibliotheek"
+        >
+          📚
+        </button>
       </div>
 
       {/* Standard dropdown — dimmed when custom material is active */}
@@ -126,39 +138,44 @@ const MaterialenPanel = ({
           )}
         </select>
 
-        {showPrijsAanpassing[type] && materialen[geselecteerd] && (
-          <div className="mt-3 space-y-2 p-3 bg-white rounded border border-gray-300">
-            <p className="text-xs font-semibold text-gray-700 mb-2">Aanpassen: {materialen[geselecteerd].naam}</p>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label className="text-xs text-gray-600">Breedte (mm)</label>
+        {/* Price lock toggle — hidden when custom material overrides the dropdown */}
+        {!isCustomActive && (
+          <div className="mt-2">
+            {!isLocked ? (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span>Prijs: €{dbPrijs.toFixed(2)}/m² (lijst)</span>
+                <button
+                  onClick={handleToggleLock}
+                  className="text-blue-500 hover:text-blue-700 underline"
+                  title="Eigen prijs vergrendelen voor deze offerte"
+                >
+                  🔓 Vergrendel prijs
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1.5">
+                <span className="text-blue-700 font-semibold shrink-0">🔒 Eigen prijs:</span>
                 <input
                   type="number"
-                  value={materialen[geselecteerd].breedte}
-                  onChange={(e) => updateMateriaalPrijs(type, geselecteerd, 'breedte', e.target.value)}
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                  min="0"
+                  step="0.5"
+                  value={priceLock.prijs ?? dbPrijs}
+                  onChange={(e) => handleLockPriceChange(e.target.value)}
+                  className="w-20 px-1.5 py-0.5 border-2 border-blue-400 rounded text-xs font-semibold text-blue-900 bg-white"
                 />
+                <span className="text-gray-500 shrink-0">€/m²</span>
+                <span className="text-gray-400 shrink-0">
+                  (lijst: €{dbPrijs.toFixed(2)})
+                </span>
+                <button
+                  onClick={handleToggleLock}
+                  className="ml-auto text-red-500 hover:text-red-700 shrink-0"
+                  title="Prijs ontgrendelen — gebruik lijstprijs"
+                >
+                  ✕
+                </button>
               </div>
-              <div>
-                <label className="text-xs text-gray-600">Hoogte (mm)</label>
-                <input
-                  type="number"
-                  value={materialen[geselecteerd].hoogte}
-                  onChange={(e) => updateMateriaalPrijs(type, geselecteerd, 'hoogte', e.target.value)}
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600">Prijs (€/m²)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={materialen[geselecteerd].prijs}
-                  onChange={(e) => updateMateriaalPrijs(type, geselecteerd, 'prijs', e.target.value)}
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                />
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>
