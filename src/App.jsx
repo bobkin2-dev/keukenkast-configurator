@@ -83,6 +83,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [nestingBuffer, setNestingBuffer] = useState(0.05); // 5% residual buffer
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
   const [infoOverrides, setInfoOverrides] = useState({});
+  // Project/quote-specific custom materials (override the dropdown per category)
+  const [customProjectMaterialen, setCustomProjectMaterialen] = useState({ binnen: null, buiten: null, tablet: null });
   const exportPDFRef = useRef(null);
 
   // Custom hooks
@@ -110,6 +112,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     nestingBuffer,
     tabletsteun,
     infoOverrides,
+    customProjectMaterialen,
     setAccessoires,
     setExtraBeslag,
     setArbeidParameters,
@@ -123,7 +126,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setNestingMode,
     setNestingBuffer,
     setTabletsteun,
-    setInfoOverrides
+    setInfoOverrides,
+    setCustomProjectMaterialen,
   });
 
   // Load admin pricing (toestellen + schuifbeslag + accessoires defaults)
@@ -173,18 +177,33 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     }
   };
 
+  // Effective material arrays: if a project-specific custom material is set, use it instead of the dropdown
+  // The custom mat is wrapped in an array so existing code (which uses arr[idx]) works unchanged.
+  const effectiveMaterialenBinnen = customProjectMaterialen.binnen
+    ? [customProjectMaterialen.binnen]
+    : materials.materiaalBinnenkast;
+  const effectiveMaterialenBuiten = customProjectMaterialen.buiten
+    ? [customProjectMaterialen.buiten]
+    : materials.materiaalBuitenzijde;
+  const effectiveMaterialenTablet = customProjectMaterialen.tablet
+    ? [customProjectMaterialen.tablet]
+    : materials.materiaalTablet;
+  const effectiveGeselecteerdBinnen = customProjectMaterialen.binnen ? 0 : materials.geselecteerdMateriaalBinnen;
+  const effectiveGeselecteerdBuiten = customProjectMaterialen.buiten ? 0 : materials.geselecteerdMateriaalBuiten;
+  const effectiveGeselecteerdTablet = customProjectMaterialen.tablet ? 0 : materials.geselecteerdMateriaalTablet;
+
   // Calculate totals (memoized)
   const totalen = useMemo(() => berekenTotalen(
     kabinet.kastenLijst,
     materials.rendementBinnenzijde,
     materials.rendementBuitenzijde,
     materials.alternatieveMateriaal,
-    materials.materiaalBinnenkast,
-    materials.materiaalBuitenzijde,
-    materials.materiaalTablet,
-    materials.geselecteerdMateriaalBinnen,
-    materials.geselecteerdMateriaalBuiten,
-    materials.geselecteerdMateriaalTablet,
+    effectiveMaterialenBinnen,
+    effectiveMaterialenBuiten,
+    effectiveMaterialenTablet,
+    effectiveGeselecteerdBinnen,
+    effectiveGeselecteerdBuiten,
+    effectiveGeselecteerdTablet,
     productionParams,
     materials.plaatMaterialen,
     { useNesting: nestingMode, nestingBuffer }
@@ -193,12 +212,12 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     materials.rendementBinnenzijde,
     materials.rendementBuitenzijde,
     materials.alternatieveMateriaal,
-    materials.materiaalBinnenkast,
-    materials.materiaalBuitenzijde,
-    materials.materiaalTablet,
-    materials.geselecteerdMateriaalBinnen,
-    materials.geselecteerdMateriaalBuiten,
-    materials.geselecteerdMateriaalTablet,
+    effectiveMaterialenBinnen,
+    effectiveMaterialenBuiten,
+    effectiveMaterialenTablet,
+    effectiveGeselecteerdBinnen,
+    effectiveGeselecteerdBuiten,
+    effectiveGeselecteerdTablet,
     productionParams,
     materials.plaatMaterialen,
     nestingMode,
@@ -391,6 +410,10 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
               setGeselecteerd={materials[setKey]}
               updateMateriaalPrijs={materials.updateMateriaalPrijs}
               onReloadMaterialen={materials.reloadPlaatMaterialen}
+              customMateriaal={customProjectMaterialen[type]}
+              onCustomMateriaalChange={(mat) =>
+                setCustomProjectMaterialen(prev => ({ ...prev, [type]: mat }))
+              }
             />
           ))}
         </div>
@@ -525,12 +548,12 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           arbeidUren={arbeidUren}
           accessoires={accessoires}
           extraBeslag={extraBeslag}
-          materiaalBinnenkast={materials.materiaalBinnenkast}
-          materiaalBuitenzijde={materials.materiaalBuitenzijde}
-          materiaalTablet={materials.materiaalTablet}
-          geselecteerdMateriaalBinnen={materials.geselecteerdMateriaalBinnen}
-          geselecteerdMateriaalBuiten={materials.geselecteerdMateriaalBuiten}
-          geselecteerdMateriaalTablet={materials.geselecteerdMateriaalTablet}
+          materiaalBinnenkast={effectiveMaterialenBinnen}
+          materiaalBuitenzijde={effectiveMaterialenBuiten}
+          materiaalTablet={effectiveMaterialenTablet}
+          geselecteerdMateriaalBinnen={effectiveGeselecteerdBinnen}
+          geselecteerdMateriaalBuiten={effectiveGeselecteerdBuiten}
+          geselecteerdMateriaalTablet={effectiveGeselecteerdTablet}
           alternatieveMateriaal={materials.alternatieveMateriaal}
           rendementBuitenzijde={materials.rendementBuitenzijde}
           keukentoestellen={keukentoestellen}
@@ -566,12 +589,12 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         {/* Nesting Resultaten */}
         <NestingResultaten
           kastenLijst={kabinet.kastenLijst}
-          materiaalBinnenkast={materials.materiaalBinnenkast}
-          materiaalBuitenzijde={materials.materiaalBuitenzijde}
-          materiaalTablet={materials.materiaalTablet}
-          geselecteerdMateriaalBinnen={materials.geselecteerdMateriaalBinnen}
-          geselecteerdMateriaalBuiten={materials.geselecteerdMateriaalBuiten}
-          geselecteerdMateriaalTablet={materials.geselecteerdMateriaalTablet}
+          materiaalBinnenkast={effectiveMaterialenBinnen}
+          materiaalBuitenzijde={effectiveMaterialenBuiten}
+          materiaalTablet={effectiveMaterialenTablet}
+          geselecteerdMateriaalBinnen={effectiveGeselecteerdBinnen}
+          geselecteerdMateriaalBuiten={effectiveGeselecteerdBuiten}
+          geselecteerdMateriaalTablet={effectiveGeselecteerdTablet}
           alternatieveMateriaal={materials.alternatieveMateriaal}
           plaatMaterialen={materials.plaatMaterialen}
           productionParams={productionParams}

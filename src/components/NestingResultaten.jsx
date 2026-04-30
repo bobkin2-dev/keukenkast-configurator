@@ -57,7 +57,7 @@ const MaterialBlock = ({ title, mat, rects, buffer }) => {
       plateLength: mat.breedte,
       plateWidth: mat.hoogte,
       parts: rects,
-      grain: false,
+      grain: mat.grain || false,
       kerf: getKerfForMaterial(mat),
     });
   }, [mat, rects]);

@@ -29,8 +29,6 @@ const getVrijeKastMateriaalId = (kast) => {
   if (kast.vrijeKastMateriaalId !== undefined && kast.vrijeKastMateriaalId !== null) {
     return kast.vrijeKastMateriaalId;
   }
-  // Legacy: hplMateriaal was an array index into materiaalTablet
-  // We store it as-is; the lookup logic in convertToFlatTotalen handles both id and index
   return kast.hplMateriaal;
 };
 
@@ -52,8 +50,10 @@ const calculateKastpootjes = (breedte) => {
 };
 
 // Helper: push an onderdeel built from one or more raw rectangles.
-// `rects` are the actual cut pieces (mm × mm). m² is summed with afvalfactor
-// applied so the legacy m²/plate-area path keeps working.
+// Each rect must carry: { breedte, hoogte, naam?, iv? }
+//   iv (isVertical) = true  → grain runs along HOOGTE (vertical parts: sides, doors, backs)
+//   iv (isVertical) = false → grain runs along BREEDTE (horizontal parts: shelves, top, bottom)
+// m² is summed with afvalfactor applied so the legacy m²/plate-area path keeps working.
 const pushOnderdeel = (result, naam, materiaalType, rects, afvalfactor, vrijeKastMateriaalRef) => {
   let totalArea = 0;
   for (const r of rects) totalArea += (r.breedte || 0) * (r.hoogte || 0);
@@ -65,6 +65,7 @@ const pushOnderdeel = (result, naam, materiaalType, rects, afvalfactor, vrijeKas
       breedte: r.breedte,
       hoogte: r.hoogte,
       naam: r.naam || naam,
+      iv: r.iv !== undefined ? r.iv : false,
     })),
   };
   if (vrijeKastMateriaalRef !== undefined) onderdeel.vrijeKastMateriaalRef = vrijeKastMateriaalRef;
@@ -72,8 +73,6 @@ const pushOnderdeel = (result, naam, materiaalType, rects, afvalfactor, vrijeKas
 };
 
 // Push filler onderdelen onto a cabinet result.
-// Standard cabinets use one-dimension paslaten; custom cabinets use free-form paslaten.
-// All fillers go into the buitenzijde material.
 const addFillerOnderdelen = (result, kast, afvalfactorBuiten) => {
   const breedte = kast.breedte || 0;
   const hoogte = kast.hoogte || 0;
@@ -81,83 +80,68 @@ const addFillerOnderdelen = (result, kast, afvalfactorBuiten) => {
   const topH = kast.topFillerHoogte || 0;
   const sideW = kast.sideFillerBreedte || 0;
   if (topH > 0) {
+    // Horizontal strip across the top
     pushOnderdeel(result, 'Paslat boven', 'buitenzijde',
-      [{ breedte: breedte + sideW, hoogte: topH }], afvalfactorBuiten);
+      [{ breedte: breedte + sideW, hoogte: topH, iv: false }], afvalfactorBuiten);
   }
   if (sideW > 0) {
+    // Vertical strip along the side
     pushOnderdeel(result, 'Paslat zij', 'buitenzijde',
-      [{ breedte: sideW, hoogte: hoogte }], afvalfactorBuiten);
+      [{ breedte: sideW, hoogte: hoogte, iv: true }], afvalfactorBuiten);
   }
 
   const pb = kast.paslatBovenkant;
   if (pb && (pb.breedte || 0) > 0 && (pb.hoogte || 0) > 0) {
     pushOnderdeel(result, 'Paslat bovenkant', 'buitenzijde',
-      [{ breedte: pb.breedte, hoogte: pb.hoogte }], afvalfactorBuiten);
+      [{ breedte: pb.breedte, hoogte: pb.hoogte, iv: false }], afvalfactorBuiten);
   }
   const pz = kast.paslatZijkant;
   if (pz && (pz.breedte || 0) > 0 && (pz.hoogte || 0) > 0) {
     pushOnderdeel(result, 'Paslat zijkant', 'buitenzijde',
-      [{ breedte: pz.breedte, hoogte: pz.hoogte }], afvalfactorBuiten);
+      [{ breedte: pz.breedte, hoogte: pz.hoogte, iv: true }], afvalfactorBuiten);
   }
 };
 
 /**
  * Calculate montage hours for a single cabinet
- * @param {Object} kast - Cabinet configuration
- * @param {Object} params - Production parameters (from AdminSettings)
- * @returns {number} Hours of montage work
  */
-// 15 min per filler (vulplaat or paslat)
 const FILLER_HOURS = 0.25;
 
 const countFillers = (kast) => {
   let n = 0;
-  // Standard vulplaten (single dimension each)
   if ((kast.topFillerHoogte || 0) > 0) n++;
   if ((kast.sideFillerBreedte || 0) > 0) n++;
-  // Custom paslaten (rectangles)
   if (kast.paslatBovenkant && (kast.paslatBovenkant.breedte || 0) > 0 && (kast.paslatBovenkant.hoogte || 0) > 0) n++;
   if (kast.paslatZijkant && (kast.paslatZijkant.breedte || 0) > 0 && (kast.paslatZijkant.hoogte || 0) > 0) n++;
   return n;
 };
 
 export const berekenMontageUren = (kast, params) => {
-  if (kast.isZijpaneel) return 0.17; // ~10 min for side panel
+  if (kast.isZijpaneel) return 0.17;
 
   const { type, complexiteit } = kast;
   const fillerExtra = countFillers(kast) * FILLER_HOURS;
 
-  // Vrije Kast (and legacy Open Nis HPL) uses complexity-based hours
   if (isVrijeKast(type)) {
     return (COMPLEXITEIT_UREN[complexiteit || 'gemiddeld'] || 3) + fillerExtra;
   }
 
-  // Tablet: fixed 2u + 1u if spatwand
   if (type === 'Tablet') {
     return 2 + (kast.spatwand ? 1 : 0) + fillerExtra;
   }
 
-  if (!params) return 1.5 + fillerExtra; // fallback
+  if (!params) return 1.5 + fillerExtra;
 
-  // Standard cabinet + custom types: base montage × type multiplier
   const typeMultiplier = params.typeMultipliers?.[type] || 1.0;
   return (params.baseMontageUren || 1.5) * typeMultiplier + fillerExtra;
 };
 
 /**
  * Calculate all parts and accessories for a single cabinet.
- * Returns a structured result where every surface area is coupled to its materiaalType.
  *
- * materiaalType values:
- *   'binnenkast' - interior cabinet material (sides, top, bottom, supports)
- *   'rug'        - back panel (same material category as binnenkast, but can use alternative)
- *   'leggers'    - shelves (same material category as binnenkast, but can use alternative)
- *   'buitenzijde'- exterior/door material
- *   'vrijeKast'  - Vrije Kast material (coupled to specific material id from plaatMaterialen)
- *
- * @param {Object} kast - Cabinet configuration
- * @param {Object} options - { afvalfactorBinnen, afvalfactorBuiten, productionParams }
- * @returns {Object} Structured result
+ * Rect grain convention (iv flag):
+ *   iv=true  → part is VERTICAL, grain runs along hoogte (doors, sides, backs, side fillers)
+ *   iv=false → part is HORIZONTAL, grain runs along breedte (shelves, top, bottom, tablets)
  */
 export const berekenKast = (kast, options = {}) => {
   const {
@@ -173,11 +157,10 @@ export const berekenKast = (kast, options = {}) => {
     type, isZijpaneel
   } = kast;
 
-  // Result structure
   const result = {
-    onderdelen: [],      // Array of { naam, m2, materiaalType, vrijeKastMateriaalRef? }
-    afplakken: 0,        // linear meters of edge banding (standaard)
-    afplakkenSpeciaal: 0, // linear meters of edge banding (speciaal)
+    onderdelen: [],
+    afplakken: 0,
+    afplakkenSpeciaal: 0,
     kastpootjes: 0,
     scharnieren110: 0,
     scharnieren170: 0,
@@ -186,22 +169,20 @@ export const berekenKast = (kast, options = {}) => {
     profielBK: 0,
     ophangsysteemBK: 0,
     montageUren: 0,
-    schuifdeursystemen: [],  // Array of { gewicht, demping, aantal }
-    profielen: []            // Array of { type, gewicht, maat, aantal }
+    schuifdeursystemen: [],
+    profielen: []
   };
 
-  // Skip invalid dimensions
   if (hoogte <= 0 || breedte <= 0) return result;
 
-  // Calculate montage hours
   result.montageUren = berekenMontageUren(kast, productionParams);
 
   // ──────────────────────────────────────────────
-  // ZIJPANEEL (side panel)
+  // ZIJPANEEL (side panel) — vertical, grain along hoogte
   // ──────────────────────────────────────────────
   if (isZijpaneel) {
     pushOnderdeel(result, 'Zijpaneel', 'buitenzijde',
-      [{ breedte, hoogte }], afvalfactorBuiten);
+      [{ breedte, hoogte, iv: true }], afvalfactorBuiten);
     result.afplakken = (2 * breedte + 2 * hoogte) / MM_TO_M;
     return result;
   }
@@ -213,43 +194,49 @@ export const berekenKast = (kast, options = {}) => {
     const onderdelen = getVrijeKastOnderdelen(kast);
     const materiaalRef = getVrijeKastMateriaalId(kast);
 
-    // Surface parts (each coupled to 'vrijeKast' with specific material reference)
     if (onderdelen.LZ) {
+      // Left side — vertical (grain along hoogte)
       pushOnderdeel(result, 'Vrije Kast LZ', 'vrijeKast',
-        [{ breedte: diepte, hoogte: hoogte }], afvalfactorBuiten, materiaalRef);
+        [{ breedte: diepte, hoogte: hoogte, iv: true }], afvalfactorBuiten, materiaalRef);
       result.afplakken += hoogte / MM_TO_M;
     }
     if (onderdelen.RZ) {
+      // Right side — vertical
       pushOnderdeel(result, 'Vrije Kast RZ', 'vrijeKast',
-        [{ breedte: diepte, hoogte: hoogte }], afvalfactorBuiten, materiaalRef);
+        [{ breedte: diepte, hoogte: hoogte, iv: true }], afvalfactorBuiten, materiaalRef);
       result.afplakken += hoogte / MM_TO_M;
     }
     if (onderdelen.BK) {
+      // Bottom — horizontal (grain along breedte)
       pushOnderdeel(result, 'Vrije Kast BK', 'vrijeKast',
-        [{ breedte: breedte, hoogte: diepte }], afvalfactorBuiten, materiaalRef);
+        [{ breedte: breedte, hoogte: diepte, iv: false }], afvalfactorBuiten, materiaalRef);
       result.afplakken += breedte / MM_TO_M;
     }
     if (onderdelen.OK) {
+      // Top — horizontal
       pushOnderdeel(result, 'Vrije Kast OK', 'vrijeKast',
-        [{ breedte: breedte, hoogte: diepte }], afvalfactorBuiten, materiaalRef);
+        [{ breedte: breedte, hoogte: diepte, iv: false }], afvalfactorBuiten, materiaalRef);
       result.afplakken += breedte / MM_TO_M;
     }
     if (onderdelen.RUG) {
+      // Back — vertical
       pushOnderdeel(result, 'Vrije Kast Rug', 'vrijeKast',
-        [{ breedte, hoogte }], afvalfactorBuiten, materiaalRef);
-      // No edge banding for back panel
+        [{ breedte, hoogte, iv: true }], afvalfactorBuiten, materiaalRef);
     }
     if (onderdelen.VK) {
+      // Front panel — vertical
       pushOnderdeel(result, 'Vrije Kast VK', 'vrijeKast',
-        [{ breedte, hoogte }], afvalfactorBuiten, materiaalRef);
+        [{ breedte, hoogte, iv: true }], afvalfactorBuiten, materiaalRef);
       result.afplakken += (2 * breedte + 2 * hoogte) / MM_TO_M;
     }
 
-    // Doors on Vrije Kast
+    // Doors — vertical (grain along hoogte)
     if (aantalDeuren > 0) {
       const doorW = Math.floor(breedte / aantalDeuren);
       const doorRects = [];
-      for (let i = 0; i < aantalDeuren; i++) doorRects.push({ breedte: doorW, hoogte, naam: `Deur ${i + 1}` });
+      for (let i = 0; i < aantalDeuren; i++) {
+        doorRects.push({ breedte: doorW, hoogte, naam: `Deur ${i + 1}`, iv: true });
+      }
       pushOnderdeel(result, 'Vrije Kast Deuren', 'vrijeKast',
         doorRects, afvalfactorBuiten, materiaalRef);
       result.handgrepen += aantalDeuren;
@@ -258,16 +245,17 @@ export const berekenKast = (kast, options = {}) => {
       result.afplakken += (hoogte * 2 * aantalDeuren) / MM_TO_M;
     }
 
-    // Shelves in Vrije Kast use binnenkast material
+    // Shelves — horizontal (grain along breedte)
     if (aantalLeggers > 0) {
       const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}` });
+      for (let i = 0; i < aantalLeggers; i++) {
+        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
+      }
       pushOnderdeel(result, 'Vrije Kast Leggers', 'leggers',
         shelfRects, afvalfactorBinnen);
       result.afplakken += (breedte * aantalLeggers) / MM_TO_M;
     }
 
-    // Supports
     if (aantalTussensteunen > 0) {
       result.afplakken += (hoogte * aantalTussensteunen) / MM_TO_M;
     }
@@ -276,11 +264,11 @@ export const berekenKast = (kast, options = {}) => {
   }
 
   // ──────────────────────────────────────────────
-  // VAATWASSERDEUR
+  // VAATWASSERDEUR — single vertical door panel
   // ──────────────────────────────────────────────
   if (type === 'Vaatwasserdeur') {
     pushOnderdeel(result, 'Vaatwasserdeur', 'buitenzijde',
-      [{ breedte, hoogte }], afvalfactorBuiten);
+      [{ breedte, hoogte, iv: true }], afvalfactorBuiten);
     result.afplakken = 2 * (breedte + hoogte) / MM_TO_M;
     result.handgrepen = 1;
     addFillerOnderdelen(result, kast, afvalfactorBuiten);
@@ -291,38 +279,45 @@ export const berekenKast = (kast, options = {}) => {
   // ONDERKAST SCHUIFDEUR
   // ──────────────────────────────────────────────
   if (type === 'Onderkast Schuifdeur') {
-    // Carcass: 2 zijwanden + N tussensteunen (each diepte × hoogte) + 2 horizontale (each breedte × diepte)
-    const carcassRects = [];
+    // Vertical parts: sides and intermediate supports (grain along hoogte)
+    const sideRects = [];
     for (let i = 0; i < 2 + aantalTussensteunen; i++) {
-      carcassRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun' });
+      sideRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun', iv: true });
     }
-    carcassRects.push({ breedte, hoogte: diepte, naam: 'Boven' });
-    carcassRects.push({ breedte, hoogte: diepte, naam: 'Onder' });
-    pushOnderdeel(result, 'Binnenkast', 'binnenkast', carcassRects, afvalfactorBinnen);
+    pushOnderdeel(result, 'Zijwanden', 'binnenkast', sideRects, afvalfactorBinnen);
 
-    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte }], afvalfactorBinnen);
+    // Horizontal parts: top and bottom (grain along breedte)
+    pushOnderdeel(result, 'Bodem/Dek', 'binnenkast', [
+      { breedte, hoogte: diepte, naam: 'Boven', iv: false },
+      { breedte, hoogte: diepte, naam: 'Onder', iv: false },
+    ], afvalfactorBinnen);
+
+    // Back — vertical
+    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
 
     if (aantalLeggers > 0) {
       const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}` });
+      for (let i = 0; i < aantalLeggers; i++) {
+        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
+      }
       pushOnderdeel(result, 'Leggers', 'leggers', shelfRects, afvalfactorBinnen);
     }
-    // Always 2 sliding doors
+
+    // Sliding doors — vertical (grain along hoogte)
     const slideW = Math.floor(breedte / 2);
-    pushOnderdeel(result, 'Schuifdeuren', 'buitenzijde',
-      [{ breedte: slideW, hoogte, naam: 'Schuifdeur 1' }, { breedte: slideW, hoogte, naam: 'Schuifdeur 2' }],
-      afvalfactorBuiten);
-    // Edge banding
+    pushOnderdeel(result, 'Schuifdeuren', 'buitenzijde', [
+      { breedte: slideW, hoogte, naam: 'Schuifdeur 1', iv: true },
+      { breedte: slideW, hoogte, naam: 'Schuifdeur 2', iv: true },
+    ], afvalfactorBuiten);
+
     result.afplakken = (
       (breedte * (2 + aantalLeggers)) +
       (hoogte * (2 + aantalTussensteunen)) +
-      (hoogte * 2 * 2) + // 2 doors
+      (hoogte * 2 * 2) +
       (breedte * 2)
     ) / MM_TO_M;
-    // No hinges, but schuifdeursysteem
     result.kastpootjes = calculateKastpootjes(breedte);
     result.handgrepen = 2;
-    // Schuifdeursysteem (licht)
     result.schuifdeursystemen.push({
       gewicht: 'licht',
       demping: kast.schuifdeurDemping || 'geen',
@@ -342,36 +337,41 @@ export const berekenKast = (kast, options = {}) => {
   // KOLOMKAST SCHUIFDEUR
   // ──────────────────────────────────────────────
   if (type === 'Kolomkast Schuifdeur') {
-    const carcassRects = [];
+    const sideRects = [];
     for (let i = 0; i < 2 + aantalTussensteunen; i++) {
-      carcassRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun' });
+      sideRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun', iv: true });
     }
-    carcassRects.push({ breedte, hoogte: diepte, naam: 'Boven' });
-    carcassRects.push({ breedte, hoogte: diepte, naam: 'Onder' });
-    pushOnderdeel(result, 'Binnenkast', 'binnenkast', carcassRects, afvalfactorBinnen);
+    pushOnderdeel(result, 'Zijwanden', 'binnenkast', sideRects, afvalfactorBinnen);
 
-    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte }], afvalfactorBinnen);
+    pushOnderdeel(result, 'Bodem/Dek', 'binnenkast', [
+      { breedte, hoogte: diepte, naam: 'Boven', iv: false },
+      { breedte, hoogte: diepte, naam: 'Onder', iv: false },
+    ], afvalfactorBinnen);
+
+    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
 
     if (aantalLeggers > 0) {
       const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}` });
+      for (let i = 0; i < aantalLeggers; i++) {
+        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
+      }
       pushOnderdeel(result, 'Leggers', 'leggers', shelfRects, afvalfactorBinnen);
     }
+
     const slideW = Math.floor(breedte / 2);
-    pushOnderdeel(result, 'Schuifdeuren', 'buitenzijde',
-      [{ breedte: slideW, hoogte, naam: 'Schuifdeur 1' }, { breedte: slideW, hoogte, naam: 'Schuifdeur 2' }],
-      afvalfactorBuiten);
-    // Edge banding
+    pushOnderdeel(result, 'Schuifdeuren', 'buitenzijde', [
+      { breedte: slideW, hoogte, naam: 'Schuifdeur 1', iv: true },
+      { breedte: slideW, hoogte, naam: 'Schuifdeur 2', iv: true },
+    ], afvalfactorBuiten);
+
     result.afplakken = (
       (breedte * (2 + aantalLeggers)) +
       (hoogte * (2 + aantalTussensteunen)) +
-      (hoogte * 2 * 2) + // 2 doors
+      (hoogte * 2 * 2) +
       (breedte * 2)
     ) / MM_TO_M;
-    // No hinges, but zwaar schuifdeursysteem + onderprofiel
     result.kastpootjes = calculateKastpootjes(breedte);
     result.handgrepen = 2;
-    // Schuifdeursysteem (zwaar)
     result.schuifdeursystemen.push({
       gewicht: 'zwaar',
       demping: kast.schuifdeurDemping || 'geen',
@@ -394,15 +394,17 @@ export const berekenKast = (kast, options = {}) => {
   }
 
   // ──────────────────────────────────────────────
-  // TABLET
+  // TABLET — horizontal plate + optional vertical spatwand
   // ──────────────────────────────────────────────
   if (type === 'Tablet') {
+    // Tablet plate is horizontal (grain along breedte)
     pushOnderdeel(result, 'Tablet', 'tablet',
-      [{ breedte, hoogte: diepte }], afvalfactorBuiten);
+      [{ breedte, hoogte: diepte, iv: false }], afvalfactorBuiten);
     result.afplakkenSpeciaal = 2 * (breedte + diepte) / MM_TO_M;
     if (kast.spatwand) {
+      // Spatwand is vertical (grain along hoogte)
       pushOnderdeel(result, 'Spatwand', 'buitenzijde',
-        [{ breedte, hoogte }], afvalfactorBuiten);
+        [{ breedte, hoogte, iv: true }], afvalfactorBuiten);
     }
     addFillerOnderdelen(result, kast, afvalfactorBuiten);
     return result;
@@ -410,31 +412,37 @@ export const berekenKast = (kast, options = {}) => {
 
   // ──────────────────────────────────────────────
   // NORMAL CABINET (Bovenkast, Onderkast, Kolomkast, Ladekast)
-  // Supports isOpen toggle: open cabinets use buitenzijde material for
-  // structural parts (sides, top, bottom), rug stays as rug, no doors/hinges
   // ──────────────────────────────────────────────
 
   const isOpenCabinet = kast.isOpen === true;
 
   if (isOpenCabinet) {
     // OPEN CABINET: structural parts in buitenzijde material
-    const structRects = [];
+    // Vertical: sides + supports
+    const sideRects = [];
     for (let i = 0; i < 2 + aantalTussensteunen; i++) {
-      structRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun' });
+      sideRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun', iv: true });
     }
-    structRects.push({ breedte, hoogte: diepte, naam: 'Boven' });
-    structRects.push({ breedte, hoogte: diepte, naam: 'Onder' });
-    pushOnderdeel(result, 'Structuur (open)', 'buitenzijde', structRects, afvalfactorBuiten);
+    pushOnderdeel(result, 'Zijwanden (open)', 'buitenzijde', sideRects, afvalfactorBuiten);
 
-    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte }], afvalfactorBinnen);
+    // Horizontal: top and bottom
+    pushOnderdeel(result, 'Bodem/Dek (open)', 'buitenzijde', [
+      { breedte, hoogte: diepte, naam: 'Boven', iv: false },
+      { breedte, hoogte: diepte, naam: 'Onder', iv: false },
+    ], afvalfactorBuiten);
+
+    // Back — vertical
+    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
 
     if (aantalLeggers > 0) {
       const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}` });
+      for (let i = 0; i < aantalLeggers; i++) {
+        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
+      }
+      // Open cabinet: shelves in buitenzijde material
       pushOnderdeel(result, 'Leggers (open)', 'buitenzijde', shelfRects, afvalfactorBuiten);
     }
 
-    // No doors, no hinges for open cabinets
     result.afplakken = (
       (breedte * (2 + aantalLeggers)) +
       (hoogte * (2 + aantalTussensteunen)) +
@@ -443,34 +451,42 @@ export const berekenKast = (kast, options = {}) => {
 
   } else {
     // CLOSED CABINET: standard material assignment
-    const carcassRects = [];
+    // Vertical: sides + supports
+    const sideRects = [];
     for (let i = 0; i < 2 + aantalTussensteunen; i++) {
-      carcassRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun' });
+      sideRects.push({ breedte: diepte, hoogte, naam: i < 2 ? 'Zijwand' : 'Tussensteun', iv: true });
     }
-    carcassRects.push({ breedte, hoogte: diepte, naam: 'Boven' });
-    carcassRects.push({ breedte, hoogte: diepte, naam: 'Onder' });
-    pushOnderdeel(result, 'Binnenkast', 'binnenkast', carcassRects, afvalfactorBinnen);
+    pushOnderdeel(result, 'Zijwanden', 'binnenkast', sideRects, afvalfactorBinnen);
 
-    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte }], afvalfactorBinnen);
+    // Horizontal: top and bottom
+    pushOnderdeel(result, 'Bodem/Dek', 'binnenkast', [
+      { breedte, hoogte: diepte, naam: 'Boven', iv: false },
+      { breedte, hoogte: diepte, naam: 'Onder', iv: false },
+    ], afvalfactorBinnen);
+
+    // Back — vertical
+    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
 
     if (aantalLeggers > 0) {
       const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}` });
+      for (let i = 0; i < aantalLeggers; i++) {
+        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
+      }
       pushOnderdeel(result, 'Leggers', 'leggers', shelfRects, afvalfactorBinnen);
     }
 
-    // Doors (exterior)
+    // Doors — vertical (grain along hoogte)
     if (aantalDeuren > 0) {
       const doorW = Math.floor(breedte / aantalDeuren);
       const doorRects = [];
-      for (let i = 0; i < aantalDeuren; i++) doorRects.push({ breedte: doorW, hoogte, naam: `Deur ${i + 1}` });
+      for (let i = 0; i < aantalDeuren; i++) {
+        doorRects.push({ breedte: doorW, hoogte, naam: `Deur ${i + 1}`, iv: true });
+      }
       pushOnderdeel(result, 'Deuren', 'buitenzijde', doorRects, afvalfactorBuiten);
-
       const scharnierenPerDeur = calculateHingesPerDoor(hoogte);
       result.scharnieren110 += aantalDeuren * scharnierenPerDeur;
     }
 
-    // Edge banding (kantenband)
     result.afplakken = (
       (breedte * (2 + aantalLeggers)) +
       (hoogte * (2 + aantalTussensteunen)) +
@@ -479,26 +495,21 @@ export const berekenKast = (kast, options = {}) => {
     ) / MM_TO_M;
   }
 
-  // Kastpootjes (for floor-standing cabinets: Onderkast, Ladekast, Kolomkast)
   if (type === 'Onderkast' || type === 'Ladekast' || type === 'Kolomkast') {
     result.kastpootjes = calculateKastpootjes(breedte);
   }
 
-  // Bovenkast specifics
   if (type === 'Bovenkast') {
     result.profielBK = (breedte / MM_TO_M) * PROFIEL_BK_MULTIPLIER;
     result.ophangsysteemBK = 2;
   }
 
-  // Handles (only for doors on closed cabinets, always for drawers)
   result.handgrepen = (isOpenCabinet ? 0 : aantalDeuren) + aantalLades;
 
-  // Drawers
   if (aantalLades > 0) {
     result.ladenStandaard = aantalLades;
   }
 
-  // Vulplaten (top + side fillers, optional)
   addFillerOnderdelen(result, kast, afvalfactorBuiten);
 
   return result;
@@ -524,6 +535,10 @@ export const berekenAlleKasten = (kastenLijst, options = {}) => {
 /**
  * Aggregate per-cabinet results into totals.
  * Groups onderdelen by materiaalType and sums accessories.
+ *
+ * Grain convention: rects are stored with length = grain direction, width = cross-grain.
+ *   iv=true  → length = hoogte (grain), width = breedte
+ *   iv=false → length = breedte (grain), width = hoogte
  */
 const aggregeerTotalen = (perKast) => {
   const totalen = emptyTotalen();
@@ -536,13 +551,16 @@ const aggregeerTotalen = (perKast) => {
       }
       totalen.m2PerType[type] += onderdeel.m2;
 
-      // Collect raw rects (no afvalfactor) for nesting
+      // Collect raw rects (no afvalfactor) for nesting.
+      // length = grain direction, width = cross-grain.
       if (onderdeel.rects && onderdeel.rects.length > 0) {
         if (!totalen.rectsPerType[type]) totalen.rectsPerType[type] = [];
         onderdeel.rects.forEach(r => {
+          const length = r.iv ? r.hoogte : r.breedte; // grain direction
+          const width  = r.iv ? r.breedte : r.hoogte; // cross-grain
           totalen.rectsPerType[type].push({
-            length: r.breedte,
-            width: r.hoogte,
+            length,
+            width,
             name: r.naam || onderdeel.naam,
             amount: 1,
           });
@@ -552,7 +570,7 @@ const aggregeerTotalen = (perKast) => {
       // For vrijeKast, also track per material reference
       if (type === 'vrijeKast' && onderdeel.vrijeKastMateriaalRef !== undefined) {
         const ref = onderdeel.vrijeKastMateriaalRef;
-        const key = String(ref); // could be id or legacy index
+        const key = String(ref);
         if (!totalen.m2VrijeKastPerMateriaal[key]) {
           totalen.m2VrijeKastPerMateriaal[key] = 0;
         }
@@ -561,9 +579,11 @@ const aggregeerTotalen = (perKast) => {
         if (onderdeel.rects && onderdeel.rects.length > 0) {
           if (!totalen.rectsVrijeKastPerMateriaal[key]) totalen.rectsVrijeKastPerMateriaal[key] = [];
           onderdeel.rects.forEach(r => {
+            const length = r.iv ? r.hoogte : r.breedte;
+            const width  = r.iv ? r.breedte : r.hoogte;
             totalen.rectsVrijeKastPerMateriaal[key].push({
-              length: r.breedte,
-              width: r.hoogte,
+              length,
+              width,
               name: r.naam || onderdeel.naam,
               amount: 1,
             });
@@ -572,7 +592,6 @@ const aggregeerTotalen = (perKast) => {
       }
     });
 
-    // Sum accessories
     totalen.afplakken += result.afplakken;
     totalen.afplakkenSpeciaal += result.afplakkenSpeciaal || 0;
     totalen.kastpootjes += result.kastpootjes;
@@ -584,7 +603,6 @@ const aggregeerTotalen = (perKast) => {
     totalen.ophangsysteemBK += result.ophangsysteemBK;
     totalen.montageUren += result.montageUren;
 
-    // Aggregate schuifdeursystemen
     (result.schuifdeursystemen || []).forEach(s => {
       const existing = totalen.schuifdeursystemen.find(
         e => e.gewicht === s.gewicht && e.demping === s.demping
@@ -596,7 +614,6 @@ const aggregeerTotalen = (perKast) => {
       }
     });
 
-    // Aggregate profielen
     (result.profielen || []).forEach(p => {
       const existing = totalen.profielen.find(
         e => e.type === p.type && e.gewicht === p.gewicht && e.maat === p.maat
@@ -612,14 +629,11 @@ const aggregeerTotalen = (perKast) => {
   return totalen;
 };
 
-/**
- * Create an empty totals object
- */
 const emptyTotalen = () => ({
-  m2PerType: {},                // { binnenkast: x, rug: x, leggers: x, buitenzijde: x, tablet: x, vrijeKast: x }
-  m2VrijeKastPerMateriaal: {},  // { [materiaalRef]: m2 } - grouped by material id (or legacy index)
-  rectsPerType: {},             // { binnenkast: [...rects], ... } - raw rects for nesting
-  rectsVrijeKastPerMateriaal: {}, // { [materiaalRef]: [...rects] } - raw vrije kast rects per material
+  m2PerType: {},
+  m2VrijeKastPerMateriaal: {},
+  rectsPerType: {},
+  rectsVrijeKastPerMateriaal: {},
   afplakken: 0,
   afplakkenSpeciaal: 0,
   kastpootjes: 0,
@@ -631,29 +645,20 @@ const emptyTotalen = () => ({
   profielBK: 0,
   ophangsysteemBK: 0,
   montageUren: 0,
-  schuifdeursystemen: [],       // Aggregated: [{ gewicht, demping, aantal }]
-  profielen: []                 // Aggregated: [{ type, gewicht, maat, aantal }]
+  schuifdeursystemen: [],
+  profielen: []
 });
 
 /**
  * Convert aggregated totals to the flat format expected by TotalenOverzicht / berekenArbeid.
- * Also calculates plate counts based on material selections.
- *
- * @param {Object} aggTotalen - Result from aggregeerTotalen
- * @param {Object} materials - { materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, plaatMaterialen }
- * @param {Object} selections - { geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet }
- * @param {Object} alternatieveMateriaal - { ruggenGebruiken, ruggenMateriaal, leggersGebruiken, leggersMateriaal }
- * @returns {Object} Flat totals compatible with existing TotalenOverzicht
  */
-// Compute plate count via 2D nesting (with kerf based on material name).
-// Adds an optional residual buffer (e.g. 0.05 = 5%) for non-packing waste.
 const platesByNesting = (rects, mat, buffer = 0) => {
   if (!rects || rects.length === 0 || !mat?.breedte || !mat?.hoogte) return 0;
   const result = packParts({
     plateLength: mat.breedte,
     plateWidth: mat.hoogte,
     parts: rects,
-    grain: false,
+    grain: mat.grain || false,
     kerf: getKerfForMaterial(mat),
   });
   return Math.ceil(result.plates.length * (1 + buffer));
@@ -701,30 +706,22 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
     profielen: aggTotalen.profielen || []
   };
 
-  // ── Plate counts ──
-
-  // Helper: safe material access
   const getMat = (arr, idx) => arr?.[idx] || arr?.[0] || { breedte: 1000, hoogte: 1000, prijs: 0 };
   const m2PerPlaat = (mat) => (mat.breedte / MM_TO_M) * (mat.hoogte / MM_TO_M);
 
-  // Helper: find material by id in plaatMaterialen, fallback to index in materiaalTablet
   const findVrijeKastMat = (ref) => {
     if (ref === null || ref === undefined) return plaatMaterialen[0] || materiaalTablet[0] || { breedte: 1000, hoogte: 1000, prijs: 0 };
-    // Try to find by id first (new format)
     const byId = plaatMaterialen.find(m => m.id === ref);
     if (byId) return byId;
-    // Fallback: treat ref as index into materiaalTablet (legacy format)
     const idx = parseInt(ref);
     if (!isNaN(idx) && materiaalTablet[idx]) return materiaalTablet[idx];
     return plaatMaterialen[0] || { breedte: 1000, hoogte: 1000, prijs: 0 };
   };
 
-  // Binnenkast plates (may include rug & leggers if not alternative)
   const binnenMat = getMat(materiaalBinnenkast, geselecteerdMateriaalBinnen);
   const rectsByType = aggTotalen.rectsPerType || {};
 
   if (useNesting) {
-    // Combine rects for binnenkast + (optionally) rug and leggers if not alternative
     const binnenRects = [...(rectsByType.binnenkast || [])];
     if (!alternatieveMateriaal?.ruggenGebruiken) binnenRects.push(...(rectsByType.rug || []));
     if (!alternatieveMateriaal?.leggersGebruiken) binnenRects.push(...(rectsByType.leggers || []));
@@ -761,7 +758,6 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
       }
     });
   } else {
-    // Legacy m² × afvalfactor / plate-area path
     let totaalM2Binnenkast = m2Binnenkast;
     if (!alternatieveMateriaal?.ruggenGebruiken) totaalM2Binnenkast += m2Rug;
     if (!alternatieveMateriaal?.leggersGebruiken) totaalM2Binnenkast += m2Leggers;
