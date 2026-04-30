@@ -3,7 +3,7 @@
 
 import { COMPLEXITEIT_UREN } from '../constants/cabinet';
 
-import { packParts } from './binPack';
+import { packParts, smartPlateCount } from './binPack';
 
 // Constants
 const MM2_TO_M2 = 1000000;
@@ -652,7 +652,7 @@ const emptyTotalen = () => ({
 /**
  * Convert aggregated totals to the flat format expected by TotalenOverzicht / berekenArbeid.
  */
-const platesByNesting = (rects, mat, buffer = 0) => {
+const platesByNesting = (rects, mat) => {
   if (!rects || rects.length === 0 || !mat?.breedte || !mat?.hoogte) return 0;
   const result = packParts({
     plateLength: mat.breedte,
@@ -661,7 +661,7 @@ const platesByNesting = (rects, mat, buffer = 0) => {
     grain: mat.grain || false,
     kerf: getKerfForMaterial(mat),
   });
-  return Math.ceil(result.plates.length * (1 + buffer));
+  return smartPlateCount(result);
 };
 
 export const convertToFlatTotalen = (aggTotalen, materials, selections, alternatieveMateriaal, options = {}) => {
@@ -725,33 +725,33 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
     const binnenRects = [...(rectsByType.binnenkast || [])];
     if (!alternatieveMateriaal?.ruggenGebruiken) binnenRects.push(...(rectsByType.rug || []));
     if (!alternatieveMateriaal?.leggersGebruiken) binnenRects.push(...(rectsByType.leggers || []));
-    flat.platenBinnenkast = platesByNesting(binnenRects, binnenMat, nestingBuffer);
+    flat.platenBinnenkast = platesByNesting(binnenRects, binnenMat);
 
     if (alternatieveMateriaal?.ruggenGebruiken) {
       const rugMat = getMat(materiaalBinnenkast, alternatieveMateriaal.ruggenMateriaal);
-      flat.platenRug = platesByNesting(rectsByType.rug || [], rugMat, nestingBuffer);
+      flat.platenRug = platesByNesting(rectsByType.rug || [], rugMat);
     } else {
       flat.platenRug = 0;
     }
     if (alternatieveMateriaal?.leggersGebruiken) {
       const leggerMat = getMat(materiaalBinnenkast, alternatieveMateriaal.leggersMateriaal);
-      flat.platenLeggers = platesByNesting(rectsByType.leggers || [], leggerMat, nestingBuffer);
+      flat.platenLeggers = platesByNesting(rectsByType.leggers || [], leggerMat);
     } else {
       flat.platenLeggers = 0;
     }
 
     const buitenMat = getMat(materiaalBuitenzijde, geselecteerdMateriaalBuiten);
-    flat.platenBuitenzijde = platesByNesting(rectsByType.buitenzijde || [], buitenMat, nestingBuffer);
+    flat.platenBuitenzijde = platesByNesting(rectsByType.buitenzijde || [], buitenMat);
 
     const tabletMat = getMat(materiaalTablet, geselecteerdMateriaalTablet);
-    flat.platenTablet = platesByNesting(rectsByType.tablet || [], tabletMat, nestingBuffer);
+    flat.platenTablet = platesByNesting(rectsByType.tablet || [], tabletMat);
 
     flat.platenVrijeKast = {};
     Object.entries(aggTotalen.rectsVrijeKastPerMateriaal || {}).forEach(([matRef, rects]) => {
       const mat = findVrijeKastMat(parseInt(matRef) || matRef);
       if (mat) {
         flat.platenVrijeKast[matRef] = {
-          platen: platesByNesting(rects, mat, nestingBuffer),
+          platen: platesByNesting(rects, mat),
           m2: aggTotalen.m2VrijeKastPerMateriaal[matRef] || 0,
           mat
         };

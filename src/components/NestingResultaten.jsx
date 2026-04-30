@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { berekenAlleKasten, getKerfForMaterial } from '../utils/kastCalculator';
-import { packParts, computeUtilisation } from '../utils/binPack';
+import { packParts, computeUtilisation, smartPlateCount } from '../utils/binPack';
 
 const PART_COLORS = [
   { fill: '#dbeafe', stroke: '#3b82f6' },
@@ -48,7 +48,7 @@ const PlatePreview = ({ plate, scale, partColorOf }) => {
   );
 };
 
-const MaterialBlock = ({ title, mat, rects, buffer }) => {
+const MaterialBlock = ({ title, mat, rects }) => {
   const result = useMemo(() => {
     if (!mat?.breedte || !mat?.hoogte || !rects || rects.length === 0) {
       return { plates: [], unfit: [] };
@@ -64,7 +64,7 @@ const MaterialBlock = ({ title, mat, rects, buffer }) => {
 
   if (!rects || rects.length === 0) return null;
 
-  const platesNeeded = Math.ceil(result.plates.length * (1 + (buffer || 0)));
+  const platesNeeded = smartPlateCount(result);
   const utilisation = computeUtilisation(result.plates);
   const kerf = getKerfForMaterial(mat);
 
@@ -92,9 +92,9 @@ const MaterialBlock = ({ title, mat, rects, buffer }) => {
         <span className="text-xs text-gray-500">{mat.naam} — {mat.breedte}×{mat.hoogte}mm — kerf {kerf}mm</span>
         <span className="ml-auto text-sm font-semibold text-gray-800">
           {platesNeeded} plaat{platesNeeded !== 1 ? 'en' : ''}
-          {buffer > 0 && (
+          {platesNeeded > result.plates.length && (
             <span className="text-xs text-gray-500 font-normal ml-1">
-              ({result.plates.length} packed + {Math.round(buffer * 100)}% buffer)
+              ({result.plates.length} gepakt + 1 veiligheidsplaat)
             </span>
           )}
         </span>
@@ -183,8 +183,8 @@ const NestingResultaten = ({
   const totalPlates = useMemo(() => {
     const tally = (rects, mat) => {
       if (!rects?.length || !mat?.breedte) return 0;
-      const r = packParts({ plateLength: mat.breedte, plateWidth: mat.hoogte, parts: rects, grain: false, kerf: getKerfForMaterial(mat) });
-      return Math.ceil(r.plates.length * (1 + nestingBuffer));
+      const r = packParts({ plateLength: mat.breedte, plateWidth: mat.hoogte, parts: rects, grain: mat.grain || false, kerf: getKerfForMaterial(mat) });
+      return smartPlateCount(r);
     };
     let n = 0;
     n += tally(binnenRects, binnenMat);
@@ -197,7 +197,7 @@ const NestingResultaten = ({
       if (mat) n += tally(rects, mat);
     });
     return n;
-  }, [binnenRects, binnenMat, rugMat, leggersMat, rectsByType, buitenMat, tabletMat, rectsVrijeKast, nestingBuffer]);
+  }, [binnenRects, binnenMat, rugMat, leggersMat, rectsByType, buitenMat, tabletMat, rectsVrijeKast]);
 
   // Early return AFTER all hooks (moving this above any hook causes a hook-order violation)
   if (!kastenLijst || kastenLijst.length === 0) return null;
@@ -211,7 +211,7 @@ const NestingResultaten = ({
         <span>
           Nesting resultaten
           <span className="ml-2 text-sm font-normal text-gray-600">
-            ({totalPlates} plaat{totalPlates !== 1 ? 'en' : ''} totaal · buffer {Math.round(nestingBuffer * 100)}%)
+            ({totalPlates} plaat{totalPlates !== 1 ? 'en' : ''} totaal · slim afgerond)
           </span>
         </span>
         <span className="text-gray-500">{open ? '▲' : '▼'}</span>
@@ -229,14 +229,12 @@ const NestingResultaten = ({
             title="Binnenkast"
             mat={binnenMat}
             rects={binnenRects}
-            buffer={nestingBuffer}
           />
           {rugMat && (
             <MaterialBlock
               title="Rug (apart materiaal)"
               mat={rugMat}
               rects={rectsByType.rug || []}
-              buffer={nestingBuffer}
             />
           )}
           {leggersMat && (
@@ -244,20 +242,17 @@ const NestingResultaten = ({
               title="Leggers (apart materiaal)"
               mat={leggersMat}
               rects={rectsByType.leggers || []}
-              buffer={nestingBuffer}
             />
           )}
           <MaterialBlock
             title="Buitenzijde"
             mat={buitenMat}
             rects={rectsByType.buitenzijde || []}
-            buffer={nestingBuffer}
           />
           <MaterialBlock
             title="Tablet"
             mat={tabletMat}
             rects={rectsByType.tablet || []}
-            buffer={nestingBuffer}
           />
           {Object.entries(rectsVrijeKast).map(([ref, rects]) => {
             const mat = findVrijeKastMat(ref);
@@ -268,7 +263,6 @@ const NestingResultaten = ({
                 title="Vrije Kast"
                 mat={mat}
                 rects={rects}
-                buffer={nestingBuffer}
               />
             );
           })}

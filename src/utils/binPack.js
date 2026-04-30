@@ -156,6 +156,22 @@ const placePartOnPlate = (plate, part, grain, kerf) => {
   return true;
 };
 
+// Smart plate count: add 1 safety plate only when the job is large (>5 plates)
+// AND the last plate is well-loaded (≥70% utilised).
+// This avoids adding a full extra sheet just because 1 small offcut overflowed.
+export const smartPlateCount = (packResult) => {
+  const n = packResult.plates.length;
+  if (n === 0) return 0;
+
+  const last = packResult.plates[n - 1];
+  const usedArea = last.placements.reduce((s, p) => s + p.w * p.h, 0);
+  const totalArea = last.length * last.width;
+  const lastUtil = totalArea > 0 ? usedArea / totalArea : 0;
+
+  if (n > 5 && lastUtil >= 0.7) return n + 1;
+  return n;
+};
+
 // Helper: total used m² across all plates (for utilisation %)
 export const computeUtilisation = (plates) => {
   let used = 0;
