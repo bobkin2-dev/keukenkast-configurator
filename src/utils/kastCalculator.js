@@ -232,9 +232,11 @@ export const berekenKast = (kast, options = {}) => {
 
     // Doors — vertical (grain along hoogte)
     if (aantalDeuren > 0) {
-      const doorW = Math.floor(breedte / aantalDeuren);
+      const baseDoorW = Math.floor(breedte / aantalDeuren);
+      const remainder = breedte - baseDoorW * aantalDeuren;
       const doorRects = [];
       for (let i = 0; i < aantalDeuren; i++) {
+        const doorW = baseDoorW + (i === aantalDeuren - 1 ? remainder : 0);
         doorRects.push({ breedte: doorW, hoogte, naam: `Deur ${i + 1}`, iv: true });
       }
       pushOnderdeel(result, 'Vrije Kast Deuren', 'vrijeKast',
@@ -477,9 +479,11 @@ export const berekenKast = (kast, options = {}) => {
 
     // Doors — vertical (grain along hoogte)
     if (aantalDeuren > 0) {
-      const doorW = Math.floor(breedte / aantalDeuren);
+      const baseDoorW = Math.floor(breedte / aantalDeuren);
+      const remainder = breedte - baseDoorW * aantalDeuren;
       const doorRects = [];
       for (let i = 0; i < aantalDeuren; i++) {
+        const doorW = baseDoorW + (i === aantalDeuren - 1 ? remainder : 0);
         doorRects.push({ breedte: doorW, hoogte, naam: `Deur ${i + 1}`, iv: true });
       }
       pushOnderdeel(result, 'Deuren', 'buitenzijde', doorRects, afvalfactorBuiten);

@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import PlaatmateriaalBibliotheekModal from './PlaatmateriaalBibliotheekModal';
 
+const COLOR_CLASSES = {
+  purple: { bg: 'bg-purple-50', border: 'border-purple-200' },
+  indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200' },
+  pink:   { bg: 'bg-pink-50',   border: 'border-pink-200'   },
+};
+
 // Map type key to the popular-use property name
 const typeToCategory = {
   binnen: 'binnenkast',
@@ -60,8 +66,10 @@ const MaterialenPanel = ({
     setShowCustomForm(false);
   };
 
+  const colorCls = COLOR_CLASSES[color] || COLOR_CLASSES.purple;
+
   return (
-    <div className={`bg-${color}-50 p-3 rounded-lg border-2 border-${color}-200 relative`}>
+    <div className={`${colorCls.bg} p-3 rounded-lg border-2 ${colorCls.border} relative`}>
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-gray-800">{label}</h2>

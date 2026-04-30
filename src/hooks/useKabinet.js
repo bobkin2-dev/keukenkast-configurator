@@ -8,6 +8,8 @@ import {
   defaultCustomKast
 } from '../data/defaultMaterials';
 
+const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
 export const useKabinet = ({ initialData, addNotification }) => {
   // Cabinets list
   const [kastenLijst, setKastenLijst] = useState(
@@ -38,7 +40,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
   const voegKastToe = useCallback((kastData) => {
     const nieuweKast = {
       ...kastData,
-      id: Date.now(),
+      id: generateId(),
       timestamp: new Date().toLocaleString()
     };
     setKastenLijst(prev => [...prev, nieuweKast]);
@@ -58,7 +60,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
       aantalLades: 0,
       aantalDeuren: 0,
       aantalTussensteunen: 0,
-      id: Date.now(),
+      id: generateId(),
       timestamp: new Date().toLocaleString(),
       isZijpaneel: true,
       parentId: kast.id
@@ -80,7 +82,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
       aantalLades: 0,
       aantalDeuren: 0,
       aantalTussensteunen: 0,
-      id: Date.now(),
+      id: generateId(),
       timestamp: new Date().toLocaleString(),
       isZijpaneel: true
     };
@@ -94,7 +96,7 @@ export const useKabinet = ({ initialData, addNotification }) => {
   const kopieerKast = useCallback((kast) => {
     const kopie = {
       ...kast,
-      id: Date.now(),
+      id: generateId(),
       timestamp: new Date().toLocaleString()
     };
     setKastenLijst(prev => [...prev, kopie]);

@@ -36,8 +36,8 @@ export const berekenTotalen = (
   }
 
   // Calculate waste factors
-  const afvalfactorBinnen = safeDivide(100, rendementBinnenzijde || 75, 1.33);
-  const afvalfactorBuiten = safeDivide(100, rendementBuitenzijde || 70, 1.43);
+  const afvalfactorBinnen = safeDivide(100, rendementBinnenzijde || 75);
+  const afvalfactorBuiten = safeDivide(100, rendementBuitenzijde || 70);
 
   // Use kastCalculator for all per-cabinet calculations
   const { totalen: aggTotalen } = berekenAlleKasten(kastenLijst, {

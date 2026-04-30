@@ -131,7 +131,7 @@ const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
           {/* Dimensions */}
           <div>
             <p className="text-xs font-semibold text-gray-700 mb-1">Afmetingen (mm)</p>
-            <div className={`grid gap-2 ${isVaatwasser ? 'grid-cols-2' : isTablet ? 'grid-cols-3' : 'grid-cols-3'}`}>
+            <div className={`grid gap-2 ${isVaatwasser ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {!isTablet && (
                 <Field label="Hoogte">
                   <NumInput value={d.hoogte} onChange={(v) => set('hoogte', v)} />

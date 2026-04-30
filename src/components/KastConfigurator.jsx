@@ -575,7 +575,7 @@ const CustomKastConfigurator = ({
         </div>
 
         {/* Dimensions */}
-        <div className={`grid grid-cols-${dimensionFields.length} gap-2`}>
+        <div className={`grid ${dimensionFields.length === 2 ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
           {dimensionFields.map(({ field, label }) => (
             <div key={field}>
               <label className="text-xs text-gray-600">{label}</label>
