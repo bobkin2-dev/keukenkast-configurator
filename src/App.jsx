@@ -80,7 +80,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [customPlaatmateriaal, setCustomPlaatmateriaal] = useState([]);
   const [customPlaatRequests, setCustomPlaatRequests] = useState([]);
   const [nestingMode, setNestingMode] = useState(false);
-  const [nestingBuffer, setNestingBuffer] = useState(0.05); // 5% residual buffer
+  const [nestingBuffer, setNestingBuffer] = useState(0); // no buffer by default — packer result is already tight
   const [tabletsteun, setTabletsteun] = useState({ type: '', aantal: 0 });
   const [infoOverrides, setInfoOverrides] = useState({});
   // Project/quote-specific custom materials (override the dropdown per category)
