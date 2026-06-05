@@ -352,7 +352,7 @@ const TotalenOverzicht = ({
     const sum = (rows) => rows.reduce((s, r) => s + (r.totaal || 0), 0);
     const grandTotal = sum(arbeidRows) + sum(plaatRows) + sum(kantenbandRows) + sum(beslagRows) + sum(toestellenRows) + sum(schuifdeurRows);
 
-    generateOffertePDF({ projectInfo, groupInfo, kastenLijst, plaatMaterialen, arbeidRows, plaatRows, kantenbandRows, beslagRows, toestellenRows, schuifdeurRows, grandTotal });
+    generateOffertePDF({ projectInfo, groupInfo, kastenLijst, plaatMaterialen, arbeidRows, plaatRows, kantenbandRows, beslagRows, toestellenRows, schuifdeurRows, grandTotal, marge });
   };
 
   // Expose export function to sidebar via ref

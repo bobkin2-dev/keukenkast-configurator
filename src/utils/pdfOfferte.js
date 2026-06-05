@@ -36,6 +36,7 @@ export const generateOffertePDF = ({
   toestellenRows,
   schuifdeurRows,
   grandTotal,
+  marge = 25,
 }) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -208,15 +209,40 @@ export const generateOffertePDF = ({
   }
 
   // --- Grand Total ---
+  const margeEuro = grandTotal * (marge / 100);
+  const totalInclMarge = grandTotal + margeEuro;
+
   y += 2;
   doc.setDrawColor(...GRAY_ACCENT);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
   y += 7;
+
+  // Base price
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'normal');
+  doc.text('Subtotaal', margin, y);
+  doc.text(`€${Math.ceil(grandTotal)}`, pageWidth - margin, y, { align: 'right' });
+  y += 6;
+
+  // Margin line
+  doc.setFontSize(10);
+  doc.setTextColor(...GRAY_ACCENT);
+  doc.text(`+ marge ${marge}%`, margin, y);
+  doc.text(`€${Math.ceil(margeEuro)}`, pageWidth - margin, y, { align: 'right' });
+  doc.setTextColor(0);
+  y += 2;
+
+  doc.setDrawColor(...GRAY_ACCENT);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 5;
+
+  // Total incl. margin
   doc.setFontSize(13);
   doc.setFont(undefined, 'bold');
   doc.text('TOTAAL', margin, y);
-  doc.text(euro(grandTotal), pageWidth - margin, y, { align: 'right' });
+  doc.text(`€${Math.ceil(totalInclMarge)}`, pageWidth - margin, y, { align: 'right' });
 
   // ====== PAGE 2: Kastenlijst ======
   doc.addPage();
