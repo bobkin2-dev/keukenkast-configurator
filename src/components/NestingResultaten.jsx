@@ -163,7 +163,7 @@ const NestingResultaten = ({
     groepen.buitenzijde,
     groepen.tablet,
     ...Object.values(groepen.vrijeKast),
-  ].filter(g => g && g.rects.length > 0);
+  ].filter(g => g && g.rects.length > 0 && !g.samengevoegdIn);
 
   const totalPlates = groepLijst.reduce((sum, g) => sum + g.platen, 0);
   const totalSplit = groepLijst.reduce((sum, g) => sum + (g.result.split?.length || 0), 0);
@@ -196,6 +196,7 @@ const NestingResultaten = ({
             Visuele weergave van hoe onderdelen op platen geplaatst worden.
             Kerf is automatisch 14mm voor M-prefix materialen, 4mm voor andere.
             Stukken die niet op een plaat passen worden opgedeeld en in het rood getoond.
+            Onderdelen met hetzelfde plaatmateriaal worden samen genest.
             Met de Nesting-toggle in de Plaatmateriaal-tabel gebruikt de totaallijst exact deze aantallen.
           </p>
 

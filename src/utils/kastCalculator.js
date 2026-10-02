@@ -800,6 +800,10 @@ export const findVrijeKastMat = (ref, plaatMaterialen = [], materiaalTablet = []
   return plaatMaterialen[0] || materiaalTablet[0] || FALLBACK_MAT;
 };
 
+// Two plate materials are "the same" when name, plate size and grain match.
+const materiaalSleutel = (mat) =>
+  `${(mat?.naam || '').trim().toLowerCase()}|${mat?.breedte}|${mat?.hoogte}|${!!mat?.grain}`;
+
 const packGroup = (key, title, rects, mat) => {
   const result = (rects.length > 0 && mat?.breedte && mat?.hoogte)
     ? packParts({
@@ -836,23 +840,53 @@ export const bouwNestingGroepen = (aggTotalen, materials, selections, alternatie
   if (!alternatieveMateriaal?.ruggenGebruiken) binnenRects.push(...(rectsByType.rug || []));
   if (!alternatieveMateriaal?.leggersGebruiken) binnenRects.push(...(rectsByType.leggers || []));
 
-  const groepen = {
-    binnenkast: packGroup('binnenkast', 'Binnenkast', binnenRects, getMat(materiaalBinnenkast, geselecteerdMateriaalBinnen)),
-    rug: alternatieveMateriaal?.ruggenGebruiken
-      ? packGroup('rug', 'Rug (apart materiaal)', rectsByType.rug || [], getMat(materiaalBinnenkast, alternatieveMateriaal.ruggenMateriaal))
-      : null,
-    leggers: alternatieveMateriaal?.leggersGebruiken
-      ? packGroup('leggers', 'Leggers (apart materiaal)', rectsByType.leggers || [], getMat(materiaalBinnenkast, alternatieveMateriaal.leggersMateriaal))
-      : null,
-    buitenzijde: packGroup('buitenzijde', 'Buitenzijde', rectsByType.buitenzijde || [], getMat(materiaalBuitenzijde, geselecteerdMateriaalBuiten)),
-    tablet: packGroup('tablet', 'Tablet', rectsByType.tablet || [], getMat(materiaalTablet, geselecteerdMateriaalTablet)),
-    vrijeKast: {},
-  };
+  // 1. Collect parts per totaallijst row (unpacked)
+  const rijen = [
+    { slot: 'binnenkast', key: 'binnenkast', title: 'Binnenkast', rects: binnenRects, mat: getMat(materiaalBinnenkast, geselecteerdMateriaalBinnen) },
+    alternatieveMateriaal?.ruggenGebruiken && { slot: 'rug', key: 'rug', title: 'Rug (apart materiaal)', rects: rectsByType.rug || [], mat: getMat(materiaalBinnenkast, alternatieveMateriaal.ruggenMateriaal) },
+    alternatieveMateriaal?.leggersGebruiken && { slot: 'leggers', key: 'leggers', title: 'Leggers (apart materiaal)', rects: rectsByType.leggers || [], mat: getMat(materiaalBinnenkast, alternatieveMateriaal.leggersMateriaal) },
+    { slot: 'buitenzijde', key: 'buitenzijde', title: 'Buitenzijde', rects: rectsByType.buitenzijde || [], mat: getMat(materiaalBuitenzijde, geselecteerdMateriaalBuiten) },
+    { slot: 'tablet', key: 'tablet', title: 'Tablet', rects: rectsByType.tablet || [], mat: getMat(materiaalTablet, geselecteerdMateriaalTablet) },
+    ...Object.entries(aggTotalen.rectsVrijeKastPerMateriaal || {}).map(([matRef, rects]) => ({
+      slot: 'vrijeKast', matRef, key: `vrijeKast_${matRef}`, title: 'Vrije Kast', rects,
+      mat: findVrijeKastMat(matRef, plaatMaterialen, materiaalTablet),
+    })),
+  ].filter(Boolean);
 
-  Object.entries(aggTotalen.rectsVrijeKastPerMateriaal || {}).forEach(([matRef, rects]) => {
-    const mat = findVrijeKastMat(matRef, plaatMaterialen, materiaalTablet);
-    groepen.vrijeKast[matRef] = packGroup(`vrijeKast_${matRef}`, 'Vrije Kast', rects, mat);
-  });
+  // 2. Rows using the same plate material are nested together; the combined plate
+  //    count goes to the first row, the others get 0 and point to it (samengevoegdIn).
+  const doelPerMateriaal = {};
+  const samenvoegen = {};
+  for (const rij of rijen) {
+    if (rij.rects.length === 0) continue;
+    const sleutel = materiaalSleutel(rij.mat);
+    const doel = doelPerMateriaal[sleutel];
+    if (doel) {
+      samenvoegen[doel.key].push(rij);
+      rij.samengevoegdIn = doel;
+    } else {
+      doelPerMateriaal[sleutel] = rij;
+      samenvoegen[rij.key] = [];
+    }
+  }
+
+  // 3. Pack
+  const groepen = { binnenkast: null, rug: null, leggers: null, buitenzijde: null, tablet: null, vrijeKast: {} };
+  for (const rij of rijen) {
+    let groep;
+    if (rij.samengevoegdIn) {
+      groep = { key: rij.key, title: rij.title, mat: rij.mat, rects: rij.rects,
+        result: { plates: [], unfit: [], split: [] }, platen: 0,
+        samengevoegdIn: { key: rij.samengevoegdIn.key, title: rij.samengevoegdIn.title } };
+    } else {
+      const extra = samenvoegen[rij.key] || [];
+      const rects = extra.length > 0 ? [...rij.rects, ...extra.flatMap(r => r.rects)] : rij.rects;
+      const title = extra.length > 0 ? [rij.title, ...extra.map(r => r.title)].join(' + ') : rij.title;
+      groep = packGroup(rij.key, title, rects, rij.mat);
+    }
+    if (rij.slot === 'vrijeKast') groepen.vrijeKast[rij.matRef] = groep;
+    else groepen[rij.slot] = groep;
+  }
 
   return groepen;
 };
@@ -909,6 +943,9 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
     flat.platenLeggers = groepen.leggers ? groepen.leggers.platen : 0;
     flat.platenBuitenzijde = groepen.buitenzijde.platen;
     flat.platenTablet = groepen.tablet.platen;
+    flat.nestingSamengevoegd = {};
+    [groepen.binnenkast, groepen.rug, groepen.leggers, groepen.buitenzijde, groepen.tablet, ...Object.values(groepen.vrijeKast)]
+      .forEach(g => { if (g?.samengevoegdIn) flat.nestingSamengevoegd[g.key] = g.samengevoegdIn.title; });
     flat.platenVrijeKast = {};
     Object.entries(groepen.vrijeKast).forEach(([matRef, g]) => {
       flat.platenVrijeKast[matRef] = {
