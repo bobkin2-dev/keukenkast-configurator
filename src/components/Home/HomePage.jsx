@@ -242,6 +242,8 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
     });
   };
 
+  const formatPrijs = (bedrag) => `€${Math.round(bedrag || 0).toLocaleString('nl-BE')}`;
+
   const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '', 'nl');
   const getProjectsForGroup = (groupId) => projects.filter(p => p.group_id === groupId).sort(sortByName);
   const looseProjects = projects.filter(p => !p.group_id).sort(sortByName);
@@ -263,6 +265,16 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
           {project.name || 'Naamloos'}
           {project.meubelnummer && (
             <span className="ml-2 text-xs text-gray-400">#{project.meubelnummer}</span>
+          )}
+        </td>
+        <td className="py-2 px-3 text-right whitespace-nowrap">
+          {project.settings?.totaalPrijs ? (
+            <>
+              <span className="text-gray-800">{formatPrijs(project.settings.totaalPrijs.exclMarge)}</span>
+              <span className="text-xs text-gray-500 ml-1">({formatPrijs(project.settings.totaalPrijs.inclMarge)})</span>
+            </>
+          ) : (
+            <span className="text-xs text-gray-300" title="Nog niet berekend — open en bewaar de offerte">–</span>
           )}
         </td>
         <td className="py-2 px-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(project.updated_at)}</td>
@@ -313,6 +325,7 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
         <tr className="text-xs text-gray-400 border-b border-gray-200">
           <th className="w-8"></th>
           <th className="text-left py-1.5 px-3 font-medium">Naam</th>
+          <th className="text-right py-1.5 px-3 font-medium" title="Excl. marge (incl. marge)">Totaalprijs</th>
           <th className="text-left py-1.5 px-3 font-medium">Laatst bewerkt</th>
           <th className="text-right py-1.5 px-3 font-medium w-24"></th>
         </tr>

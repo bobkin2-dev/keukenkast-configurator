@@ -87,7 +87,8 @@ const TotalenOverzicht = ({
   setPriceOverrideLocks,
   marge = 25,
   setMarge,
-  exportPDFRef
+  exportPDFRef,
+  totaalPrijsRef
 }) => {
   // State for library modals
   const [showBibliotheek, setShowBibliotheek] = useState(false);
@@ -1231,6 +1232,7 @@ const TotalenOverzicht = ({
           const grandTotal = arbeidTotal + plaatTotal + kantenbandTotal + beslagTotal + toestellenTotal + schuifdeurTotal;
           const margeEuro = grandTotal * (marge / 100);
           const totalInclMarge = grandTotal + margeEuro;
+          if (totaalPrijsRef) totaalPrijsRef.current = { exclMarge: Math.ceil(grandTotal), inclMarge: Math.ceil(totalInclMarge) };
 
           return (
             <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">

@@ -25,6 +25,7 @@ export const useProjectState = ({
   customProjectMaterialen,
   priceOverrideLocks,
   marge,
+  totaalPrijsRef,
   setAccessoires,
   setExtraBeslag,
   setArbeidParameters,
@@ -89,6 +90,7 @@ export const useProjectState = ({
       customProjectMaterialen,
       priceOverrideLocks,
       marge,
+      totaalPrijs: totaalPrijsRef?.current || null,
       aantal: projectInfo.aantal || 1,
     };
 

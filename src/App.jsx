@@ -91,6 +91,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   // Quote margin percentage for the grand-total summary box
   const [marge, setMarge] = useState(25);
   const exportPDFRef = useRef(null);
+  // Latest grand total { exclMarge, inclMarge } written by TotalenOverzicht, saved with the project for the offerte list
+  const totaalPrijsRef = useRef(null);
 
   // Custom hooks
   const { notifications, addNotification } = useNotifications();
@@ -136,6 +138,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     priceOverrideLocks,
     setPriceOverrideLocks,
     marge,
+    totaalPrijsRef,
     setMarge,
   });
 
@@ -593,6 +596,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           marge={marge}
           setMarge={setMarge}
           exportPDFRef={exportPDFRef}
+          totaalPrijsRef={totaalPrijsRef}
         />
 
         {/* Nesting Resultaten */}
