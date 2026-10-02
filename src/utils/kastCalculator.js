@@ -72,6 +72,26 @@ const pushOnderdeel = (result, naam, materiaalType, rects, afvalfactor, vrijeKas
   result.onderdelen.push(onderdeel);
 };
 
+// Shelf rects: tussensteunen divide each legger into (steunen + 1) separate pieces.
+// e.g. 2 leggers + 1 steun → 4 leggers of half width; 2 leggers + 2 steunen → 6.
+const buildShelfRects = (aantalLeggers, aantalTussensteunen, breedte, diepte) => {
+  const vakken = Math.max(0, aantalTussensteunen) + 1;
+  const baseW = Math.floor(breedte / vakken);
+  const remainder = breedte - baseW * vakken;
+  const rects = [];
+  for (let i = 0; i < aantalLeggers; i++) {
+    for (let v = 0; v < vakken; v++) {
+      rects.push({
+        breedte: baseW + (v === vakken - 1 ? remainder : 0),
+        hoogte: diepte,
+        naam: vakken > 1 ? `Legger ${i + 1}.${v + 1}` : `Legger ${i + 1}`,
+        iv: false,
+      });
+    }
+  }
+  return rects;
+};
+
 // Push filler onderdelen onto a cabinet result.
 const addFillerOnderdelen = (result, kast, afvalfactorBuiten) => {
   const breedte = kast.breedte || 0;
@@ -247,19 +267,22 @@ export const berekenKast = (kast, options = {}) => {
       result.afplakken += (hoogte * 2 * aantalDeuren) / MM_TO_M;
     }
 
-    // Shelves — horizontal (grain along breedte)
-    if (aantalLeggers > 0) {
-      const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) {
-        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
+    // Intermediate supports — vertical, same material as the rest of the vrije kast
+    if (aantalTussensteunen > 0) {
+      const steunRects = [];
+      for (let i = 0; i < aantalTussensteunen; i++) {
+        steunRects.push({ breedte: diepte, hoogte, naam: `Tussensteun ${i + 1}`, iv: true });
       }
-      pushOnderdeel(result, 'Vrije Kast Leggers', 'leggers',
-        shelfRects, afvalfactorBinnen);
-      result.afplakken += (breedte * aantalLeggers) / MM_TO_M;
+      pushOnderdeel(result, 'Vrije Kast Tussensteunen', 'vrijeKast',
+        steunRects, afvalfactorBuiten, materiaalRef);
+      result.afplakken += (hoogte * aantalTussensteunen) / MM_TO_M;
     }
 
-    if (aantalTussensteunen > 0) {
-      result.afplakken += (hoogte * aantalTussensteunen) / MM_TO_M;
+    // Shelves — horizontal (grain along breedte), same material as the vrije kast
+    if (aantalLeggers > 0) {
+      pushOnderdeel(result, 'Vrije Kast Leggers', 'vrijeKast',
+        buildShelfRects(aantalLeggers, aantalTussensteunen, breedte, diepte), afvalfactorBuiten, materiaalRef);
+      result.afplakken += (breedte * aantalLeggers) / MM_TO_M;
     }
 
     return result;
@@ -298,10 +321,7 @@ export const berekenKast = (kast, options = {}) => {
     pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
 
     if (aantalLeggers > 0) {
-      const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) {
-        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
-      }
+      const shelfRects = buildShelfRects(aantalLeggers, aantalTussensteunen, breedte, diepte);
       pushOnderdeel(result, 'Leggers', 'leggers', shelfRects, afvalfactorBinnen);
     }
 
@@ -353,10 +373,7 @@ export const berekenKast = (kast, options = {}) => {
     pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
 
     if (aantalLeggers > 0) {
-      const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) {
-        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
-      }
+      const shelfRects = buildShelfRects(aantalLeggers, aantalTussensteunen, breedte, diepte);
       pushOnderdeel(result, 'Leggers', 'leggers', shelfRects, afvalfactorBinnen);
     }
 
@@ -433,14 +450,11 @@ export const berekenKast = (kast, options = {}) => {
       { breedte, hoogte: diepte, naam: 'Onder', iv: false },
     ], afvalfactorBuiten);
 
-    // Back — vertical
-    pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
+    // Back — open cabinet: the back is visible, so it uses front (buitenzijde) material
+    pushOnderdeel(result, 'Rug (open)', 'buitenzijde', [{ breedte, hoogte, iv: true }], afvalfactorBuiten);
 
     if (aantalLeggers > 0) {
-      const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) {
-        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
-      }
+      const shelfRects = buildShelfRects(aantalLeggers, aantalTussensteunen, breedte, diepte);
       // Open cabinet: shelves in buitenzijde material
       pushOnderdeel(result, 'Leggers (open)', 'buitenzijde', shelfRects, afvalfactorBuiten);
     }
@@ -470,10 +484,7 @@ export const berekenKast = (kast, options = {}) => {
     pushOnderdeel(result, 'Rug', 'rug', [{ breedte, hoogte, iv: true }], afvalfactorBinnen);
 
     if (aantalLeggers > 0) {
-      const shelfRects = [];
-      for (let i = 0; i < aantalLeggers; i++) {
-        shelfRects.push({ breedte, hoogte: diepte, naam: `Legger ${i + 1}`, iv: false });
-      }
+      const shelfRects = buildShelfRects(aantalLeggers, aantalTussensteunen, breedte, diepte);
       pushOnderdeel(result, 'Leggers', 'leggers', shelfRects, afvalfactorBinnen);
     }
 
@@ -656,20 +667,78 @@ const emptyTotalen = () => ({
 /**
  * Convert aggregated totals to the flat format expected by TotalenOverzicht / berekenArbeid.
  */
-const platesByNesting = (rects, mat) => {
-  if (!rects || rects.length === 0 || !mat?.breedte || !mat?.hoogte) return 0;
-  const result = packParts({
-    plateLength: mat.breedte,
-    plateWidth: mat.hoogte,
-    parts: rects,
-    grain: mat.grain || false,
-    kerf: getKerfForMaterial(mat),
+const FALLBACK_MAT = { breedte: 1000, hoogte: 1000, prijs: 0, naam: '' };
+const getMat = (arr, idx) => arr?.[idx] || arr?.[0] || FALLBACK_MAT;
+
+// Resolve the plate material of a Vrije Kast reference (DB id, or legacy tablet index).
+export const findVrijeKastMat = (ref, plaatMaterialen = [], materiaalTablet = []) => {
+  if (ref !== null && ref !== undefined && ref !== 'null' && ref !== 'undefined') {
+    const byId = plaatMaterialen.find(m => String(m.id) === String(ref));
+    if (byId) return byId;
+    if (/^d+$/.test(String(ref)) && materiaalTablet[Number(ref)]) return materiaalTablet[Number(ref)];
+  }
+  return plaatMaterialen[0] || materiaalTablet[0] || FALLBACK_MAT;
+};
+
+const packGroup = (key, title, rects, mat) => {
+  const result = (rects.length > 0 && mat?.breedte && mat?.hoogte)
+    ? packParts({
+        plateLength: mat.breedte,
+        plateWidth: mat.hoogte,
+        parts: rects,
+        grain: mat.grain || false,
+        kerf: getKerfForMaterial(mat),
+      })
+    : { plates: [], unfit: [], split: [] };
+  return { key, title, mat, rects, result, platen: smartPlateCount(result) };
+};
+
+/**
+ * Single source of truth for nesting: groups all parts per plate material and packs them.
+ * Used both for the plate counts in the totaallijst and for the NestingResultaten view,
+ * so both always show the same numbers.
+ */
+export const bouwNestingGroepen = (aggTotalen, materials, selections, alternatieveMateriaal = {}) => {
+  const {
+    materiaalBinnenkast = [],
+    materiaalBuitenzijde = [],
+    materiaalTablet = [],
+    plaatMaterialen = []
+  } = materials;
+  const {
+    geselecteerdMateriaalBinnen = 0,
+    geselecteerdMateriaalBuiten = 0,
+    geselecteerdMateriaalTablet = 0
+  } = selections;
+  const rectsByType = aggTotalen.rectsPerType || {};
+
+  const binnenRects = [...(rectsByType.binnenkast || [])];
+  if (!alternatieveMateriaal?.ruggenGebruiken) binnenRects.push(...(rectsByType.rug || []));
+  if (!alternatieveMateriaal?.leggersGebruiken) binnenRects.push(...(rectsByType.leggers || []));
+
+  const groepen = {
+    binnenkast: packGroup('binnenkast', 'Binnenkast', binnenRects, getMat(materiaalBinnenkast, geselecteerdMateriaalBinnen)),
+    rug: alternatieveMateriaal?.ruggenGebruiken
+      ? packGroup('rug', 'Rug (apart materiaal)', rectsByType.rug || [], getMat(materiaalBinnenkast, alternatieveMateriaal.ruggenMateriaal))
+      : null,
+    leggers: alternatieveMateriaal?.leggersGebruiken
+      ? packGroup('leggers', 'Leggers (apart materiaal)', rectsByType.leggers || [], getMat(materiaalBinnenkast, alternatieveMateriaal.leggersMateriaal))
+      : null,
+    buitenzijde: packGroup('buitenzijde', 'Buitenzijde', rectsByType.buitenzijde || [], getMat(materiaalBuitenzijde, geselecteerdMateriaalBuiten)),
+    tablet: packGroup('tablet', 'Tablet', rectsByType.tablet || [], getMat(materiaalTablet, geselecteerdMateriaalTablet)),
+    vrijeKast: {},
+  };
+
+  Object.entries(aggTotalen.rectsVrijeKastPerMateriaal || {}).forEach(([matRef, rects]) => {
+    const mat = findVrijeKastMat(matRef, plaatMaterialen, materiaalTablet);
+    groepen.vrijeKast[matRef] = packGroup(`vrijeKast_${matRef}`, 'Vrije Kast', rects, mat);
   });
-  return smartPlateCount(result);
+
+  return groepen;
 };
 
 export const convertToFlatTotalen = (aggTotalen, materials, selections, alternatieveMateriaal, options = {}) => {
-  const { useNesting = false, nestingBuffer = 0.05 } = options;
+  const { useNesting = false } = options;
   const {
     materiaalBinnenkast = [],
     materiaalBuitenzijde = [],
@@ -710,56 +779,23 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
     profielen: aggTotalen.profielen || []
   };
 
-  const getMat = (arr, idx) => arr?.[idx] || arr?.[0] || { breedte: 1000, hoogte: 1000, prijs: 0 };
   const m2PerPlaat = (mat) => (mat.breedte / MM_TO_M) * (mat.hoogte / MM_TO_M);
-
-  const findVrijeKastMat = (ref) => {
-    if (ref === null || ref === undefined) return plaatMaterialen[0] || materiaalTablet[0] || { breedte: 1000, hoogte: 1000, prijs: 0 };
-    const byId = plaatMaterialen.find(m => m.id === ref);
-    if (byId) return byId;
-    const idx = parseInt(ref);
-    if (!isNaN(idx) && materiaalTablet[idx]) return materiaalTablet[idx];
-    return plaatMaterialen[0] || { breedte: 1000, hoogte: 1000, prijs: 0 };
-  };
-
   const binnenMat = getMat(materiaalBinnenkast, geselecteerdMateriaalBinnen);
-  const rectsByType = aggTotalen.rectsPerType || {};
 
   if (useNesting) {
-    const binnenRects = [...(rectsByType.binnenkast || [])];
-    if (!alternatieveMateriaal?.ruggenGebruiken) binnenRects.push(...(rectsByType.rug || []));
-    if (!alternatieveMateriaal?.leggersGebruiken) binnenRects.push(...(rectsByType.leggers || []));
-    flat.platenBinnenkast = platesByNesting(binnenRects, binnenMat);
-
-    if (alternatieveMateriaal?.ruggenGebruiken) {
-      const rugMat = getMat(materiaalBinnenkast, alternatieveMateriaal.ruggenMateriaal);
-      flat.platenRug = platesByNesting(rectsByType.rug || [], rugMat);
-    } else {
-      flat.platenRug = 0;
-    }
-    if (alternatieveMateriaal?.leggersGebruiken) {
-      const leggerMat = getMat(materiaalBinnenkast, alternatieveMateriaal.leggersMateriaal);
-      flat.platenLeggers = platesByNesting(rectsByType.leggers || [], leggerMat);
-    } else {
-      flat.platenLeggers = 0;
-    }
-
-    const buitenMat = getMat(materiaalBuitenzijde, geselecteerdMateriaalBuiten);
-    flat.platenBuitenzijde = platesByNesting(rectsByType.buitenzijde || [], buitenMat);
-
-    const tabletMat = getMat(materiaalTablet, geselecteerdMateriaalTablet);
-    flat.platenTablet = platesByNesting(rectsByType.tablet || [], tabletMat);
-
+    const groepen = bouwNestingGroepen(aggTotalen, materials, selections, alternatieveMateriaal);
+    flat.platenBinnenkast = groepen.binnenkast.platen;
+    flat.platenRug = groepen.rug ? groepen.rug.platen : 0;
+    flat.platenLeggers = groepen.leggers ? groepen.leggers.platen : 0;
+    flat.platenBuitenzijde = groepen.buitenzijde.platen;
+    flat.platenTablet = groepen.tablet.platen;
     flat.platenVrijeKast = {};
-    Object.entries(aggTotalen.rectsVrijeKastPerMateriaal || {}).forEach(([matRef, rects]) => {
-      const mat = findVrijeKastMat(parseInt(matRef) || matRef);
-      if (mat) {
-        flat.platenVrijeKast[matRef] = {
-          platen: platesByNesting(rects, mat),
-          m2: aggTotalen.m2VrijeKastPerMateriaal[matRef] || 0,
-          mat
-        };
-      }
+    Object.entries(groepen.vrijeKast).forEach(([matRef, g]) => {
+      flat.platenVrijeKast[matRef] = {
+        platen: g.platen,
+        m2: aggTotalen.m2VrijeKastPerMateriaal[matRef] || 0,
+        mat: g.mat
+      };
     });
   } else {
     let totaalM2Binnenkast = m2Binnenkast;
@@ -793,7 +829,7 @@ export const convertToFlatTotalen = (aggTotalen, materials, selections, alternat
 
     flat.platenVrijeKast = {};
     Object.entries(aggTotalen.m2VrijeKastPerMateriaal || {}).forEach(([matRef, m2]) => {
-      const mat = findVrijeKastMat(parseInt(matRef) || matRef);
+      const mat = findVrijeKastMat(matRef, plaatMaterialen, materiaalTablet);
       if (mat) {
         const m2PP = m2PerPlaat(mat);
         if (m2PP > 0) {

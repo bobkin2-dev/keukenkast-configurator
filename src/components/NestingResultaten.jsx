@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { berekenAlleKasten, getKerfForMaterial } from '../utils/kastCalculator';
-import { packParts, computeUtilisation, smartPlateCount } from '../utils/binPack';
+import { berekenAlleKasten, bouwNestingGroepen, getKerfForMaterial } from '../utils/kastCalculator';
+import { computeUtilisation } from '../utils/binPack';
 
 const PART_COLORS = [
   { fill: '#dbeafe', stroke: '#3b82f6' },
@@ -13,7 +13,8 @@ const PART_COLORS = [
   { fill: '#fae8ff', stroke: '#a855f7' },
 ];
 
-const safeMat = (arr, idx) => arr?.[idx] || arr?.[0] || { breedte: 1000, hoogte: 1000, prijs: 0, naam: '' };
+// Pieces of a part that was too big for the plate and had to be divided
+const SPLIT_COLOR = { fill: '#fca5a5', stroke: '#b91c1c' };
 
 const PlatePreview = ({ plate, scale, partColorOf }) => {
   const w = plate.length * scale;
@@ -22,7 +23,7 @@ const PlatePreview = ({ plate, scale, partColorOf }) => {
     <div className="inline-block mr-3 mb-2" style={{ verticalAlign: 'top' }}>
       <svg width={w} height={h} style={{ display: 'block', border: '1.5px solid #6b7280', background: '#f9fafb' }}>
         {plate.placements.map((p, i) => {
-          const c = partColorOf(p.name);
+          const c = p.split ? SPLIT_COLOR : partColorOf(p.name);
           const x = p.x * scale;
           const y = p.y * scale;
           const pw = p.w * scale;
@@ -30,13 +31,13 @@ const PlatePreview = ({ plate, scale, partColorOf }) => {
           const showLabel = pw > 36 && ph > 18;
           return (
             <g key={i}>
-              <rect x={x} y={y} width={pw} height={ph} fill={c.fill} stroke={c.stroke} strokeWidth="1" />
+              <rect x={x} y={y} width={pw} height={ph} fill={c.fill} stroke={c.stroke} strokeWidth={p.split ? 2 : 1} />
               {showLabel && (
                 <text x={x + pw / 2} y={y + ph / 2} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#374151" style={{ pointerEvents: 'none' }}>
                   {p.name || `${Math.round(p.w)}×${Math.round(p.h)}`}
                 </text>
               )}
-              <title>{`${p.name || 'onbenoemd'} — ${Math.round(p.w)}×${Math.round(p.h)}mm${p.rotated ? ' (gedraaid)' : ''}`}</title>
+              <title>{`${p.name || 'onbenoemd'} — ${Math.round(p.w)}×${Math.round(p.h)}mm${p.rotated ? ' (gedraaid)' : ''}${p.split ? ' — GESPLITST: stuk paste niet op de plaat' : ''}`}</title>
             </g>
           );
         })}
@@ -48,23 +49,9 @@ const PlatePreview = ({ plate, scale, partColorOf }) => {
   );
 };
 
-const MaterialBlock = ({ title, mat, rects }) => {
-  const result = useMemo(() => {
-    if (!mat?.breedte || !mat?.hoogte || !rects || rects.length === 0) {
-      return { plates: [], unfit: [] };
-    }
-    return packParts({
-      plateLength: mat.breedte,
-      plateWidth: mat.hoogte,
-      parts: rects,
-      grain: mat.grain || false,
-      kerf: getKerfForMaterial(mat),
-    });
-  }, [mat, rects]);
+const MaterialBlock = ({ groep }) => {
+  const { title, mat, rects, result, platen: platesNeeded } = groep;
 
-  if (!rects || rects.length === 0) return null;
-
-  const platesNeeded = smartPlateCount(result);
   const utilisation = computeUtilisation(result.plates);
   const kerf = getKerfForMaterial(mat);
 
@@ -81,6 +68,8 @@ const MaterialBlock = ({ title, mat, rects }) => {
     return m;
   }, [rects]);
   const partColorOf = (name) => nameToColor[name] || PART_COLORS[0];
+
+  if (!rects || rects.length === 0) return null;
 
   // Visual scale: max ~280px wide per plate
   const scale = mat.breedte > 0 ? Math.min(280 / mat.breedte, 200 / mat.hoogte, 0.15) : 0.1;
@@ -102,6 +91,18 @@ const MaterialBlock = ({ title, mat, rects }) => {
           <span className="text-xs text-gray-500">{Math.round(utilisation * 100)}% benut</span>
         )}
       </div>
+
+      {result.split?.length > 0 && (
+        <div className="bg-red-50 border border-red-300 rounded p-2 mb-2 text-xs text-red-700">
+          ✂️ <strong>{result.split.length}</strong> stuk{result.split.length !== 1 ? 'ken' : ''} te groot voor de plaat
+          ({mat.breedte}×{mat.hoogte}mm) en opgedeeld — <span className="font-semibold">rood</span> weergegeven:
+          <ul className="mt-1 ml-4 list-disc">
+            {result.split.map((sp, i) => (
+              <li key={i}>{sp.name || 'onbenoemd'} — {Math.round(sp.length)}×{Math.round(sp.width)}mm → {sp.pieces} delen</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {result.unfit.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded p-2 mb-2 text-xs text-red-700">
@@ -136,70 +137,37 @@ const NestingResultaten = ({
   rendementBuitenzijde = 70,
   nestingBuffer = 0.05,
 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
-  // Aggregate rects per material (rerun the same calc the totals use, but only to grab rects)
-  const aggTotalen = useMemo(() => {
+  // Same calculation the totaallijst uses (bouwNestingGroepen), so plate counts always match
+  const groepen = useMemo(() => {
     const afvalfactorBinnen = (rendementBinnenzijde > 0) ? 100 / rendementBinnenzijde : 1.33;
     const afvalfactorBuiten = (rendementBuitenzijde > 0) ? 100 / rendementBuitenzijde : 1.43;
     const { totalen } = berekenAlleKasten(kastenLijst, {
       afvalfactorBinnen, afvalfactorBuiten, productionParams
     });
-    return totalen;
-  }, [kastenLijst, rendementBinnenzijde, rendementBuitenzijde, productionParams]);
+    return bouwNestingGroepen(
+      totalen,
+      { materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, plaatMaterialen },
+      { geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet },
+      alternatieveMateriaal
+    );
+  }, [kastenLijst, rendementBinnenzijde, rendementBuitenzijde, productionParams,
+      materiaalBinnenkast, materiaalBuitenzijde, materiaalTablet, plaatMaterialen,
+      geselecteerdMateriaalBinnen, geselecteerdMateriaalBuiten, geselecteerdMateriaalTablet, alternatieveMateriaal]);
 
-  const rectsByType = aggTotalen.rectsPerType || {};
-  const rectsVrijeKast = aggTotalen.rectsVrijeKastPerMateriaal || {};
+  const groepLijst = [
+    groepen.binnenkast,
+    groepen.rug,
+    groepen.leggers,
+    groepen.buitenzijde,
+    groepen.tablet,
+    ...Object.values(groepen.vrijeKast),
+  ].filter(g => g && g.rects.length > 0);
 
-  const findVrijeKastMat = (ref) => {
-    if (ref === null || ref === undefined) return null;
-    const byId = plaatMaterialen.find(m => String(m.id) === String(ref));
-    if (byId) return byId;
-    const idx = parseInt(ref);
-    if (!isNaN(idx) && materiaalTablet[idx]) return materiaalTablet[idx];
-    return plaatMaterialen[0] || null;
-  };
+  const totalPlates = groepLijst.reduce((sum, g) => sum + g.platen, 0);
+  const totalSplit = groepLijst.reduce((sum, g) => sum + (g.result.split?.length || 0), 0);
 
-  // Combine binnenkast + (rug if not alt) + (leggers if not alt)
-  const binnenRects = useMemo(() => {
-    const out = [...(rectsByType.binnenkast || [])];
-    if (!alternatieveMateriaal?.ruggenGebruiken) out.push(...(rectsByType.rug || []));
-    if (!alternatieveMateriaal?.leggersGebruiken) out.push(...(rectsByType.leggers || []));
-    return out;
-  }, [rectsByType, alternatieveMateriaal]);
-
-  const binnenMat = safeMat(materiaalBinnenkast, geselecteerdMateriaalBinnen);
-  const buitenMat = safeMat(materiaalBuitenzijde, geselecteerdMateriaalBuiten);
-  const tabletMat = safeMat(materiaalTablet, geselecteerdMateriaalTablet);
-  const rugMat = alternatieveMateriaal?.ruggenGebruiken
-    ? safeMat(materiaalBinnenkast, alternatieveMateriaal.ruggenMateriaal)
-    : null;
-  const leggersMat = alternatieveMateriaal?.leggersGebruiken
-    ? safeMat(materiaalBinnenkast, alternatieveMateriaal.leggersMateriaal)
-    : null;
-
-  // Total plates summary across all sections (for header badge)
-  // NOTE: must be declared before any early return to avoid a hook-order violation
-  const totalPlates = useMemo(() => {
-    const tally = (rects, mat) => {
-      if (!rects?.length || !mat?.breedte) return 0;
-      const r = packParts({ plateLength: mat.breedte, plateWidth: mat.hoogte, parts: rects, grain: mat.grain || false, kerf: getKerfForMaterial(mat) });
-      return smartPlateCount(r);
-    };
-    let n = 0;
-    n += tally(binnenRects, binnenMat);
-    if (rugMat) n += tally(rectsByType.rug || [], rugMat);
-    if (leggersMat) n += tally(rectsByType.leggers || [], leggersMat);
-    n += tally(rectsByType.buitenzijde || [], buitenMat);
-    n += tally(rectsByType.tablet || [], tabletMat);
-    Object.entries(rectsVrijeKast).forEach(([ref, rects]) => {
-      const mat = findVrijeKastMat(ref);
-      if (mat) n += tally(rects, mat);
-    });
-    return n;
-  }, [binnenRects, binnenMat, rugMat, leggersMat, rectsByType, buitenMat, tabletMat, rectsVrijeKast]);
-
-  // Early return AFTER all hooks (moving this above any hook causes a hook-order violation)
   if (!kastenLijst || kastenLijst.length === 0) return null;
 
   return (
@@ -213,6 +181,11 @@ const NestingResultaten = ({
           <span className="ml-2 text-sm font-normal text-gray-600">
             ({totalPlates} plaat{totalPlates !== 1 ? 'en' : ''} totaal · slim afgerond)
           </span>
+          {totalSplit > 0 && (
+            <span className="ml-2 text-sm font-semibold text-red-600">
+              ✂️ {totalSplit} gesplitst
+            </span>
+          )}
         </span>
         <span className="text-gray-500">{open ? '▲' : '▼'}</span>
       </h2>
@@ -222,50 +195,13 @@ const NestingResultaten = ({
           <p className="text-xs text-gray-500 italic mb-2">
             Visuele weergave van hoe onderdelen op platen geplaatst worden.
             Kerf is automatisch 14mm voor M-prefix materialen, 4mm voor andere.
-            Werkt onafhankelijk van de Nesting-toggle in de Plaatmateriaal-tabel.
+            Stukken die niet op een plaat passen worden opgedeeld en in het rood getoond.
+            Met de Nesting-toggle in de Plaatmateriaal-tabel gebruikt de totaallijst exact deze aantallen.
           </p>
 
-          <MaterialBlock
-            title="Binnenkast"
-            mat={binnenMat}
-            rects={binnenRects}
-          />
-          {rugMat && (
-            <MaterialBlock
-              title="Rug (apart materiaal)"
-              mat={rugMat}
-              rects={rectsByType.rug || []}
-            />
-          )}
-          {leggersMat && (
-            <MaterialBlock
-              title="Leggers (apart materiaal)"
-              mat={leggersMat}
-              rects={rectsByType.leggers || []}
-            />
-          )}
-          <MaterialBlock
-            title="Buitenzijde"
-            mat={buitenMat}
-            rects={rectsByType.buitenzijde || []}
-          />
-          <MaterialBlock
-            title="Tablet"
-            mat={tabletMat}
-            rects={rectsByType.tablet || []}
-          />
-          {Object.entries(rectsVrijeKast).map(([ref, rects]) => {
-            const mat = findVrijeKastMat(ref);
-            if (!mat) return null;
-            return (
-              <MaterialBlock
-                key={`vk-${ref}`}
-                title="Vrije Kast"
-                mat={mat}
-                rects={rects}
-              />
-            );
-          })}
+          {groepLijst.map(g => (
+            <MaterialBlock key={g.key} groep={g} />
+          ))}
         </div>
       )}
     </div>
