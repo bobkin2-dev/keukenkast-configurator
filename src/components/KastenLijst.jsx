@@ -84,7 +84,7 @@ const NumInput = ({ value, onChange, min = 0 }) => (
   />
 );
 
-const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
+export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
   const [d, setD] = useState({ ...kast });
 
   const set = (field, value) => setD(prev => ({ ...prev, [field]: value }));

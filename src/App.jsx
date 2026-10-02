@@ -715,7 +715,9 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
               kastenLijst={kabinet.kastenLijst}
               voegZijpaneelToe={kabinet.voegZijpaneelToe}
               kopieerKast={kabinet.kopieerKast}
+              updateKast={kabinet.updateKast}
               verwijderKast={kabinet.verwijderKast}
+              plaatMaterialen={materials.plaatMaterialen}
             />
           </div>
         </div>
