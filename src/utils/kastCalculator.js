@@ -163,7 +163,7 @@ export const berekenMontageUren = (kast, params) => {
  *   iv=true  → part is VERTICAL, grain runs along hoogte (doors, sides, backs, side fillers)
  *   iv=false → part is HORIZONTAL, grain runs along breedte (shelves, top, bottom, tablets)
  */
-export const berekenKast = (kast, options = {}) => {
+const berekenKastBasis = (kast, options = {}) => {
   const {
     afvalfactorBinnen = 1.33,
     afvalfactorBuiten = 1.43,
@@ -528,6 +528,126 @@ export const berekenKast = (kast, options = {}) => {
   addFillerOnderdelen(result, kast, afvalfactorBuiten);
 
   return result;
+};
+
+// ──────────────────────────────────────────────
+// STUKKENLIJST — per-cabinet editable part list
+// ──────────────────────────────────────────────
+// A kast may carry:
+//   stukAanpassingen: { [stukKey]: { breedte?, hoogte?, verwijderd? } }  — edits to generated parts
+//   extraStukken:     [{ id, naam, breedte, hoogte, materiaalType, iv }]  — manually added parts
+// Generated parts get a stable key: "<onderdeel>/<stuk>#<n>" (n = occurrence of that name).
+
+export const MATERIAAL_TYPE_LABELS = {
+  binnenkast: 'Binnenkast',
+  rug: 'Rug',
+  leggers: 'Leggers',
+  buitenzijde: 'Buitenzijde',
+  tablet: 'Tablet',
+  vrijeKast: 'Vrije kast',
+};
+
+const stukKeysVoorOnderdeel = (onderdeel) => {
+  const seen = {};
+  return onderdeel.rects.map(r => {
+    const n = seen[r.naam] = (seen[r.naam] || 0) + 1;
+    return `${onderdeel.naam}/${r.naam}#${n}`;
+  });
+};
+
+const pasStukkenToe = (result, kast, options) => {
+  const aanpassingen = kast.stukAanpassingen || {};
+  const extra = kast.extraStukken || [];
+  if (Object.keys(aanpassingen).length === 0 && extra.length === 0) return result;
+
+  const { afvalfactorBinnen = 1.33, afvalfactorBuiten = 1.43 } = options;
+  const area = (rects) => rects.reduce((s, r) => s + (r.breedte || 0) * (r.hoogte || 0), 0);
+
+  const onderdelen = [];
+  for (const onderdeel of result.onderdelen) {
+    const keys = stukKeysVoorOnderdeel(onderdeel);
+    const oudeArea = area(onderdeel.rects);
+    const factor = oudeArea > 0 ? (onderdeel.m2 * MM2_TO_M2) / oudeArea : 1;
+    const rects = [];
+    onderdeel.rects.forEach((r, i) => {
+      const a = aanpassingen[keys[i]];
+      if (!a) { rects.push(r); return; }
+      if (a.verwijderd) return;
+      rects.push({
+        ...r,
+        breedte: a.breedte > 0 ? a.breedte : r.breedte,
+        hoogte: a.hoogte > 0 ? a.hoogte : r.hoogte,
+      });
+    });
+    if (rects.length === 0) continue;
+    onderdelen.push({ ...onderdeel, rects, m2: area(rects) * factor / MM2_TO_M2 });
+  }
+
+  const materiaalRef = isVrijeKast(kast.type) ? getVrijeKastMateriaalId(kast) : undefined;
+  extra.forEach(st => {
+    if (!(st.breedte > 0) || !(st.hoogte > 0)) return;
+    const type = st.materiaalType || 'binnenkast';
+    const factor = ['binnenkast', 'rug', 'leggers'].includes(type) ? afvalfactorBinnen : afvalfactorBuiten;
+    const onderdeel = {
+      naam: 'Extra stukken',
+      materiaalType: type,
+      m2: (st.breedte * st.hoogte) / MM2_TO_M2 * factor,
+      rects: [{ breedte: st.breedte, hoogte: st.hoogte, naam: st.naam || 'Extra stuk', iv: !!st.iv }],
+    };
+    if (type === 'vrijeKast') onderdeel.vrijeKastMateriaalRef = materiaalRef;
+    onderdelen.push(onderdeel);
+  });
+
+  return { ...result, onderdelen };
+};
+
+export const berekenKast = (kast, options = {}) =>
+  pasStukkenToe(berekenKastBasis(kast, options), kast, options);
+
+/**
+ * Flat, display-ready part list for one cabinet: generated parts (with edits applied,
+ * removed ones flagged) followed by extra parts.
+ */
+export const berekenStukkenlijst = (kast, options = {}) => {
+  const basis = berekenKastBasis(kast, options);
+  const aanpassingen = kast.stukAanpassingen || {};
+  const stukken = [];
+  for (const onderdeel of basis.onderdelen) {
+    const keys = stukKeysVoorOnderdeel(onderdeel);
+    onderdeel.rects.forEach((r, i) => {
+      const a = aanpassingen[keys[i]] || {};
+      stukken.push({
+        key: keys[i],
+        naam: r.naam,
+        onderdeel: onderdeel.naam,
+        materiaalType: onderdeel.materiaalType,
+        basisBreedte: r.breedte,
+        basisHoogte: r.hoogte,
+        breedte: a.breedte > 0 ? a.breedte : r.breedte,
+        hoogte: a.hoogte > 0 ? a.hoogte : r.hoogte,
+        iv: r.iv,
+        aangepast: (a.breedte > 0 && a.breedte !== r.breedte) || (a.hoogte > 0 && a.hoogte !== r.hoogte),
+        verwijderd: !!a.verwijderd,
+        extra: false,
+      });
+    });
+  }
+  (kast.extraStukken || []).forEach(st => {
+    stukken.push({
+      key: `extra/${st.id}`,
+      id: st.id,
+      naam: st.naam || 'Extra stuk',
+      onderdeel: 'Extra',
+      materiaalType: st.materiaalType || 'binnenkast',
+      breedte: st.breedte || 0,
+      hoogte: st.hoogte || 0,
+      iv: !!st.iv,
+      aangepast: false,
+      verwijderd: false,
+      extra: true,
+    });
+  });
+  return stukken;
 };
 
 /**

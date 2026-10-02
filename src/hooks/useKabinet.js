@@ -106,9 +106,9 @@ export const useKabinet = ({ initialData, addNotification }) => {
   }, [addNotification]);
 
   // Update cabinet in-place
-  const updateKast = useCallback((id, updates) => {
+  const updateKast = useCallback((id, updates, { silent = false } = {}) => {
     setKastenLijst(prev => prev.map(k => k.id === id ? { ...k, ...updates } : k));
-    addNotification('Kast bijgewerkt', 'bg-blue-500');
+    if (!silent) addNotification('Kast bijgewerkt', 'bg-blue-500');
   }, [addNotification]);
 
   // Remove cabinet
