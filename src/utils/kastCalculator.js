@@ -523,6 +523,20 @@ const berekenKastBasis = (kast, options = {}) => {
 
   if (aantalLades > 0) {
     result.ladenStandaard = aantalLades;
+
+    // Drawer fronts — buitenzijde material, vertical grain like the doors.
+    // Without doors the drawers fill the full front height (e.g. Ladekast).
+    if (aantalDeuren === 0) {
+      const baseFrontH = Math.floor(hoogte / aantalLades);
+      const remainder = hoogte - baseFrontH * aantalLades;
+      const frontRects = [];
+      for (let i = 0; i < aantalLades; i++) {
+        const frontH = baseFrontH + (i === aantalLades - 1 ? remainder : 0);
+        frontRects.push({ breedte, hoogte: frontH, naam: `Ladefront ${i + 1}`, iv: true });
+      }
+      pushOnderdeel(result, 'Ladefronten', 'buitenzijde', frontRects, afvalfactorBuiten);
+      result.afplakken += frontRects.reduce((s, r) => s + 2 * (r.breedte + r.hoogte), 0) / MM_TO_M;
+    }
   }
 
   addFillerOnderdelen(result, kast, afvalfactorBuiten);
