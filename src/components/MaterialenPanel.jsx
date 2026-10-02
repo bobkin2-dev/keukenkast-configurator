@@ -43,6 +43,9 @@ const MaterialenPanel = ({
   const popularMaterials = materialen.filter(m => m[category]);
   const otherMaterials = materialen.filter(m => !m[category]);
   const hasOthers = otherMaterials.length > 0;
+  const gesorteerd = materialen
+    .map((mat, index) => ({ mat, index }))
+    .sort((a, b) => (a.mat.naam || '').localeCompare(b.mat.naam || '', 'nl', { numeric: true, sensitivity: 'base' }));
 
   const isCustomActive = !!customMateriaal?.naam;
 
@@ -88,7 +91,8 @@ const MaterialenPanel = ({
         </button>
       </div>
 
-      {/* Standard dropdown — dimmed when custom material is active */}
+      {/* Standard dropdown — dimmed when custom material is active.
+          Options sorted alphabetically within each group; value stays the original index. */}
       <div className={isCustomActive ? 'opacity-40 pointer-events-none' : ''}>
         <select
           value={geselecteerd}
@@ -97,23 +101,19 @@ const MaterialenPanel = ({
         >
           {popularMaterials.length > 0 && (
             <optgroup label="Populair">
-              {materialen.map((mat, index) => (
-                mat[category] && (
-                  <option key={index} value={index}>
-                    {mat.naam} - {mat.afmeting} mm - €{mat.prijs.toFixed(2)}/m²
-                  </option>
-                )
+              {gesorteerd.filter(({ mat }) => mat[category]).map(({ mat, index }) => (
+                <option key={index} value={index}>
+                  {mat.naam} - {mat.afmeting} mm - €{mat.prijs.toFixed(2)}/m²
+                </option>
               ))}
             </optgroup>
           )}
           {hasOthers && (
             <optgroup label="Overige">
-              {materialen.map((mat, index) => (
-                !mat[category] && (
-                  <option key={index} value={index}>
-                    {mat.naam} - {mat.afmeting} mm - €{mat.prijs.toFixed(2)}/m²
-                  </option>
-                )
+              {gesorteerd.filter(({ mat }) => !mat[category]).map(({ mat, index }) => (
+                <option key={index} value={index}>
+                  {mat.naam} - {mat.afmeting} mm - €{mat.prijs.toFixed(2)}/m²
+                </option>
               ))}
             </optgroup>
           )}

@@ -6,7 +6,9 @@
 // Inputs:
 //   plateLength   long edge of the plate (typically the grain direction)
 //   plateWidth    short edge
-//   parts         [{ id, amount, length, width, name }]
+//   parts         [{ id, amount, length, width, name, blok? }]
+//                 parts sharing a `blok` (e.g. drawer fronts of one cabinet) are, on grained
+//                 plates, nested as ONE piece stacked along the grain so the grain runs through
 //   grain         true → parts can NOT be rotated 90° (length stays along plate length)
 //   kerf          mm of saw kerf between parts (default 4)
 //
@@ -25,6 +27,8 @@ export const packParts = ({ plateLength, plateWidth, parts, grain = false, kerf 
   if (!plateLength || !plateWidth || !parts || parts.length === 0) {
     return { plates: [], unfit: [], split: [] };
   }
+
+  if (grain) parts = combineerBlokken(parts, kerf);
 
   // Expand by amount, splitting oversized parts into pieces that fit
   const expanded = [];
@@ -106,6 +110,31 @@ const splitToFit = (plateL, plateW, part, grain) => {
   const pieceW = Math.floor(partW / nW);
   const piece = swapped ? { length: pieceW, width: pieceL } : { length: pieceL, width: pieceW };
   return Array.from({ length: nL * nW }, () => ({ ...piece }));
+};
+
+// Grained plates: merge parts with the same `blok` into one part, stacked along the
+// grain (length) with a saw kerf between them. Width = widest member.
+const combineerBlokken = (parts, kerf) => {
+  const blokken = {};
+  const out = [];
+  for (const p of parts) {
+    if (!p.blok) { out.push(p); continue; }
+    if (!blokken[p.blok]) {
+      blokken[p.blok] = { ...p, length: 0, width: 0, amount: 1, leden: 0 };
+      out.push(blokken[p.blok]);
+    }
+    const b = blokken[p.blok];
+    const amount = Math.max(1, p.amount || 1);
+    b.length += (p.length || 0) * amount + kerf * amount;
+    b.width = Math.max(b.width, p.width || 0);
+    b.leden += amount;
+  }
+  for (const b of Object.values(blokken)) {
+    b.length -= kerf; // no kerf after the last member
+    b.name = `Ladefronten ×${b.leden} (doorlopende nerf)`;
+    delete b.leden;
+  }
+  return out;
 };
 
 const canFitOnFreshPlate = (plateL, plateW, part, grain, kerf) => {

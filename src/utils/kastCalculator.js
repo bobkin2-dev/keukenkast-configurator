@@ -66,6 +66,7 @@ const pushOnderdeel = (result, naam, materiaalType, rects, afvalfactor, vrijeKas
       hoogte: r.hoogte,
       naam: r.naam || naam,
       iv: r.iv !== undefined ? r.iv : false,
+      ...(r.blok ? { blok: r.blok } : {}),
     })),
   };
   if (vrijeKastMateriaalRef !== undefined) onderdeel.vrijeKastMateriaalRef = vrijeKastMateriaalRef;
@@ -524,15 +525,18 @@ const berekenKastBasis = (kast, options = {}) => {
   if (aantalLades > 0) {
     result.ladenStandaard = aantalLades;
 
-    // Drawer fronts — buitenzijde material, vertical grain like the doors.
+    // Drawer fronts — buitenzijde material, always vertical grain.
     // Without doors the drawers fill the full front height (e.g. Ladekast).
+    // With doors no extra fronts: the door m² is assumed to cover the whole front.
+    // The fronts share a `blok` so grained plates nest them as one piece (doorlopende nerf).
     if (aantalDeuren === 0) {
+      const blok = `ladefronten-${kast.id ?? `${type}-${breedte}x${hoogte}-${Math.random()}`}`;
       const baseFrontH = Math.floor(hoogte / aantalLades);
       const remainder = hoogte - baseFrontH * aantalLades;
       const frontRects = [];
       for (let i = 0; i < aantalLades; i++) {
         const frontH = baseFrontH + (i === aantalLades - 1 ? remainder : 0);
-        frontRects.push({ breedte, hoogte: frontH, naam: `Ladefront ${i + 1}`, iv: true });
+        frontRects.push({ breedte, hoogte: frontH, naam: `Ladefront ${i + 1}`, iv: true, blok });
       }
       pushOnderdeel(result, 'Ladefronten', 'buitenzijde', frontRects, afvalfactorBuiten);
       result.afplakken += frontRects.reduce((s, r) => s + 2 * (r.breedte + r.hoogte), 0) / MM_TO_M;
@@ -711,6 +715,7 @@ const aggregeerTotalen = (perKast) => {
             length,
             width,
             name: r.naam || onderdeel.naam,
+            blok: r.blok,
             amount: 1,
           });
         });
@@ -734,6 +739,7 @@ const aggregeerTotalen = (perKast) => {
               length,
               width,
               name: r.naam || onderdeel.naam,
+              blok: r.blok,
               amount: 1,
             });
           });
