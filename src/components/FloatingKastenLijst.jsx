@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { KastEditModal } from './KastenLijst';
 
-const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, verwijderKast }) => {
+const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, updateKast, verwijderKast, plaatMaterialen = [] }) => {
+  const [gekozenKast, setGekozenKast] = useState(null);   // kast clicked → action popup
+  const [editingKast, setEditingKast] = useState(null);   // kast being edited
   if (kastenLijst.length === 0) {
     return (
       <div>
@@ -32,7 +35,9 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, verwi
               {kastenLijst.map((kast, index) => (
                 <tr
                   key={kast.id}
-                  className={`border-b border-gray-100 hover:bg-gray-50 ${kast.isZijpaneel ? 'bg-yellow-50' : ''}`}
+                  onClick={() => setGekozenKast({ kast, nummer: index + 1 })}
+                  className={`border-b border-gray-100 hover:bg-blue-50 cursor-pointer ${kast.isZijpaneel ? 'bg-yellow-50' : ''}`}
+                  title="Klik om aan te passen of te kopiëren"
                 >
                   <td className="py-1 px-2 text-gray-500">{index + 1}</td>
                   <td className="py-1 px-2 font-medium text-gray-700 truncate max-w-[120px]" title={kast.type}>
@@ -45,7 +50,7 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, verwi
                   </td>
                   <td className="py-1 px-1">
                     <button
-                      onClick={() => verwijderKast(kast.id)}
+                      onClick={(e) => { e.stopPropagation(); verwijderKast(kast.id); }}
                       className="text-red-400 hover:text-red-600 text-xs px-1"
                       title="Verwijderen"
                     >
@@ -58,6 +63,53 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, verwi
           </table>
         </div>
       </div>
+
+      {/* Action popup: aanpassen of kopiëren */}
+      {gekozenKast && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4"
+          onClick={() => setGekozenKast(null)}
+        >
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-gray-800">
+              #{gekozenKast.nummer} {gekozenKast.kast.type}
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+              {gekozenKast.kast.naam ? `${gekozenKast.kast.naam} — ` : ''}
+              {gekozenKast.kast.hoogte}×{gekozenKast.kast.breedte}×{gekozenKast.kast.diepte} mm
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { setEditingKast(gekozenKast.kast); setGekozenKast(null); }}
+                className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold text-sm"
+              >
+                ✎ Aanpassen
+              </button>
+              <button
+                onClick={() => { kopieerKast(gekozenKast.kast); setGekozenKast(null); }}
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold text-sm"
+              >
+                ⧉ Kopiëren
+              </button>
+              <button
+                onClick={() => setGekozenKast(null)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
+              >
+                Annuleer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingKast && (
+        <KastEditModal
+          kast={editingKast}
+          plaatMaterialen={plaatMaterialen}
+          onSave={(data) => { updateKast(editingKast.id, data); setEditingKast(null); }}
+          onCancel={() => setEditingKast(null)}
+        />
+      )}
     </div>
   );
 };
