@@ -414,7 +414,7 @@ const VrijeKastConfigurator = ({
               className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
             >
               <option value="">-- Kies materiaal --</option>
-              {plaatMaterialen.map((mat) => (
+              {[...plaatMaterialen].sort((a, b) => (a.naam || '').localeCompare(b.naam || '', 'nl', { numeric: true, sensitivity: 'base' })).map((mat) => (
                 <option key={mat.id} value={mat.id}>
                   {mat.naam} - {mat.breedte}x{mat.hoogte} mm - €{mat.prijs.toFixed(2)}/m²
                 </option>
