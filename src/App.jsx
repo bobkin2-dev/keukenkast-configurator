@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 
 // Data imports
 import { defaultAccessoires, defaultExtraBeslag, defaultArbeidParameters, defaultKeukentoestellen, defaultToestellenPrijzen } from './data/defaultMaterials';
@@ -90,12 +90,19 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [priceOverrideLocks, setPriceOverrideLocks] = useState({});
   // Quote margin percentage for the grand-total summary box
   const [marge, setMarge] = useState(25);
+  // Calculated value at the moment a quantity/hours override was made → detects stale overrides
+  const [overrideBasis, setOverrideBasis] = useState({});
+  // Live grand total for the sidebar { exclMarge, inclMarge, platen } (reported by TotalenOverzicht)
+  const [sidebarTotaal, setSidebarTotaal] = useState(null);
+  const handleTotaalChange = useCallback((t) => setSidebarTotaal(prev =>
+    (prev?.exclMarge === t?.exclMarge && prev?.inclMarge === t?.inclMarge && prev?.platen === t?.platen) ? prev : t
+  ), []);
   const exportPDFRef = useRef(null);
   // Latest grand total { exclMarge, inclMarge } written by TotalenOverzicht, saved with the project for the offerte list
   const totaalPrijsRef = useRef(null);
 
   // Custom hooks
-  const { notifications, addNotification } = useNotifications();
+  const { notifications, addNotification, dismissNotification } = useNotifications();
   const materials = useMaterials(initialData);
   const kabinet = useKabinet({ initialData, addNotification });
 
@@ -138,8 +145,10 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     priceOverrideLocks,
     setPriceOverrideLocks,
     marge,
+    overrideBasis,
     totaalPrijsRef,
     setMarge,
+    setOverrideBasis,
   });
 
   // Load admin pricing (toestellen + schuifbeslag + accessoires defaults)
@@ -597,6 +606,9 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           setMarge={setMarge}
           exportPDFRef={exportPDFRef}
           totaalPrijsRef={totaalPrijsRef}
+          overrideBasis={overrideBasis}
+          setOverrideBasis={setOverrideBasis}
+          onTotaalChange={handleTotaalChange}
         />
 
         {/* Nesting Resultaten */}
@@ -678,6 +690,28 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         {/* Floating sidebar: save button + cabinet list */}
         <div className="w-72 flex-shrink-0 hidden xl:block">
           <div className="sticky top-6 space-y-3">
+            {/* Live total — always visible while configuring */}
+            {sidebarTotaal && kabinet.kastenLijst.length > 0 && (
+              <div className="bg-white rounded-lg border-2 border-gray-300 shadow-md p-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-gray-500">Totaal excl. marge</span>
+                  <span className="text-lg font-bold text-gray-800">€{Math.round(sidebarTotaal.exclMarge).toLocaleString('nl-BE')}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-gray-500">Incl. marge ({marge}%)</span>
+                  <span className="text-sm font-semibold text-green-700">€{Math.round(sidebarTotaal.inclMarge).toLocaleString('nl-BE')}</span>
+                </div>
+                <div className="flex justify-between items-baseline mt-1 pt-1 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">Platen</span>
+                  <span className="text-sm font-semibold text-gray-700">{sidebarTotaal.platen}</span>
+                </div>
+                {projectId && (
+                  <p className={`text-xs mt-2 ${isSaving ? 'text-gray-500' : hasUnsavedChanges ? 'text-orange-600' : 'text-green-600'}`}>
+                    {isSaving ? '⏳ Opslaan…' : hasUnsavedChanges ? '● Niet opgeslagen (autosave na 5 s)' : `✓ Opgeslagen${lastSaved ? ` om ${lastSaved.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}` : ''}`}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               {projectId && (
                 <>
@@ -737,6 +771,14 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
             }}
           >
             {notification.text}
+            {notification.action && (
+              <button
+                onClick={() => { notification.action.onClick(); dismissNotification(notification.id); }}
+                className="ml-4 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 underline-offset-2 font-semibold"
+              >
+                {notification.action.label}
+              </button>
+            )}
           </div>
         ))}
       </div>

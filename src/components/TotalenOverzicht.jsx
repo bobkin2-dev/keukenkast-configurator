@@ -88,7 +88,10 @@ const TotalenOverzicht = ({
   marge = 25,
   setMarge,
   exportPDFRef,
-  totaalPrijsRef
+  totaalPrijsRef,
+  overrideBasis = {},
+  setOverrideBasis,
+  onTotaalChange
 }) => {
   // State for library modals
   const [showBibliotheek, setShowBibliotheek] = useState(false);
@@ -176,7 +179,24 @@ const TotalenOverzicht = ({
 
   const getOverride = (key, defaultVal) => priceOverrides[key] ?? defaultVal;
 
-  const updateArbeidOverride = (key, value) => {
+  // Remember the calculated value when an override is first made, so we can flag it
+  // as stale ("verouderd") once the calculation changes (e.g. cabinets added/removed).
+  const setBasis = (basisKey, value, calculated) => {
+    if (!setOverrideBasis) return;
+    setOverrideBasis(prev => {
+      if (value === '' || value === undefined) {
+        if (prev[basisKey] === undefined) return prev;
+        const next = { ...prev };
+        delete next[basisKey];
+        return next;
+      }
+      if (prev[basisKey] !== undefined || calculated === undefined) return prev;
+      return { ...prev, [basisKey]: calculated };
+    });
+  };
+
+  const updateArbeidOverride = (key, value, calculated) => {
+    setBasis(`arbeid:${key}`, value, calculated);
     if (value === '' || value === undefined) {
       setArbeidOverrides(prev => {
         const next = { ...prev };
@@ -188,7 +208,8 @@ const TotalenOverzicht = ({
     }
   };
 
-  const updateExtra = (key, value) => {
+  const updateExtra = (key, value, calculated) => {
+    setBasis(key, value, calculated);
     if (value === '' || value === undefined) {
       setExtraAmounts(prev => {
         const next = { ...prev };
@@ -198,6 +219,32 @@ const TotalenOverzicht = ({
     } else {
       setExtraAmounts(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
     }
+  };
+
+  const isVerouderd = (basisKey, overridden, calculated) => {
+    const basis = overrideBasis[basisKey];
+    return overridden && basis !== undefined && calculated !== undefined && Math.abs(basis - calculated) > 0.05;
+  };
+  // Input styling: orange = stale override, blue = override, none = calculated
+  const ovClass = (basisKey, overridden, calculated) =>
+    isVerouderd(basisKey, overridden, calculated) ? 'border-orange-500 bg-orange-50'
+      : overridden ? 'border-blue-400 bg-blue-50' : '';
+  // ↺ reset button next to an overridden quantity (⚠ when stale)
+  const overrideStatus = (basisKey, overridden, calculated, onReset) => {
+    if (!overridden) return null;
+    const verouderd = isVerouderd(basisKey, overridden, calculated);
+    const fmt = (v) => (Math.round(v * 10) / 10).toString();
+    return (
+      <button
+        onClick={onReset}
+        className={`ml-1 text-xs font-bold leading-none ${verouderd ? 'text-orange-600 hover:text-orange-800' : 'text-blue-500 hover:text-blue-700'}`}
+        title={verouderd
+          ? `Verouderd: berekend was ${fmt(overrideBasis[basisKey])}, nu ${fmt(calculated)}. Klik om de berekende waarde te gebruiken.`
+          : 'Terug naar berekende waarde'}
+      >
+        {verouderd ? '⚠↺' : '↺'}
+      </button>
+    );
   };
 
   const updateOverride = (key, value) => {
@@ -212,7 +259,10 @@ const TotalenOverzicht = ({
     }
   };
 
-  if (kastenLijst.length === 0) return null;
+  const laatsteTotaalRef = useRef(null);
+  useEffect(() => { if (onTotaalChange) onTotaalChange(laatsteTotaalRef.current); });
+
+  if (kastenLijst.length === 0) { laatsteTotaalRef.current = null; return null; }
 
   // Calculate plate prices
   const binnenPlaatPrijs = (materiaalBinnenkast[geselecteerdMateriaalBinnen].breedte / 1000) *
@@ -359,9 +409,171 @@ const TotalenOverzicht = ({
   // Expose export function to sidebar via ref
   if (exportPDFRef) exportPDFRef.current = handleExportPDF;
 
+  // Grand total + calculated quantities (single place, used by the summary box, the
+  // sidebar total and the stale-override check)
+  const berekenTotaal = () => {
+          // Arbeid
+          const arbeidKeys = [
+            { key: 'tekenwerk', defaultPrijs: 60 },
+            { key: 'montageWerkhuis', defaultPrijs: 45 },
+            { key: 'plaatsing', defaultPrijs: 45 },
+            { key: 'transport', defaultPrijs: 45 },
+          ];
+          const arbeidTotal = arbeidKeys.reduce((sum, { key, defaultPrijs }) => {
+            const effectiefUren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
+            const effectiefPrijs = getOverride(`arbeid_${key}`, defaultPrijs);
+            return sum + effectiefUren * effectiefPrijs;
+          }, 0);
+
+          // Plaatmateriaal (calculated rows + custom rows)
+          const plaatKeysBase = [
+            { key: 'binnenkast', aantal: totalen.platenBinnenkast, defaultPlaatPrijs: binnenPlaatPrijs },
+            { key: 'rug',       aantal: totalen.platenRug,        defaultPlaatPrijs: binnenPlaatPrijs, hide: !alternatieveMateriaal.ruggenGebruiken },
+            { key: 'leggers',   aantal: totalen.platenLeggers,    defaultPlaatPrijs: binnenPlaatPrijs, hide: !alternatieveMateriaal.leggersGebruiken },
+            { key: 'buitenzijde', aantal: totalen.platenBuitenzijde, defaultPlaatPrijs: buitenPlaatPrijs },
+            { key: 'tablet',    aantal: totalen.platenTablet,     defaultPlaatPrijs: tabletPlaatPrijs },
+            ...Object.entries(totalen.platenVrijeKast || {}).map(([matRef, { platen, mat }]) => ({
+              key: `vrijeKast_${matRef}`, aantal: platen,
+              defaultPlaatPrijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
+            })),
+            ...computeCustomPlaatRequestRows(customPlaatRequests).map(r => ({
+              key: r.key, aantal: r.aantal, defaultPlaatPrijs: r.defaultPlaatPrijs,
+            })),
+          ];
+          const plaatTotal = plaatKeysBase
+            .filter(r => !r.hide)
+            .reduce((sum, { key, aantal, defaultPlaatPrijs }) => {
+              const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
+              const isLocked = !!priceOverrideLocks?.[key];
+              const effectiefPrijs = isLocked ? (priceOverrides[key] ?? defaultPlaatPrijs) : defaultPlaatPrijs;
+              return sum + Math.ceil(effectiefAantal * effectiefPrijs);
+            }, 0)
+            + customPlaatmateriaal.reduce((sum, l) => sum + Math.ceil(l.aantal * l.prijs), 0);
+
+          // Kantenband
+          const kantenbandKeys = [
+            { key: 'kantenbandStd', aantal: totalen.kantenbandStandaard, defaultPrijs: accessoires.afplakkenStandaard },
+            { key: 'kantenbandSpec', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal },
+          ];
+          const kantenbandTotal = kantenbandKeys.reduce((sum, { key, aantal, defaultPrijs }) => {
+            const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
+            const effectiefPrijs = getOverride(key, defaultPrijs);
+            return sum + effectiefAantal * effectiefPrijs;
+          }, 0);
+
+          // Beslag (calculated + extra + tabletsteun + custom)
+          const allBeslagKeys = [
+            { key: 'kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes },
+            { key: 'scharnier110', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110 },
+            { key: 'scharnier170', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170 },
+            { key: 'profielBK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK },
+            { key: 'ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK },
+            { key: 'ladenStd', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard },
+            { key: 'ladenGoedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid },
+            { key: 'handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen },
+            { key: 'led', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed },
+            { key: 'handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager },
+            { key: 'alubodem600', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600 },
+            { key: 'alubodem1200', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200 },
+            { key: 'vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem },
+            { key: 'bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak },
+            { key: 'slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot },
+            { key: 'cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot },
+            { key: 'kitwerk', aantal: extraBeslag.kitwerk || 0, defaultPrijs: extraBeslag.prijsKitwerk ?? 4 },
+          ];
+          const beslagTotal = allBeslagKeys.reduce((sum, { key, aantal, defaultPrijs }) => {
+            const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
+            return sum + effectiefAantal * getOverride(key, defaultPrijs);
+          }, 0)
+          + (() => {
+            const sel = TABLETSTEUN_TYPES.find(t => t.id === tabletsteun.type);
+            const p = priceOverrides.tabletsteun ?? (sel?.prijs || 0);
+            return tabletsteun.aantal * p;
+          })()
+          + customBeslag.reduce((sum, l) => sum + l.aantal * l.prijs, 0);
+
+          // Toestellen
+          const toestellenTotal = TOESTEL_TYPES.filter(t => keukentoestellen[t.id]?.geselecteerd)
+            .reduce((sum, toestel) => {
+              const sel = keukentoestellen[toestel.id];
+              return sum + (sel.aantal || 1) * (toestellenPrijzen?.[toestel.id]?.[sel.tier || 'medium'] || 0);
+            }, 0);
+
+          // Schuifbeslag
+          const schuifdeurTotal = [
+            ...(totalen.schuifdeursystemen || []).map(s => ({
+              prijs: schuifbeslagPrijzen[`systeem_${s.gewicht}`]?.[s.demping] || 0,
+              aantal: s.aantal,
+            })),
+            ...(totalen.profielen || []).map(p => ({
+              prijs: schuifbeslagPrijzen[p.type === 'onderprofiel' ? 'onderprofiel' : `bovenprofiel_${p.gewicht}`]?.[p.maat] || 0,
+              aantal: p.aantal,
+            })),
+          ].reduce((sum, { prijs, aantal }) => sum + prijs * aantal, 0);
+
+          const grandTotal = arbeidTotal + plaatTotal + kantenbandTotal + beslagTotal + toestellenTotal + schuifdeurTotal;
+          const margeEuro = grandTotal * (marge / 100);
+          const totalInclMarge = grandTotal + margeEuro;
+
+          // Calculated (non-overridden) quantity per override key — arbeid keys prefixed with 'arbeid:'
+          const berekend = {};
+          arbeidKeys.forEach(({ key }) => { berekend[`arbeid:${key}`] = arbeidUren[key]; });
+          [...plaatKeysBase.filter(r => !r.hide), ...kantenbandKeys, ...allBeslagKeys]
+            .forEach(({ key, aantal }) => { berekend[key] = aantal; });
+
+          const platen = plaatKeysBase.filter(r => !r.hide)
+            .reduce((sum, { key, aantal }) => sum + (extraAmounts[key] !== undefined ? extraAmounts[key] : (aantal || 0)), 0)
+            + customPlaatmateriaal.reduce((sum, l) => sum + (l.aantal || 0), 0);
+
+          return { arbeidTotal, plaatTotal, kantenbandTotal, beslagTotal, toestellenTotal, schuifdeurTotal,
+            grandTotal, margeEuro, totalInclMarge, berekend, platen };
+  };
+  const totaal = berekenTotaal();
+  laatsteTotaalRef.current = { exclMarge: Math.ceil(totaal.grandTotal), inclMarge: Math.ceil(totaal.totalInclMarge), platen: totaal.platen };
+  if (totaalPrijsRef) {
+    totaalPrijsRef.current = { exclMarge: Math.ceil(totaal.grandTotal), inclMarge: Math.ceil(totaal.totalInclMarge), platen: totaal.platen };
+  }
+
   return (
     <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
       <h2 className="text-lg font-bold text-gray-800 mb-3">Totaallijst Materialen & Arbeid</h2>
+
+      {/* Summary of manual quantity/hour overrides, with stale ones flagged */}
+      {(() => {
+        const aanpassingen = [
+          ...Object.keys(arbeidOverrides).map(k => ({ basisKey: `arbeid:${k}`, calc: totaal.berekend[`arbeid:${k}`] })),
+          ...Object.keys(extraAmounts).filter(k => k in totaal.berekend).map(k => ({ basisKey: k, calc: totaal.berekend[k] })),
+        ];
+        if (aanpassingen.length === 0) return null;
+        const verouderd = aanpassingen.filter(a => isVerouderd(a.basisKey, true, a.calc)).length;
+        const allesTerug = () => {
+          if (!window.confirm('Alle handmatig aangepaste aantallen en uren terugzetten naar de berekende waarden?')) return;
+          setArbeidOverrides({});
+          setExtraAmounts(prev => {
+            const next = { ...prev };
+            Object.keys(totaal.berekend).forEach(k => delete next[k]);
+            return next;
+          });
+          if (setOverrideBasis) setOverrideBasis({});
+        };
+        return (
+          <div className={`flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded border text-sm ${
+            verouderd > 0 ? 'bg-orange-50 border-orange-300 text-orange-800' : 'bg-white border-blue-200 text-blue-800'
+          }`}>
+            <span>
+              ✎ <strong>{aanpassingen.length}</strong> {aanpassingen.length === 1 ? 'waarde' : 'waarden'} handmatig aangepast
+              {verouderd > 0 && (
+                <span className="ml-2 font-semibold">
+                  · ⚠ {verouderd} verouderd: de berekening is gewijzigd sinds de aanpassing (oranje gemarkeerd)
+                </span>
+              )}
+            </span>
+            <button onClick={allesTerug} className="text-xs underline hover:no-underline whitespace-nowrap">
+              Alles terugzetten
+            </button>
+          </div>
+        );
+      })()}
 
       <div className="space-y-3">
         {/* Labor */}
@@ -400,7 +612,7 @@ const TotalenOverzicht = ({
                           onClick={() => {
                             const current = urenOverridden ? arbeidOverrides[key] : calculated;
                             const next = Math.max(0, +(current - 0.5).toFixed(1));
-                            updateArbeidOverride(key, next === calculated ? '' : String(next));
+                            updateArbeidOverride(key, next === calculated ? '' : String(next), calculated);
                           }}
                         >-</button>
                         <input
@@ -408,20 +620,21 @@ const TotalenOverzicht = ({
                           step="0.5"
                           min="0"
                           className={`w-14 px-0.5 py-0.5 border rounded text-center text-xs ${
-                            urenOverridden ? 'border-blue-400 bg-blue-50' : ''
+                            ovClass(`arbeid:${key}`, urenOverridden, calculated)
                           }`}
                           value={urenOverridden ? arbeidOverrides[key] : ''}
                           placeholder={calculated.toFixed(1)}
-                          onChange={(e) => updateArbeidOverride(key, e.target.value)}
+                          onChange={(e) => updateArbeidOverride(key, e.target.value, calculated)}
                         />
                         <button
                           className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
                           onClick={() => {
                             const current = urenOverridden ? arbeidOverrides[key] : calculated;
                             const next = +(current + 0.5).toFixed(1);
-                            updateArbeidOverride(key, String(next));
+                            updateArbeidOverride(key, String(next), calculated);
                           }}
                         >+</button>
+                        {overrideStatus(`arbeid:${key}`, urenOverridden, calculated, () => updateArbeidOverride(key, ''))}
                       </div>
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs}/u</td>
@@ -560,25 +773,26 @@ const TotalenOverzicht = ({
                           onClick={() => {
                             const current = aantalOverridden ? extraAmounts[key] : aantal;
                             const next = Math.max(0, current - 1);
-                            updateExtra(key, next === aantal ? '' : String(next));
+                            updateExtra(key, next === aantal ? '' : String(next), aantal);
                           }}
                         >-</button>
                         <input
                           type="number"
                           min="0"
-                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${ovClass(key, aantalOverridden, aantal)}`}
                           value={aantalOverridden ? extraAmounts[key] : ''}
                           placeholder={aantal}
-                          onChange={(e) => updateExtra(key, e.target.value)}
+                          onChange={(e) => updateExtra(key, e.target.value, aantal)}
                         />
                         <button
                           className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
                           onClick={() => {
                             const current = aantalOverridden ? extraAmounts[key] : aantal;
                             const next = current + 1;
-                            updateExtra(key, String(next));
+                            updateExtra(key, String(next), aantal);
                           }}
                         >+</button>
+                        {overrideStatus(key, aantalOverridden, aantal, () => updateExtra(key, ''))}
                       </div>
                     </td>
                     <td className="py-1 text-right text-xs font-semibold text-gray-500">€{Math.ceil(defaultPlaatPrijs)}</td>
@@ -719,11 +933,12 @@ const TotalenOverzicht = ({
                         type="number"
                         step="0.1"
                         min="0"
-                        className={`w-14 px-1 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                        className={`w-14 px-1 py-0.5 border rounded text-center text-xs ${ovClass(key, aantalOverridden, aantal)}`}
                         value={aantalOverridden ? extraAmounts[key] : ''}
                         placeholder={aantal.toFixed(1)}
-                        onChange={(e) => updateExtra(key, e.target.value)}
+                        onChange={(e) => updateExtra(key, e.target.value, aantal)}
                       />
+                      {overrideStatus(key, aantalOverridden, aantal, () => updateExtra(key, ''))}
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
                     <td className="py-1 text-center">
@@ -782,17 +997,17 @@ const TotalenOverzicht = ({
                             const step = decimals ? 0.1 : 1;
                             const current = aantalOverridden ? extraAmounts[key] : aantal;
                             const next = Math.max(0, +(current - step).toFixed(1));
-                            updateExtra(key, next === aantal ? '' : String(next));
+                            updateExtra(key, next === aantal ? '' : String(next), aantal);
                           }}
                         >-</button>
                         <input
                           type="number"
                           min="0"
                           step={decimals ? '0.1' : '1'}
-                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${ovClass(key, aantalOverridden, aantal)}`}
                           value={aantalOverridden ? extraAmounts[key] : ''}
                           placeholder={aantalDisplay}
-                          onChange={(e) => updateExtra(key, e.target.value)}
+                          onChange={(e) => updateExtra(key, e.target.value, aantal)}
                         />
                         <button
                           className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
@@ -800,9 +1015,10 @@ const TotalenOverzicht = ({
                             const step = decimals ? 0.1 : 1;
                             const current = aantalOverridden ? extraAmounts[key] : aantal;
                             const next = +(current + step).toFixed(1);
-                            updateExtra(key, String(next));
+                            updateExtra(key, String(next), aantal);
                           }}
                         >+</button>
+                        {overrideStatus(key, aantalOverridden, aantal, () => updateExtra(key, ''))}
                       </div>
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
@@ -848,17 +1064,17 @@ const TotalenOverzicht = ({
                             const step = decimals ? 0.1 : 1;
                             const current = aantalOverridden ? extraAmounts[key] : aantal;
                             const next = Math.max(0, +(current - step).toFixed(1));
-                            updateExtra(key, next === aantal ? '' : String(next));
+                            updateExtra(key, next === aantal ? '' : String(next), aantal);
                           }}
                         >-</button>
                         <input
                           type="number"
                           min="0"
                           step={decimals ? '0.1' : '1'}
-                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${aantalOverridden ? 'border-blue-400 bg-blue-50' : ''}`}
+                          className={`w-12 px-0.5 py-0.5 border rounded text-center text-xs ${ovClass(key, aantalOverridden, aantal)}`}
                           value={aantalOverridden ? extraAmounts[key] : ''}
                           placeholder={aantalDisplay}
-                          onChange={(e) => updateExtra(key, e.target.value)}
+                          onChange={(e) => updateExtra(key, e.target.value, aantal)}
                         />
                         <button
                           className="w-5 h-5 rounded bg-gray-200 hover:bg-green-200 text-xs font-bold leading-none"
@@ -866,9 +1082,10 @@ const TotalenOverzicht = ({
                             const step = decimals ? 0.1 : 1;
                             const current = aantalOverridden ? extraAmounts[key] : aantal;
                             const next = +(current + step).toFixed(1);
-                            updateExtra(key, String(next));
+                            updateExtra(key, String(next), aantal);
                           }}
                         >+</button>
+                        {overrideStatus(key, aantalOverridden, aantal, () => updateExtra(key, ''))}
                       </div>
                     </td>
                     <td className="py-1 text-right text-xs">€{defaultPrijs.toFixed(2)}{unit}</td>
@@ -1135,107 +1352,7 @@ const TotalenOverzicht = ({
         })()}
         {/* Grand total + margin summary */}
         {(() => {
-          // Arbeid
-          const arbeidTotal = [
-            { key: 'tekenwerk', defaultPrijs: 60 },
-            { key: 'montageWerkhuis', defaultPrijs: 45 },
-            { key: 'plaatsing', defaultPrijs: 45 },
-            { key: 'transport', defaultPrijs: 45 },
-          ].reduce((sum, { key, defaultPrijs }) => {
-            const effectiefUren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
-            const effectiefPrijs = getOverride(`arbeid_${key}`, defaultPrijs);
-            return sum + effectiefUren * effectiefPrijs;
-          }, 0);
-
-          // Plaatmateriaal (calculated rows + custom rows)
-          const plaatKeysBase = [
-            { key: 'binnenkast', aantal: totalen.platenBinnenkast, defaultPlaatPrijs: binnenPlaatPrijs },
-            { key: 'rug',       aantal: totalen.platenRug,        defaultPlaatPrijs: binnenPlaatPrijs, hide: !alternatieveMateriaal.ruggenGebruiken },
-            { key: 'leggers',   aantal: totalen.platenLeggers,    defaultPlaatPrijs: binnenPlaatPrijs, hide: !alternatieveMateriaal.leggersGebruiken },
-            { key: 'buitenzijde', aantal: totalen.platenBuitenzijde, defaultPlaatPrijs: buitenPlaatPrijs },
-            { key: 'tablet',    aantal: totalen.platenTablet,     defaultPlaatPrijs: tabletPlaatPrijs },
-            ...Object.entries(totalen.platenVrijeKast || {}).map(([matRef, { platen, mat }]) => ({
-              key: `vrijeKast_${matRef}`, aantal: platen,
-              defaultPlaatPrijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
-            })),
-            ...computeCustomPlaatRequestRows(customPlaatRequests).map(r => ({
-              key: r.key, aantal: r.aantal, defaultPlaatPrijs: r.defaultPlaatPrijs,
-            })),
-          ];
-          const plaatTotal = plaatKeysBase
-            .filter(r => !r.hide)
-            .reduce((sum, { key, aantal, defaultPlaatPrijs }) => {
-              const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
-              const isLocked = !!priceOverrideLocks?.[key];
-              const effectiefPrijs = isLocked ? (priceOverrides[key] ?? defaultPlaatPrijs) : defaultPlaatPrijs;
-              return sum + Math.ceil(effectiefAantal * effectiefPrijs);
-            }, 0)
-            + customPlaatmateriaal.reduce((sum, l) => sum + Math.ceil(l.aantal * l.prijs), 0);
-
-          // Kantenband
-          const kantenbandTotal = [
-            { key: 'kantenbandStd', aantal: totalen.kantenbandStandaard, defaultPrijs: accessoires.afplakkenStandaard },
-            { key: 'kantenbandSpec', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal },
-          ].reduce((sum, { key, aantal, defaultPrijs }) => {
-            const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
-            const effectiefPrijs = getOverride(key, defaultPrijs);
-            return sum + effectiefAantal * effectiefPrijs;
-          }, 0);
-
-          // Beslag (calculated + extra + tabletsteun + custom)
-          const allBeslagKeys = [
-            { key: 'kastpootjes', aantal: totalen.kastpootjes, defaultPrijs: accessoires.kastpootjes },
-            { key: 'scharnier110', aantal: totalen.scharnieren110, defaultPrijs: accessoires.scharnier110 },
-            { key: 'scharnier170', aantal: totalen.scharnieren170, defaultPrijs: accessoires.scharnier170 },
-            { key: 'profielBK', aantal: totalen.profielBK, defaultPrijs: accessoires.profielBK },
-            { key: 'ophangsysteem', aantal: totalen.ophangsysteemBK, defaultPrijs: accessoires.ophangsysteemBK },
-            { key: 'ladenStd', aantal: totalen.ladenStandaard, defaultPrijs: accessoires.ladeStandaard },
-            { key: 'ladenGoedkoper', aantal: totalen.ladenGoedkoper, defaultPrijs: accessoires.ladeGroteHoeveelheid },
-            { key: 'handgrepen', aantal: totalen.handgrepen, defaultPrijs: accessoires.handgrepen },
-            { key: 'led', aantal: extraBeslag.led, defaultPrijs: extraBeslag.prijsLed },
-            { key: 'handdoekdrager', aantal: extraBeslag.handdoekdrager || 0, defaultPrijs: extraBeslag.prijsHanddoekdrager },
-            { key: 'alubodem600', aantal: extraBeslag.alubodem600 || 0, defaultPrijs: extraBeslag.prijsAlubodem600 },
-            { key: 'alubodem1200', aantal: extraBeslag.alubodem1200 || 0, defaultPrijs: extraBeslag.prijsAlubodem1200 },
-            { key: 'vuilbaksysteem', aantal: extraBeslag.vuilbaksysteem || 0, defaultPrijs: extraBeslag.prijsVuilbaksysteem },
-            { key: 'bestekbak', aantal: extraBeslag.bestekbak || 0, defaultPrijs: extraBeslag.prijsBestekbak },
-            { key: 'slot', aantal: extraBeslag.slot || 0, defaultPrijs: extraBeslag.prijsSlot },
-            { key: 'cylinderslot', aantal: extraBeslag.cylinderslot || 0, defaultPrijs: extraBeslag.prijsCylinderslot },
-            { key: 'kitwerk', aantal: extraBeslag.kitwerk || 0, defaultPrijs: extraBeslag.prijsKitwerk ?? 4 },
-          ];
-          const beslagTotal = allBeslagKeys.reduce((sum, { key, aantal, defaultPrijs }) => {
-            const effectiefAantal = extraAmounts[key] !== undefined ? extraAmounts[key] : aantal;
-            return sum + effectiefAantal * getOverride(key, defaultPrijs);
-          }, 0)
-          + (() => {
-            const sel = TABLETSTEUN_TYPES.find(t => t.id === tabletsteun.type);
-            const p = priceOverrides.tabletsteun ?? (sel?.prijs || 0);
-            return tabletsteun.aantal * p;
-          })()
-          + customBeslag.reduce((sum, l) => sum + l.aantal * l.prijs, 0);
-
-          // Toestellen
-          const toestellenTotal = TOESTEL_TYPES.filter(t => keukentoestellen[t.id]?.geselecteerd)
-            .reduce((sum, toestel) => {
-              const sel = keukentoestellen[toestel.id];
-              return sum + (sel.aantal || 1) * (toestellenPrijzen?.[toestel.id]?.[sel.tier || 'medium'] || 0);
-            }, 0);
-
-          // Schuifbeslag
-          const schuifdeurTotal = [
-            ...(totalen.schuifdeursystemen || []).map(s => ({
-              prijs: schuifbeslagPrijzen[`systeem_${s.gewicht}`]?.[s.demping] || 0,
-              aantal: s.aantal,
-            })),
-            ...(totalen.profielen || []).map(p => ({
-              prijs: schuifbeslagPrijzen[p.type === 'onderprofiel' ? 'onderprofiel' : `bovenprofiel_${p.gewicht}`]?.[p.maat] || 0,
-              aantal: p.aantal,
-            })),
-          ].reduce((sum, { prijs, aantal }) => sum + prijs * aantal, 0);
-
-          const grandTotal = arbeidTotal + plaatTotal + kantenbandTotal + beslagTotal + toestellenTotal + schuifdeurTotal;
-          const margeEuro = grandTotal * (marge / 100);
-          const totalInclMarge = grandTotal + margeEuro;
-          if (totaalPrijsRef) totaalPrijsRef.current = { exclMarge: Math.ceil(grandTotal), inclMarge: Math.ceil(totalInclMarge) };
+          const { arbeidTotal, plaatTotal, kantenbandTotal, beslagTotal, toestellenTotal, schuifdeurTotal, grandTotal, margeEuro, totalInclMarge } = totaal;
 
           return (
             <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
