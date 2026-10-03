@@ -49,6 +49,11 @@ const PlaatmateriaalBibliotheekModal = ({ materialen, onClose, onReload, onSelec
     }
   });
 
+  // Alphabetical within each category
+  Object.values(itemsByCategory).forEach(items =>
+    items.sort((a, b) => (a.naam || '').localeCompare(b.naam || '', 'nl', { numeric: true, sensitivity: 'base' }))
+  );
+
   const sortedCategories = Object.keys(itemsByCategory).sort((a, b) => {
     const ia = MATERIAAL_CATEGORIES.indexOf(a);
     const ib = MATERIAAL_CATEGORIES.indexOf(b);
