@@ -1,41 +1,42 @@
 // Cabinet type constants - single source of truth
 
-// Color mapping for Tailwind (must use complete class names to avoid tree-shaking)
+// Color mapping for Tailwind (must use complete class names to avoid tree-shaking).
+// Calm style: white cards; the type colour is only a top edge, buttons share one primary style.
 export const colorStyles = {
   purple: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    button: 'bg-purple-500 hover:bg-purple-600'
+    bg: 'bg-white',
+    border: 'border-gray-200 border-t-4 border-t-purple-400',
+    button: 'bg-slate-800 hover:bg-slate-900'
   },
   green: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    button: 'bg-green-500 hover:bg-green-600'
+    bg: 'bg-white',
+    border: 'border-gray-200 border-t-4 border-t-green-400',
+    button: 'bg-slate-800 hover:bg-slate-900'
   },
   blue: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    button: 'bg-blue-500 hover:bg-blue-600'
+    bg: 'bg-white',
+    border: 'border-gray-200 border-t-4 border-t-blue-400',
+    button: 'bg-slate-800 hover:bg-slate-900'
   },
   orange: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-200',
-    button: 'bg-orange-500 hover:bg-orange-600'
+    bg: 'bg-white',
+    border: 'border-gray-200 border-t-4 border-t-orange-400',
+    button: 'bg-slate-800 hover:bg-slate-900'
   },
   teal: {
-    bg: 'bg-teal-50',
-    border: 'border-teal-200',
-    button: 'bg-teal-500 hover:bg-teal-600'
+    bg: 'bg-white',
+    border: 'border-gray-200 border-t-4 border-t-teal-400',
+    button: 'bg-slate-800 hover:bg-slate-900'
   },
   rose: {
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
-    button: 'bg-rose-500 hover:bg-rose-600'
+    bg: 'bg-white',
+    border: 'border-gray-200 border-t-4 border-t-rose-400',
+    button: 'bg-slate-800 hover:bg-slate-900'
   },
   amber: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    button: 'bg-amber-500 hover:bg-amber-600'
+    bg: 'bg-white',
+    border: 'border-gray-200 border-t-4 border-t-amber-400',
+    button: 'bg-slate-800 hover:bg-slate-900'
   }
 };
 

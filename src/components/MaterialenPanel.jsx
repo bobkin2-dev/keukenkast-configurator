@@ -72,7 +72,7 @@ const MaterialenPanel = ({
   const colorCls = COLOR_CLASSES[color] || COLOR_CLASSES.purple;
 
   return (
-    <div className={`${colorCls.bg} p-3 rounded-lg border-2 ${colorCls.border} relative`}>
+    <div className={`${colorCls.bg} p-3 rounded-lg border ${colorCls.border} shadow-sm relative`}>
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-gray-800">{label}</h2>

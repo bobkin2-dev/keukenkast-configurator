@@ -319,7 +319,7 @@ const CustomPlaatRequests = ({ requests = [], setRequests }) => {
   const removeRequest = (id) => setRequests(requests.filter(r => r.id !== id));
 
   return (
-    <div className="bg-amber-50 p-4 rounded-lg mb-4 border-2 border-amber-200">
+    <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex justify-between items-center"

@@ -382,7 +382,7 @@ export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
           </button>
           <button
             onClick={() => onSave(d)}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm"
+            className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-sm"
           >
             Opslaan
           </button>
@@ -490,14 +490,14 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                     <div className="flex gap-1 justify-end">
                       <button
                         onClick={() => toggleStukken(kast.id)}
-                        className={`px-2 py-1 rounded text-xs ${openStukken[kast.id] ? 'bg-slate-700 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+                        className={`px-2 py-1 rounded text-xs ${openStukken[kast.id] ? 'bg-slate-700 text-white' : 'bg-white border border-gray-300 hover:bg-gray-100 text-gray-700'}`}
                         title="Stukkenlijst tonen/verbergen"
                       >
                         Stukken{(Object.keys(kast.stukAanpassingen || {}).length + (kast.extraStukken || []).length) > 0 ? ' ✎' : ''}
                       </button>
                       <button
                         onClick={() => setEditingKast(kast)}
-                        className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                        className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
                         title="Bewerken"
                       >
                         Bewerk
@@ -505,7 +505,7 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                       {!kast.isZijpaneel && (
                         <button
                           onClick={() => voegZijpaneelToe(kast)}
-                          className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs"
+                          className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
                           title="Zijpaneel toevoegen"
                         >
                           Zijpaneel
@@ -513,14 +513,14 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                       )}
                       <button
                         onClick={() => kopieerKast(kast)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                        className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
                         title="Kopiëren"
                       >
                         Kopieer
                       </button>
                       <button
                         onClick={() => verwijderKast(kast.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                        className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-2 py-1 rounded text-xs"
                         title="Verwijderen"
                       >
                         Verwijder

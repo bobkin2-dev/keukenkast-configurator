@@ -161,7 +161,7 @@ const SingleKastConfigurator = ({
   ];
 
   return (
-    <div className={`${styles.bg} p-3 rounded-lg border-2 ${styles.border} ${isOpenCabinet ? 'ring-2 ring-yellow-400' : ''}`}>
+    <div className={`${styles.bg} p-3 rounded-lg border ${styles.border} shadow-sm ${isOpenCabinet ? 'ring-2 ring-yellow-400' : ''}`}>
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-bold text-gray-800">{emoji} {type}</h3>
         <div className="flex items-center gap-3">
@@ -557,7 +557,7 @@ const CustomKastConfigurator = ({
     : [{ field: 'hoogte', label: 'Hoogte (mm)' }, { field: 'breedte', label: 'Breedte (mm)' }, { field: 'diepte', label: 'Diepte (mm)' }];
 
   return (
-    <div className={`${styles.bg} p-3 rounded-lg border-2 ${styles.border} shadow-md`}>
+    <div className={`${styles.bg} p-3 rounded-lg border ${styles.border} shadow-sm shadow-md`}>
       <h3 className="text-sm font-bold text-gray-800 mb-2">Custom Kast</h3>
 
       <div className="space-y-2">

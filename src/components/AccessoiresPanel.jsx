@@ -1,7 +1,7 @@
 import React from 'react';
 
 const AccessoiresPanel = ({ accessoires, updateAccessoire }) => (
-  <div className="bg-orange-50 p-3 rounded-lg mb-4 border-2 border-orange-200">
+  <div className="bg-white p-3 rounded-lg mb-4 border border-gray-200 shadow-sm">
     <h2 className="text-base font-bold text-gray-800 mb-3">Accessoires & Opties</h2>
 
     <div className="space-y-2">
