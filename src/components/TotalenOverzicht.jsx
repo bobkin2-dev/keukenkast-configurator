@@ -505,7 +505,10 @@ const TotalenOverzicht = ({
                 }),
                 // Custom plate request rows (auto-nested)
                 ...computeCustomPlaatRequestRows(customPlaatRequests),
-              ].filter(row =>
+              ].map(row => totalen.nestingSamengevoegd?.[row.key]
+                ? { ...row, info: `${row.info} · samen genest met ${totalen.nestingSamengevoegd[row.key]}` }
+                : row
+              ).filter(row =>
                 !(row.key === 'rug' && !alternatieveMateriaal.ruggenGebruiken) &&
                 !(row.key === 'leggers' && !alternatieveMateriaal.leggersGebruiken)
               ).map(({ key, label, aantal, info, defaultPlaatPrijs }) => {

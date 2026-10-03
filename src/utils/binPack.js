@@ -14,32 +14,44 @@
 //
 // Output:
 //   {
-//     plates: [{ length, width, placements: [{ x, y, w, h, name, sourceId, rotated }] }],
-//     unfit:  [{ id, length, width, name }]   // parts too big for a single plate
+//     plates: [{ length, width, placements: [{ x, y, w, h, name, sourceId, rotated, split }] }],
+//     unfit:  [{ id, length, width, name }]     // parts that could not be placed at all
+//     split:  [{ name, length, width, pieces }] // oversized parts that were divided to fit
 //   }
+//
+// Parts larger than the plate are divided into equal pieces (along the
+// dimension that is too long) until each piece fits. Those pieces carry
+// `split: true` so the UI can highlight them.
 
 export const packParts = ({ plateLength, plateWidth, parts, grain = false, kerf = 4 }) => {
   if (!plateLength || !plateWidth || !parts || parts.length === 0) {
-    return { plates: [], unfit: [] };
+    return { plates: [], unfit: [], split: [] };
   }
 
   if (grain) parts = combineerBlokken(parts, kerf);
 
-  // Expand by amount
+  // Expand by amount, splitting oversized parts into pieces that fit
   const expanded = [];
+  const split = [];
   let pid = 0;
   for (const p of parts) {
     const amount = Math.max(1, p.amount || 1);
     const length = p.length || 0;
     const width = p.width || 0;
     if (length <= 0 || width <= 0) continue;
+    const pieces = splitToFit(plateLength, plateWidth, { length, width }, grain);
+    const isSplit = pieces.length > 1;
     for (let i = 0; i < amount; i++) {
-      expanded.push({
-        copyId: pid++,
-        sourceId: p.id,
-        length,
-        width,
-        name: p.name || ''
+      if (isSplit) split.push({ name: p.name || '', length, width, pieces: pieces.length });
+      pieces.forEach((piece, j) => {
+        expanded.push({
+          copyId: pid++,
+          sourceId: p.id,
+          length: piece.length,
+          width: piece.width,
+          name: isSplit ? `${p.name || ''} (${j + 1}/${pieces.length})` : (p.name || ''),
+          split: isSplit
+        });
       });
     }
   }
@@ -77,7 +89,27 @@ export const packParts = ({ plateLength, plateWidth, parts, grain = false, kerf 
     }
   }
 
-  return { plates, unfit };
+  return { plates, unfit, split };
+};
+
+// Divide a part into equal pieces so that each piece fits on a fresh plate.
+// Grain: length must stay along the plate length. No grain: the part may be
+// rotated, so its long side is matched against the plate's long side.
+const splitToFit = (plateL, plateW, part, grain) => {
+  if (canFitOnFreshPlate(plateL, plateW, part, grain, 0)) return [part];
+
+  const swapped = !grain && part.width > part.length;
+  const partL = swapped ? part.width : part.length;
+  const partW = swapped ? part.length : part.width;
+  const maxL = grain ? plateL : Math.max(plateL, plateW);
+  const maxW = grain ? plateW : Math.min(plateL, plateW);
+
+  const nL = Math.max(1, Math.ceil(partL / maxL));
+  const nW = Math.max(1, Math.ceil(partW / maxW));
+  const pieceL = Math.floor(partL / nL);
+  const pieceW = Math.floor(partW / nW);
+  const piece = swapped ? { length: pieceW, width: pieceL } : { length: pieceL, width: pieceW };
+  return Array.from({ length: nL * nW }, () => ({ ...piece }));
 };
 
 // Grained plates: merge parts with the same `blok` into one part, stacked along the
@@ -158,7 +190,8 @@ const placePartOnPlate = (plate, part, grain, kerf) => {
     h: ori.h,
     name: part.name,
     rotated: ori.rotated,
-    sourceId: part.sourceId
+    sourceId: part.sourceId,
+    split: !!part.split
   });
 
   // Guillotine split: vertical-priority. Right strip = full height, bottom strip = only under part.

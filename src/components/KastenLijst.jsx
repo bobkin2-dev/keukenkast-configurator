@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Counter from './Counter';
+import StukkenLijst from './StukkenLijst';
 import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL, complexiteitOpties } from '../constants/cabinet';
 
 // Aspect ratio limits (shared with KastPreview)
@@ -396,6 +397,8 @@ export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
 const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopieerKast, updateKast, verwijderKast }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [editingKast, setEditingKast] = useState(null); // kast object being edited
+  const [openStukken, setOpenStukken] = useState({}); // { [kastId]: true } — expanded part lists
+  const toggleStukken = (id) => setOpenStukken(prev => ({ ...prev, [id]: !prev[id] }));
 
   if (kastenLijst.length === 0) return null;
 
@@ -432,8 +435,8 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
             </thead>
             <tbody>
               {kastenLijst.map((kast, index) => (
+                <React.Fragment key={kast.id}>
                 <tr
-                  key={kast.id}
                   className={`border-b border-gray-200 hover:bg-gray-50 ${kast.isZijpaneel ? 'bg-yellow-50' : ''}`}
                 >
                   <td className="py-2 px-2 text-gray-600">{index + 1}</td>
@@ -486,6 +489,13 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                   <td className="py-2 px-2 text-right">
                     <div className="flex gap-1 justify-end">
                       <button
+                        onClick={() => toggleStukken(kast.id)}
+                        className={`px-2 py-1 rounded text-xs ${openStukken[kast.id] ? 'bg-slate-700 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+                        title="Stukkenlijst tonen/verbergen"
+                      >
+                        Stukken{(Object.keys(kast.stukAanpassingen || {}).length + (kast.extraStukken || []).length) > 0 ? ' ✎' : ''}
+                      </button>
+                      <button
                         onClick={() => setEditingKast(kast)}
                         className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
                         title="Bewerken"
@@ -518,6 +528,17 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                     </div>
                   </td>
                 </tr>
+                {openStukken[kast.id] && (
+                  <tr className="border-b border-gray-200">
+                    <td colSpan={9} className="py-2 px-2">
+                      <StukkenLijst
+                        kast={kast}
+                        onChange={(updates) => updateKast(kast.id, updates, { silent: true })}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

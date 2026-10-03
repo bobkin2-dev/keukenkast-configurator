@@ -21,7 +21,8 @@ src/
                                VrijeKastConfigurator (free-form), CustomKastConfigurator (4 custom types)
     KastPreview.jsx          — Visual preview components: KastPreview + VrijeKastPreview
     KastenLijst.jsx          — Foldable cabinet list table with mini previews + KastEditModal (edit any
-                               cabinet in the list; adapts fields per type)
+                               cabinet in the list; adapts fields per type) + per-row "Stukken" toggle
+    StukkenLijst.jsx         — Editable part list per cabinet (resize/remove generated parts, add extra parts)
     FloatingKastenLijst.jsx  — Sticky right sidebar with cabinet summary (no own sticky, parent handles it)
     TotalenOverzicht.jsx     — Totals overview: Arbeid, Plaatmateriaal, Kantenband, Meubelbeslag,
                                Keukentoestellen, Schuifdeursystemen. Has override system for all values.
@@ -76,6 +77,22 @@ Each cabinet part is tagged with a materiaalType which determines which plate ma
 2. `aggregeerTotalen(kastenLijst, params)` — sums all cabinets into flat totals
 3. `berekenTotalen()` in calculations.js — converts aggregated totals to plate counts
 4. `berekenArbeid(kastenLijst, totalen, arbeidParameters)` — calculates 4 work hour categories
+
+### Stukkenlijst (per-cabinet part list)
+- `berekenKast()` = `berekenKastBasis()` (generated parts) + `pasStukkenToe()` (user edits)
+- Edits live on the kast object: `stukAanpassingen: { [key]: { breedte?, hoogte?, verwijderd? } }`
+  and `extraStukken: [{ id, naam, breedte, hoogte, materiaalType, iv }]`
+- Stuk key = `"<onderdeel>/<stuk>#<n>"` (n = occurrence of the same name within the onderdeel)
+- `berekenStukkenlijst(kast)` returns the display list (incl. removed parts, flagged)
+- Edits do not change kantenband (afplakken) — that is still derived from the kast dimensions
+- Leggers are split per vak: N leggers × (steunen + 1) pieces
+- Open kast: rug in buitenzijde material. Vrije kast: leggers + tussensteunen in vrije kast material
+
+### Nesting = single source of truth
+- `bouwNestingGroepen()` in kastCalculator.js packs all parts per plate material; used by both
+  `convertToFlatTotalen` (when nestingMode) and NestingResultaten → plate counts always match
+- Parts larger than the plate are split into equal pieces by `packParts` (`split: true`, shown red)
+- nestingMode defaults to true for new projects (saved projects keep their stored value)
 
 ### Override System (TotalenOverzicht.jsx)
 - `extraAmounts` state — overrides calculated quantities (empty = use calculated)
