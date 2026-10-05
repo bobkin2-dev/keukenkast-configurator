@@ -588,6 +588,13 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
           voegKastToe={kabinet.voegKastToe}
           voegZijpaneelToeVoorType={kabinet.voegZijpaneelToeVoorType}
           plaatMaterialen={materials.plaatMaterialen}
+          projectMaterialen={[
+            { rol: 'binnenkast', mat: materials.materiaalBinnenkast[materials.geselecteerdMateriaalBinnen] },
+            { rol: 'buitenzijde', mat: materials.materiaalBuitenzijde[materials.geselecteerdMateriaalBuiten] },
+            { rol: 'tablet', mat: materials.materiaalTablet[materials.geselecteerdMateriaalTablet] },
+            materials.alternatieveMateriaal?.ruggenGebruiken && { rol: 'ruggen', mat: materials.materiaalBinnenkast[materials.alternatieveMateriaal.ruggenMateriaal] },
+            materials.alternatieveMateriaal?.leggersGebruiken && { rol: 'leggers', mat: materials.materiaalBinnenkast[materials.alternatieveMateriaal.leggersMateriaal] },
+          ].filter(x => x && x.mat)}
         />
 
         {/* Front-view drawing of all cabinets */}

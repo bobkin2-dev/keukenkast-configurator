@@ -331,7 +331,8 @@ const VrijeKastConfigurator = ({
   setHuidigKast,
   voegKastToe,
   voegZijpaneelToeVoorType,
-  plaatMaterialen
+  plaatMaterialen,
+  projectMaterialen = []
 }) => {
   const isActive = huidigKast.type === 'Vrije Kast';
   const displayKast = isActive ? huidigKast : vrijeKast;
@@ -379,6 +380,22 @@ const VrijeKastConfigurator = ({
 
   // Current selected material id (null means first in list)
   const selectedMatId = displayKast.vrijeKastMateriaalId;
+
+  // Materials chosen at the top of the page (binnenkast/buitenzijde/tablet…) are listed first,
+  // in bold, with their role. Match by id, fall back to name + plate size.
+  const sorteerOpNaam = (a, b) => (a.naam || '').localeCompare(b.naam || '', 'nl', { numeric: true, sensitivity: 'base' });
+  const rollenPerMateriaal = {};
+  projectMaterialen.forEach(({ rol, mat }) => {
+    const match = plaatMaterialen.find(m =>
+      (mat.id !== undefined && m.id === mat.id) ||
+      (m.naam === mat.naam && m.breedte === mat.breedte && m.hoogte === mat.hoogte)
+    );
+    if (!match) return;
+    (rollenPerMateriaal[match.id] = rollenPerMateriaal[match.id] || []).push(rol);
+  });
+  const gekozenMaterialen = plaatMaterialen.filter(m => rollenPerMateriaal[m.id]).sort(sorteerOpNaam);
+  const andereMaterialen = plaatMaterialen.filter(m => !rollenPerMateriaal[m.id]).sort(sorteerOpNaam);
+  const optieTekst = (mat) => `${mat.naam} - ${mat.breedte}x${mat.hoogte} mm - €${mat.prijs.toFixed(2)}/m²`;
 
   return (
     <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm klassiek:border-2 klassiek:border-pink-200 klassiek:shadow-md">
@@ -430,11 +447,20 @@ const VrijeKastConfigurator = ({
               className={`w-full px-2 py-1 border rounded-md text-sm ${toonMateriaalFout ? 'border-red-500 bg-red-50 ring-1 ring-red-300' : 'border-gray-300'}`}
             >
               <option value="">-- Kies materiaal --</option>
-              {[...plaatMaterialen].sort((a, b) => (a.naam || '').localeCompare(b.naam || '', 'nl', { numeric: true, sensitivity: 'base' })).map((mat) => (
-                <option key={mat.id} value={mat.id}>
-                  {mat.naam} - {mat.breedte}x{mat.hoogte} mm - €{mat.prijs.toFixed(2)}/m²
-                </option>
-              ))}
+              {gekozenMaterialen.length > 0 && (
+                <optgroup label="★ Gekozen voor dit project">
+                  {gekozenMaterialen.map((mat) => (
+                    <option key={mat.id} value={mat.id} style={{ fontWeight: 700, color: '#1d4ed8' }}>
+                      ★ {optieTekst(mat)} ({rollenPerMateriaal[mat.id].join(', ')})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label={gekozenMaterialen.length > 0 ? 'Alle andere materialen' : 'Materialen'}>
+                {andereMaterialen.map((mat) => (
+                  <option key={mat.id} value={mat.id}>{optieTekst(mat)}</option>
+                ))}
+              </optgroup>
             </select>
             {toonMateriaalFout && (
               <p className="text-xs text-red-600 font-semibold mt-1">⚠ Kies eerst een materiaal voor de vrije kast.</p>
@@ -749,7 +775,8 @@ const KastConfigurator = (props) => {
     voegKastToe, voegZijpaneelToeVoorType,
     vrijeKast, setVrijeKast,
     customKast, setCustomKast,
-    plaatMaterialen
+    plaatMaterialen,
+    projectMaterialen
   } = props;
 
   return (
@@ -785,6 +812,7 @@ const KastConfigurator = (props) => {
           voegKastToe={voegKastToe}
           voegZijpaneelToeVoorType={voegZijpaneelToeVoorType}
           plaatMaterialen={plaatMaterialen}
+          projectMaterialen={projectMaterialen}
         />
         <CustomKastConfigurator
           customKast={customKast}
