@@ -152,6 +152,12 @@ The plate material table in TotalenOverzicht has a 🔓/🔒 toggle per row (bet
 
 ## Coding Conventions
 - Tailwind CSS only (no custom CSS files)
+- **Two display styles per user** (⚙ Instellingen → Weergave, saved in Supabase auth `user_metadata.weergaveStijl`):
+  "rustig" (default: white cards, type badges) and "klassiek" (original tinted look). Custom Tailwind
+  variant `klassiek:` (tailwind.config.js) applies under `.stijl-klassiek`. New coloured UI: write the calm
+  classes plus `klassiek:` overrides. Colour meaning: blue = overridden, orange = stale override, red = delete/error
+- Overrides of quantities/hours store the calculated value at override time in `overrideBasis` (stale detection)
+- Notifications support an action button: `addNotification(text, color, { action: { label, onClick }, duration })`
 - Dynamic Tailwind classes use complete class names via `colorStyles` mapping (avoids tree-shaking issues)
 - Dutch labels in UI, mixed Dutch/English in code
 - Data-driven rendering with `.map()` over config arrays where possible
