@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Counter from './Counter';
 import StukkenLijst from './StukkenLijst';
-import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL, complexiteitOpties, getKastTypeStijl, typeBadgeClass } from '../constants/cabinet';
+import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL, complexiteitOpties, getKastTypeStijl, typeBadgeClass, heeftVrijeKastMateriaal } from '../constants/cabinet';
 
 // Aspect ratio limits (shared with KastPreview)
 const MIN_RATIO = 400 / 3000;
@@ -100,6 +100,15 @@ export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
   const isZijpaneel = !!d.isZijpaneel;
 
   const onderdelen = d.vrijeKastOnderdelen || {};
+  const [toonMateriaalFout, setToonMateriaalFout] = useState(false);
+
+  const handleOpslaan = () => {
+    if (isVrijeKast && !heeftVrijeKastMateriaal(d, plaatMaterialen)) {
+      setToonMateriaalFout(true);
+      return;
+    }
+    onSave(d);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -220,8 +229,11 @@ export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
               <Field label="Materiaal">
                 <select
                   value={d.vrijeKastMateriaalId ?? ''}
-                  onChange={(e) => set('vrijeKastMateriaalId', e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                  onChange={(e) => {
+                    set('vrijeKastMateriaalId', e.target.value ? parseInt(e.target.value) : null);
+                    if (e.target.value) setToonMateriaalFout(false);
+                  }}
+                  className={`w-full px-2 py-1.5 border rounded-md text-sm ${toonMateriaalFout ? 'border-red-500 bg-red-50 ring-1 ring-red-300' : 'border-gray-300'}`}
                 >
                   <option value="">-- Kies materiaal --</option>
                   {[...plaatMaterialen].sort((a, b) => (a.naam || '').localeCompare(b.naam || '', 'nl', { numeric: true, sensitivity: 'base' })).map((mat) => (
@@ -230,6 +242,9 @@ export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
                     </option>
                   ))}
                 </select>
+                {toonMateriaalFout && (
+                  <p className="text-xs text-red-600 font-semibold mt-1">⚠ Kies eerst een materiaal voor de vrije kast.</p>
+                )}
               </Field>
 
               <Field label="Complexiteit (montage uren)">
@@ -381,7 +396,7 @@ export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
             Annuleer
           </button>
           <button
-            onClick={() => onSave(d)}
+            onClick={handleOpslaan}
             className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-sm klassiek:bg-blue-600 klassiek:hover:bg-blue-700"
           >
             Opslaan

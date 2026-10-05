@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { colorStyles, typeBadgeClass, toestelOpties, complexiteitOpties, CABINET_TYPE_CONFIG, CUSTOM_CABINET_TYPES, SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
+import { colorStyles, typeBadgeClass, heeftVrijeKastMateriaal, toestelOpties, complexiteitOpties, CABINET_TYPE_CONFIG, CUSTOM_CABINET_TYPES, SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 import Counter from './Counter';
 import { KastPreview, VrijeKastPreview } from './KastPreview';
 
@@ -335,6 +335,15 @@ const VrijeKastConfigurator = ({
 }) => {
   const isActive = huidigKast.type === 'Vrije Kast';
   const displayKast = isActive ? huidigKast : vrijeKast;
+  const [toonMateriaalFout, setToonMateriaalFout] = useState(false);
+
+  const handleToevoegen = () => {
+    if (!heeftVrijeKastMateriaal(vrijeKast, plaatMaterialen)) {
+      setToonMateriaalFout(true);
+      return;
+    }
+    voegKastToe({ type: 'Vrije Kast', ...vrijeKast });
+  };
 
   const updateField = (field, value) => {
     setVrijeKast(prev => ({ ...prev, [field]: value }));
@@ -414,8 +423,11 @@ const VrijeKastConfigurator = ({
             <label className="text-xs text-gray-600 block mb-1">Materiaal</label>
             <select
               value={selectedMatId ?? ''}
-              onChange={(e) => updateField('vrijeKastMateriaalId', e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm"
+              onChange={(e) => {
+                updateField('vrijeKastMateriaalId', e.target.value ? parseInt(e.target.value) : null);
+                if (e.target.value) setToonMateriaalFout(false);
+              }}
+              className={`w-full px-2 py-1 border rounded-md text-sm ${toonMateriaalFout ? 'border-red-500 bg-red-50 ring-1 ring-red-300' : 'border-gray-300'}`}
             >
               <option value="">-- Kies materiaal --</option>
               {[...plaatMaterialen].sort((a, b) => (a.naam || '').localeCompare(b.naam || '', 'nl', { numeric: true, sensitivity: 'base' })).map((mat) => (
@@ -424,6 +436,9 @@ const VrijeKastConfigurator = ({
                 </option>
               ))}
             </select>
+            {toonMateriaalFout && (
+              <p className="text-xs text-red-600 font-semibold mt-1">⚠ Kies eerst een materiaal voor de vrije kast.</p>
+            )}
           </div>
 
           {/* Complexity selection */}
@@ -481,7 +496,7 @@ const VrijeKastConfigurator = ({
           {/* Buttons */}
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => voegKastToe({ type: 'Vrije Kast', ...vrijeKast })}
+              onClick={handleToevoegen}
               className="bg-pink-500 hover:bg-pink-600 text-white px-3 py-2 rounded-md font-semibold text-sm"
             >
               Toevoegen

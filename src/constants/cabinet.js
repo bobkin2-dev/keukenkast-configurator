@@ -93,6 +93,15 @@ export const getKastTypeStijl = (kast) => {
   return { short: '?', styles: colorStyles.slate };
 };
 
+// A Vrije Kast needs a chosen plate material (that still exists). Legacy data may use hplMateriaal.
+export const heeftVrijeKastMateriaal = (kast, plaatMaterialen = []) => {
+  const id = kast?.vrijeKastMateriaalId;
+  if (id !== undefined && id !== null && id !== '') {
+    return plaatMaterialen.length === 0 || plaatMaterialen.some(m => String(m.id) === String(id));
+  }
+  return kast?.hplMateriaal !== undefined && kast?.hplMateriaal !== null;
+};
+
 // Small coloured label, e.g. "BK"
 export const typeBadgeClass = 'inline-block text-[10px] font-bold leading-none px-1.5 py-1 rounded klassiek:hidden';
 
