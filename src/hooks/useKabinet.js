@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   defaultBovenkast,
   defaultKolomkast,
@@ -111,10 +111,28 @@ export const useKabinet = ({ initialData, addNotification }) => {
     if (!silent) addNotification('Kast bijgewerkt', 'bg-blue-500');
   }, [addNotification]);
 
-  // Remove cabinet
+  // Remove cabinet — with an "Ongedaan maken" toast that puts it back at the same position
+  const kastenLijstRef = useRef(kastenLijst);
+  kastenLijstRef.current = kastenLijst;
+
   const verwijderKast = useCallback((id) => {
-    setKastenLijst(prev => prev.filter(kast => kast.id !== id));
-  }, []);
+    const index = kastenLijstRef.current.findIndex(k => k.id === id);
+    if (index === -1) return;
+    const kast = kastenLijstRef.current[index];
+    setKastenLijst(prev => prev.filter(k => k.id !== id));
+
+    const herstel = () => setKastenLijst(prev => {
+      if (prev.some(k => k.id === kast.id)) return prev;
+      const next = [...prev];
+      next.splice(Math.min(index, next.length), 0, kast);
+      return next;
+    });
+    addNotification(
+      `#${index + 1} ${kast.type}${kast.naam ? ` – ${kast.naam}` : ''} verwijderd`,
+      'bg-gray-700',
+      { duration: 8000, action: { label: 'Ongedaan maken', onClick: herstel } }
+    );
+  }, [addNotification]);
 
   return {
     kastenLijst, setKastenLijst,

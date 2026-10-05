@@ -25,6 +25,7 @@ export const useProjectState = ({
   customProjectMaterialen,
   priceOverrideLocks,
   marge,
+  overrideBasis,
   totaalPrijsRef,
   setAccessoires,
   setExtraBeslag,
@@ -43,6 +44,7 @@ export const useProjectState = ({
   setCustomProjectMaterialen,
   setPriceOverrideLocks,
   setMarge,
+  setOverrideBasis,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
@@ -56,7 +58,7 @@ export const useProjectState = ({
     if (projectId) {
       setHasUnsavedChanges(true);
     }
-  }, [kastenLijst, projectInfo, accessoires, extraBeslag, keukentoestellen, materials.rendementBinnenzijde, materials.rendementBuitenzijde, extraAmounts, priceOverrides, arbeidOverrides, customBeslag, customPlaatmateriaal, customPlaatRequests, nestingMode, nestingBuffer, tabletsteun, infoOverrides, customProjectMaterialen, priceOverrideLocks, marge]);
+  }, [kastenLijst, projectInfo, accessoires, extraBeslag, keukentoestellen, materials.rendementBinnenzijde, materials.rendementBuitenzijde, extraAmounts, priceOverrides, arbeidOverrides, customBeslag, customPlaatmateriaal, customPlaatRequests, nestingMode, nestingBuffer, tabletsteun, infoOverrides, customProjectMaterialen, priceOverrideLocks, marge, overrideBasis]);
 
   // Save project function
   const handleSave = useCallback(async () => {
@@ -90,6 +92,7 @@ export const useProjectState = ({
       customProjectMaterialen,
       priceOverrideLocks,
       marge,
+      overrideBasis,
       totaalPrijs: totaalPrijsRef?.current || null,
       aantal: projectInfo.aantal || 1,
     };
@@ -105,7 +108,7 @@ export const useProjectState = ({
 
     setIsSaving(false);
     isSavingRef.current = false;
-  }, [projectId, materials, accessoires, extraBeslag, arbeidParameters, keukentoestellen, projectInfo, kastenLijst, extraAmounts, priceOverrides, arbeidOverrides, customBeslag, customPlaatmateriaal, customPlaatRequests, nestingMode, nestingBuffer, tabletsteun, infoOverrides, customProjectMaterialen, priceOverrideLocks, marge]);
+  }, [projectId, materials, accessoires, extraBeslag, arbeidParameters, keukentoestellen, projectInfo, kastenLijst, extraAmounts, priceOverrides, arbeidOverrides, customBeslag, customPlaatmateriaal, customPlaatRequests, nestingMode, nestingBuffer, tabletsteun, infoOverrides, customProjectMaterialen, priceOverrideLocks, marge, overrideBasis]);
 
   // Debounced autosave: 5 seconds after last change
   useEffect(() => {
@@ -117,7 +120,7 @@ export const useProjectState = ({
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-  }, [hasUnsavedChanges, kastenLijst, projectInfo, accessoires, extraBeslag, keukentoestellen, handleSave, projectId, extraAmounts, priceOverrides, arbeidOverrides, customBeslag, customPlaatmateriaal, customPlaatRequests, nestingMode, nestingBuffer, tabletsteun, infoOverrides, customProjectMaterialen, priceOverrideLocks, marge]);
+  }, [hasUnsavedChanges, kastenLijst, projectInfo, accessoires, extraBeslag, keukentoestellen, handleSave, projectId, extraAmounts, priceOverrides, arbeidOverrides, customBeslag, customPlaatmateriaal, customPlaatRequests, nestingMode, nestingBuffer, tabletsteun, infoOverrides, customProjectMaterialen, priceOverrideLocks, marge, overrideBasis]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -148,6 +151,7 @@ export const useProjectState = ({
       if (s.customProjectMaterialen) setCustomProjectMaterialen(s.customProjectMaterialen);
       if (s.priceOverrideLocks) setPriceOverrideLocks(s.priceOverrideLocks);
       if (typeof s.marge === 'number') setMarge(s.marge);
+      if (s.overrideBasis && setOverrideBasis) setOverrideBasis(s.overrideBasis);
     }
     setHasUnsavedChanges(false);
   }, [initialData]);
