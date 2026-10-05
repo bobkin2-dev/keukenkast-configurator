@@ -96,6 +96,7 @@ const TotalenOverzicht = ({
   // State for library modals
   const [showBibliotheek, setShowBibliotheek] = useState(false);
   const [showPlaatBibliotheek, setShowPlaatBibliotheek] = useState(false);
+  const [toonCafcaLijst, setToonCafcaLijst] = useState(false);
 
   // Helper for safe array access
   const safeGet = (arr, idx) => arr?.[idx] || { breedte: 1000, hoogte: 1000, prijs: 0 };
@@ -275,8 +276,8 @@ const TotalenOverzicht = ({
     (materiaalTablet[geselecteerdMateriaalTablet].hoogte / 1000) *
     materiaalTablet[geselecteerdMateriaalTablet].prijs;
 
-  // --- PDF Export ---
-  const handleExportPDF = () => {
+  // --- Effective quote lines (shared by the PDF export and the Cafca list) ---
+  const bouwOfferteRegels = () => {
     const eff = (key, aantal, defaultPrijs, decimals) => {
       const overridden = extraAmounts[key] !== undefined;
       const effectiefAantal = overridden ? extraAmounts[key] : aantal;
@@ -326,8 +327,8 @@ const TotalenOverzicht = ({
       });
     // Custom plaatmateriaal rows
     customPlaatmateriaal.forEach(line => {
-      if (line.aantal > 0 && line.label) {
-        plaatRows.push({ label: line.label, info: line.info || '', aantal: line.aantal, prijs: line.prijs, totaal: line.aantal * line.prijs });
+      if (line.aantal > 0) {
+        plaatRows.push({ label: line.label || 'Extra plaatmateriaal', info: line.info || '', aantal: line.aantal, prijs: line.prijs, totaal: line.aantal * line.prijs });
       }
     });
 
@@ -373,8 +374,8 @@ const TotalenOverzicht = ({
     }
     // Custom beslag
     customBeslag.forEach(line => {
-      if (line.aantal > 0 && line.label) {
-        beslagRows.push({ label: line.label, aantalDisplay: String(line.aantal), prijs: line.prijs, totaal: line.aantal * line.prijs });
+      if (line.aantal > 0) {
+        beslagRows.push({ label: line.label || 'Extra beslag', aantalDisplay: String(line.aantal), prijs: line.prijs, totaal: line.aantal * line.prijs });
       }
     });
 
@@ -403,8 +404,29 @@ const TotalenOverzicht = ({
     const sum = (rows) => rows.reduce((s, r) => s + (r.totaal || 0), 0);
     const grandTotal = sum(arbeidRows) + sum(plaatRows) + sum(kantenbandRows) + sum(beslagRows) + sum(toestellenRows) + sum(schuifdeurRows);
 
-    generateOffertePDF({ projectInfo, groupInfo, kastenLijst, plaatMaterialen, arbeidRows, plaatRows, kantenbandRows, beslagRows, toestellenRows, schuifdeurRows, grandTotal, marge });
+    return { arbeidRows, plaatRows, kantenbandRows, beslagRows, toestellenRows, schuifdeurRows, grandTotal };
   };
+
+  // --- PDF Export ---
+  const handleExportPDF = () => {
+    generateOffertePDF({ projectInfo, groupInfo, kastenLijst, plaatMaterialen, ...bouwOfferteRegels(), marge });
+  };
+
+  // --- Cafca list: material lines (no labour) as entered in a Cafca element ---
+  const bouwCafcaLijst = () => {
+    const r = bouwOfferteRegels();
+    const STUK_PER_METER = ['Profiel BK', 'LED', 'Kitwerk'];
+    const lijnen = [
+      ...r.plaatRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Plaat', omschrijving: x.info ? `${x.label} – ${x.info}` : x.label, eenheid: 'plaat', aantal: x.aantal, prijs: x.prijs })),
+      ...r.kantenbandRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Kantenband', omschrijving: `Kantenband ${x.label.toLowerCase()}`, eenheid: 'lm', aantal: x.aantal, prijs: x.prijs })),
+      ...r.beslagRows.filter(x => !x.isZero && parseFloat(x.aantalDisplay) > 0).map(x => ({ groep: 'Beslag', omschrijving: x.label, eenheid: STUK_PER_METER.includes(x.label) ? 'm' : 'st', aantal: parseFloat(x.aantalDisplay), prijs: x.prijs })),
+      ...r.toestellenRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Toestel', omschrijving: [x.naam, x.model, x.klasse].filter(Boolean).join(' – '), eenheid: 'st', aantal: x.aantal, prijs: x.prijs })),
+      ...r.schuifdeurRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Schuifdeur', omschrijving: x.label, eenheid: 'st', aantal: x.aantal, prijs: x.prijs })),
+    ];
+    return { lijnen, arbeid: r.arbeidRows };
+  };
+  // Cafca uses Dutch number format (comma decimals)
+  const nl = (v, d = 2) => (Math.round((v || 0) * 10 ** d) / 10 ** d).toFixed(d).replace('.', ',');
 
   // Expose export function to sidebar via ref
   if (exportPDFRef) exportPDFRef.current = handleExportPDF;
@@ -536,7 +558,77 @@ const TotalenOverzicht = ({
 
   return (
     <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm klassiek:bg-blue-50 klassiek:border-2 klassiek:border-blue-200 klassiek:shadow-none">
-      <h2 className="text-lg font-bold text-gray-800 mb-3">Totaallijst Materialen & Arbeid</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-gray-800">Totaallijst Materialen & Arbeid</h2>
+        <button
+          onClick={() => setToonCafcaLijst(true)}
+          className="text-sm px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700"
+          title="Materiaalregels zoals ze in een Cafca-element ingevuld worden"
+        >
+          📋 Cafca-lijst
+        </button>
+      </div>
+
+      {toonCafcaLijst && (() => {
+        const { lijnen, arbeid } = bouwCafcaLijst();
+        const totaalMateriaal = lijnen.reduce((sum, l) => sum + l.aantal * l.prijs, 0);
+        const tsv = lijnen.map(l => [l.omschrijving, l.eenheid, nl(l.aantal, 3), nl(l.prijs, 4)].join('\t')).join('\n');
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setToonCafcaLijst(false)}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base font-bold text-gray-800" id="cafca-lijst-titel">
+                  Cafca-lijst — {projectInfo.project || 'offerte'}
+                </h3>
+                <button onClick={() => setToonCafcaLijst(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Materiaalregels met hoeveelheid &gt; 0, effectieve waarden (incl. handmatige aanpassingen), prijzen excl. marge.
+                Werkuren staan onderaan ter info en worden in Cafca niet ingevuld.
+              </p>
+              <table className="w-full text-sm" id="cafca-lijst">
+                <thead>
+                  <tr className="text-xs text-gray-500 border-b">
+                    <th className="text-left py-1">#</th>
+                    <th className="text-left py-1">Groep</th>
+                    <th className="text-left py-1">Omschrijving</th>
+                    <th className="text-left py-1">Eenh.</th>
+                    <th className="text-right py-1">Hoev.</th>
+                    <th className="text-right py-1">KP mat.</th>
+                    <th className="text-right py-1">Totaal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lijnen.map((l, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-1 text-gray-400">{i + 1}</td>
+                      <td className="py-1 text-gray-500">{l.groep}</td>
+                      <td className="py-1">{l.omschrijving}</td>
+                      <td className="py-1">{l.eenheid}</td>
+                      <td className="py-1 text-right font-mono">{nl(l.aantal, 3)}</td>
+                      <td className="py-1 text-right font-mono">{nl(l.prijs, 4)}</td>
+                      <td className="py-1 text-right font-mono">{nl(l.aantal * l.prijs)}</td>
+                    </tr>
+                  ))}
+                  <tr className="font-bold">
+                    <td colSpan={6} className="py-1 text-right">Totaal materiaal</td>
+                    <td className="py-1 text-right font-mono">{nl(totaalMateriaal)}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="text-xs text-gray-500 mt-3">
+                Werkuren (info): {arbeid.map(a => `${a.label} ${nl(a.uren, 2)} u`).join(' · ')}
+              </p>
+              <button
+                onClick={() => { try { navigator.clipboard.writeText(tsv); } catch { /* ignore */ } }}
+                className="mt-3 text-sm px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700"
+              >
+                Kopieer als tabel (Excel)
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Summary of manual quantity/hour overrides, with stale ones flagged */}
       {(() => {
