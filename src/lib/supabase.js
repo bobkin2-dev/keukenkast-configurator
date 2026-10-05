@@ -65,6 +65,12 @@ export const auth = {
     return session;
   },
 
+  // Save a personal UI preference on the logged-in user (user_metadata, per e-mail address)
+  setVoorkeur: async (key, value) => {
+    const { data, error } = await supabase.auth.updateUser({ data: { [key]: value } });
+    return { data, error };
+  },
+
   // Listen to auth changes
   onAuthStateChange: (callback) => {
     return supabase.auth.onAuthStateChange(callback);

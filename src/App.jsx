@@ -6,7 +6,7 @@ import { defaultSchuifbeslagPrijzen } from './constants/cabinet';
 
 // Utility imports
 import { berekenTotalen, berekenArbeid } from './utils/calculations';
-import { supabase } from './lib/supabase';
+import { supabase, auth } from './lib/supabase';
 
 // Component imports
 import MaterialenPanel from './components/MaterialenPanel';
@@ -63,6 +63,20 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   const [toonArbeidParameters, setToonArbeidParameters] = useState(false);
   const [toonDebugTabel, setToonDebugTabel] = useState(false);
   const [toonInstellingenMenu, setToonInstellingenMenu] = useState(false);
+  // Display style per user: 'rustig' (default) or 'klassiek'. Saved in the Supabase user
+  // metadata so it follows the login; localStorage is only a fast cache to avoid a flash.
+  const [weergaveStijl, setWeergaveStijl] = useState(() => {
+    const vanLogin = user?.user_metadata?.weergaveStijl;
+    if (vanLogin) return vanLogin;
+    try { return localStorage.getItem(`weergaveStijl:${user?.email || ''}`) || 'rustig'; } catch { return 'rustig'; }
+  });
+  const kiesWeergaveStijl = (stijl) => {
+    setWeergaveStijl(stijl);
+    try { localStorage.setItem(`weergaveStijl:${user?.email || ''}`, stijl); } catch { /* ignore */ }
+    if (user) auth.setVoorkeur('weergaveStijl', stijl).then(({ error }) => {
+      if (error) console.error('Weergave niet bewaard:', error.message);
+    });
+  };
 
   // Accessories & extra hardware
   const [accessoires, setAccessoires] = useState(defaultAccessoires);
@@ -251,7 +265,8 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className={weergaveStijl === 'klassiek' ? 'stijl-klassiek' : ''}>
+    <div className="min-h-screen bg-gray-50 klassiek:bg-gradient-to-br klassiek:from-gray-50 klassiek:to-gray-100 p-4">
       <div className="max-w-[1800px] mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -325,6 +340,21 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
                         </span>
                       </button>
                     ))}
+                    <div className="border-t border-gray-100 my-1" />
+                    <div className="px-3 py-2">
+                      <p className="text-xs text-gray-500 mb-1.5">Weergave (bewaard bij je login)</p>
+                      <div className="flex rounded-md overflow-hidden border border-gray-300 text-xs">
+                        {[{ id: 'rustig', label: 'Rustig' }, { id: 'klassiek', label: 'Klassiek' }].map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => kiesWeergaveStijl(s.id)}
+                            className={`flex-1 px-2 py-1 font-semibold ${weergaveStijl === s.id ? 'bg-slate-800 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     {isAdmin && (
                       <>
                         <div className="border-t border-gray-100 my-1" />
@@ -356,7 +386,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
 
         {/* Rendement Parameters Panel */}
         {toonRendementParameters && (
-          <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm">
+          <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm klassiek:bg-yellow-50 klassiek:border-2 klassiek:border-yellow-200 klassiek:shadow-none">
             <h2 className="text-lg font-bold text-gray-800 mb-3">Rendement Materialen</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -387,7 +417,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
 
         {/* Arbeid Parameters Panel */}
         {toonArbeidParameters && (
-          <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm">
+          <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm klassiek:bg-indigo-50 klassiek:border-2 klassiek:border-indigo-200 klassiek:shadow-none">
             <h2 className="text-lg font-bold text-gray-800 mb-3">Arbeid Parameters</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {ARBEID_FIELDS.map(({ key, label, step, fallback }) => (
@@ -411,7 +441,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         <div className="flex-1 min-w-0">
 
         {/* Project Info */}
-        <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm">
+        <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm klassiek:bg-blue-50 klassiek:border-2 klassiek:border-blue-200 klassiek:shadow-none">
           <div className="grid grid-cols-[1fr_1fr_auto] gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
@@ -478,7 +508,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         </div>
 
         {/* Alternative Materials */}
-        <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm">
+        <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm klassiek:bg-green-50 klassiek:border-2 klassiek:border-green-200 klassiek:shadow-none">
           <h2 className="text-sm font-bold text-gray-800 mb-3">Alternatieve Materialen</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-start gap-3">
@@ -764,15 +794,15 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
                       isSaving
                         ? 'bg-gray-400 cursor-not-allowed'
                         : hasUnsavedChanges
-                        ? 'bg-slate-800 hover:bg-slate-900 text-white'
-                        : 'bg-white border border-gray-300 hover:bg-gray-100 text-gray-700'
+                        ? 'bg-slate-800 hover:bg-slate-900 text-white klassiek:bg-blue-600 klassiek:hover:bg-blue-700'
+                        : 'bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 klassiek:bg-green-600 klassiek:hover:bg-green-700 klassiek:text-white klassiek:border-0'
                     }`}
                   >
                     {isSaving ? '💾 Opslaan...' : '💾 Opslaan'}
                   </button>
                   <button
                     onClick={() => exportPDFRef.current?.()}
-                    className="w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-800"
+                    className="w-full px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 klassiek:bg-red-600 klassiek:hover:bg-red-700 klassiek:text-white klassiek:border-0"
                   >
                     📄 PDF Offerte
                   </button>
@@ -844,6 +874,7 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
         onClose={() => setShowAdminSettings(false)}
         isAdmin={isAdmin}
       />
+    </div>
     </div>
   );
 };

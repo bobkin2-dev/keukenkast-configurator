@@ -372,7 +372,7 @@ const VrijeKastConfigurator = ({
   const selectedMatId = displayKast.vrijeKastMateriaalId;
 
   return (
-    <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+    <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm klassiek:border-2 klassiek:border-pink-200 klassiek:shadow-md">
       <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${colorStyles.slate.title}`}>
         <span className={`${typeBadgeClass} ${colorStyles.slate.badge}`}>VK</span>Vrije Kast
       </h3>
@@ -561,7 +561,7 @@ const CustomKastConfigurator = ({
     : [{ field: 'hoogte', label: 'Hoogte (mm)' }, { field: 'breedte', label: 'Breedte (mm)' }, { field: 'diepte', label: 'Diepte (mm)' }];
 
   return (
-    <div className={`${styles.bg} p-3 rounded-lg border ${styles.border} shadow-sm`}>
+    <div className={`${styles.bg} p-3 rounded-lg border ${styles.border} shadow-sm klassiek:shadow-md`}>
       <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${styles.title}`}>
         <span className={`${typeBadgeClass} ${styles.badge}`}>{typeConfig.short}</span>Custom Kast
       </h3>

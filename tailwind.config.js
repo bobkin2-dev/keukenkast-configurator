@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -7,5 +9,11 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    // Display style switch (per user): classes prefixed with `klassiek:` only apply
+    // inside an element with class "stijl-klassiek" (the original colourful look).
+    plugin(({ addVariant }) => {
+      addVariant('klassiek', '.stijl-klassiek &');
+    }),
+  ],
 }

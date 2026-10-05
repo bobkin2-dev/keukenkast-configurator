@@ -382,7 +382,7 @@ export const KastEditModal = ({ kast, plaatMaterialen, onSave, onCancel }) => {
           </button>
           <button
             onClick={() => onSave(d)}
-            className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-sm"
+            className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-sm klassiek:bg-blue-600 klassiek:hover:bg-blue-700"
           >
             Opslaan
           </button>
@@ -498,7 +498,7 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                       </button>
                       <button
                         onClick={() => setEditingKast(kast)}
-                        className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+                        className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs klassiek:bg-green-500 klassiek:hover:bg-green-600 klassiek:text-white klassiek:border-0"
                         title="Bewerken"
                       >
                         Bewerk
@@ -506,7 +506,7 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                       {!kast.isZijpaneel && (
                         <button
                           onClick={() => voegZijpaneelToe(kast)}
-                          className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+                          className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs klassiek:bg-amber-500 klassiek:hover:bg-amber-600 klassiek:text-white klassiek:border-0"
                           title="Zijpaneel toevoegen"
                         >
                           Zijpaneel
@@ -514,14 +514,14 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                       )}
                       <button
                         onClick={() => kopieerKast(kast)}
-                        className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+                        className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs klassiek:bg-blue-500 klassiek:hover:bg-blue-600 klassiek:text-white klassiek:border-0"
                         title="Kopiëren"
                       >
                         Kopieer
                       </button>
                       <button
                         onClick={() => verwijderKast(kast.id)}
-                        className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-2 py-1 rounded text-xs"
+                        className="bg-white border border-red-200 hover:bg-red-50 text-red-600 px-2 py-1 rounded text-xs klassiek:bg-red-500 klassiek:hover:bg-red-600 klassiek:text-white klassiek:border-0"
                         title="Verwijderen"
                       >
                         Verwijder

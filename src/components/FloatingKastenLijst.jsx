@@ -83,13 +83,13 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, updat
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => { setEditingKast(gekozenKast.kast); setGekozenKast(null); }}
-                className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-sm"
+                className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-sm klassiek:bg-green-500 klassiek:hover:bg-green-600"
               >
                 ✎ Aanpassen
               </button>
               <button
                 onClick={() => { kopieerKast(gekozenKast.kast); setGekozenKast(null); }}
-                className="w-full px-4 py-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 rounded-lg font-semibold text-sm"
+                className="w-full px-4 py-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 rounded-lg font-semibold text-sm klassiek:bg-blue-500 klassiek:hover:bg-blue-600 klassiek:text-white klassiek:border-0"
               >
                 ⧉ Kopiëren
               </button>

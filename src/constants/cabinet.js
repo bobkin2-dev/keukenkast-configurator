@@ -1,49 +1,50 @@
 // Cabinet type constants - single source of truth
 
 // Color mapping for Tailwind (must use complete class names to avoid tree-shaking).
-// Calm style: white cards; the type colour is only used for the title + a small label (badge),
-// buttons share one primary style.
+// Two display styles (per user, see App.jsx): "rustig" (default) = white cards, the type colour
+// only on the title + a small label (badge); "klassiek" = the original tinted cards
+// (classes prefixed with `klassiek:`, a custom Tailwind variant).
 export const colorStyles = {
   purple: {
-    bg: 'bg-white',
-    border: 'border-gray-200',
-    button: 'bg-slate-800 hover:bg-slate-900',
-    title: 'text-purple-700',
+    bg: 'bg-white klassiek:bg-purple-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-purple-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-purple-500 klassiek:hover:bg-purple-600',
+    title: 'text-purple-700 klassiek:text-gray-800',
     badge: 'bg-purple-100 text-purple-800'
   },
   green: {
-    bg: 'bg-white',
-    border: 'border-gray-200',
-    button: 'bg-slate-800 hover:bg-slate-900',
-    title: 'text-green-700',
+    bg: 'bg-white klassiek:bg-green-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-green-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-green-500 klassiek:hover:bg-green-600',
+    title: 'text-green-700 klassiek:text-gray-800',
     badge: 'bg-green-100 text-green-800'
   },
   blue: {
-    bg: 'bg-white',
-    border: 'border-gray-200',
-    button: 'bg-slate-800 hover:bg-slate-900',
-    title: 'text-blue-700',
+    bg: 'bg-white klassiek:bg-blue-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-blue-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-blue-500 klassiek:hover:bg-blue-600',
+    title: 'text-blue-700 klassiek:text-gray-800',
     badge: 'bg-blue-100 text-blue-800'
   },
   orange: {
-    bg: 'bg-white',
-    border: 'border-gray-200',
-    button: 'bg-slate-800 hover:bg-slate-900',
-    title: 'text-orange-700',
+    bg: 'bg-white klassiek:bg-orange-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-orange-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-orange-500 klassiek:hover:bg-orange-600',
+    title: 'text-orange-700 klassiek:text-gray-800',
     badge: 'bg-orange-100 text-orange-800'
   },
   teal: {
-    bg: 'bg-white',
-    border: 'border-gray-200',
-    button: 'bg-slate-800 hover:bg-slate-900',
-    title: 'text-teal-700',
+    bg: 'bg-white klassiek:bg-teal-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-teal-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-teal-500 klassiek:hover:bg-teal-600',
+    title: 'text-teal-700 klassiek:text-gray-800',
     badge: 'bg-teal-100 text-teal-800'
   },
   rose: {
-    bg: 'bg-white',
-    border: 'border-gray-200',
-    button: 'bg-slate-800 hover:bg-slate-900',
-    title: 'text-rose-700',
+    bg: 'bg-white klassiek:bg-rose-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-rose-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-rose-500 klassiek:hover:bg-rose-600',
+    title: 'text-rose-700 klassiek:text-gray-800',
     badge: 'bg-rose-100 text-rose-800'
   },
   slate: {
@@ -54,10 +55,10 @@ export const colorStyles = {
     badge: 'bg-slate-200 text-slate-800'
   },
   amber: {
-    bg: 'bg-white',
-    border: 'border-gray-200',
-    button: 'bg-slate-800 hover:bg-slate-900',
-    title: 'text-amber-700',
+    bg: 'bg-white klassiek:bg-amber-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-amber-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-amber-500 klassiek:hover:bg-amber-600',
+    title: 'text-amber-700 klassiek:text-gray-800',
     badge: 'bg-amber-100 text-amber-800'
   }
 };
@@ -93,7 +94,7 @@ export const getKastTypeStijl = (kast) => {
 };
 
 // Small coloured label, e.g. "BK"
-export const typeBadgeClass = 'inline-block text-[10px] font-bold leading-none px-1.5 py-1 rounded';
+export const typeBadgeClass = 'inline-block text-[10px] font-bold leading-none px-1.5 py-1 rounded klassiek:hidden';
 
 // Schuifdeur options
 export const SCHUIFDEUR_DEMPING = [

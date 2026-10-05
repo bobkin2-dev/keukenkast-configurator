@@ -40,7 +40,7 @@ const DebugTabel = ({ kastenLijst, plaatMaterialen = [], rendementBinnenzijde, r
       .reduce((sum, o) => sum + o.m2, 0);
 
   return (
-    <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm">
+    <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm klassiek:bg-green-50 klassiek:border-2 klassiek:border-green-300 klassiek:shadow-none klassiek:shadow-md">
       <h2 className="text-lg font-bold text-gray-800 mb-3">Debug: Berekeningen per Kast</h2>
 
       <div className="overflow-x-auto">
