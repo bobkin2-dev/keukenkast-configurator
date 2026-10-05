@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KastEditModal } from './KastenLijst';
+import { getKastTypeStijl, typeBadgeClass } from '../constants/cabinet';
 
 const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, updateKast, verwijderKast, plaatMaterialen = [] }) => {
   const [gekozenKast, setGekozenKast] = useState(null);   // kast clicked → action popup
@@ -41,6 +42,7 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, updat
                 >
                   <td className="py-1 px-2 text-gray-500">{index + 1}</td>
                   <td className="py-1 px-2 font-medium text-gray-700 truncate max-w-[120px]" title={kast.type}>
+                    {(() => { const t = getKastTypeStijl(kast); return <span className={`${typeBadgeClass} ${t.styles.badge} mr-1`}>{t.short}</span>; })()}
                     {kast.type}
                     {kast.naam && <span className="text-gray-400 font-normal"> {kast.naam}</span>}
                     {kast.isOpen && <span className="text-yellow-600 ml-0.5">(o)</span>}

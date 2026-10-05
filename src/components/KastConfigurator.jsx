@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { colorStyles, toestelOpties, complexiteitOpties, CABINET_TYPE_CONFIG, CUSTOM_CABINET_TYPES, SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
+import { colorStyles, typeBadgeClass, toestelOpties, complexiteitOpties, CABINET_TYPE_CONFIG, CUSTOM_CABINET_TYPES, SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL } from '../constants/cabinet';
 import Counter from './Counter';
 import { KastPreview, VrijeKastPreview } from './KastPreview';
 
@@ -163,7 +163,9 @@ const SingleKastConfigurator = ({
   return (
     <div className={`${styles.bg} p-3 rounded-lg border ${styles.border} shadow-sm ${isOpenCabinet ? 'ring-2 ring-yellow-400' : ''}`}>
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-sm font-bold text-gray-800">{emoji} {type}</h3>
+        <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.title}`}>
+          <span className={`${typeBadgeClass} ${styles.badge}`}>{label}</span>{type}
+        </h3>
         <div className="flex items-center gap-3">
           {/* Enkel/Dubbel toggle - not for Ladekast */}
           {type !== 'Ladekast' && (
@@ -370,8 +372,10 @@ const VrijeKastConfigurator = ({
   const selectedMatId = displayKast.vrijeKastMateriaalId;
 
   return (
-    <div className="bg-white p-3 rounded-lg border-2 border-pink-200 shadow-md">
-      <h3 className="text-sm font-bold text-gray-800 mb-2">Vrije Kast</h3>
+    <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+      <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${colorStyles.slate.title}`}>
+        <span className={`${typeBadgeClass} ${colorStyles.slate.badge}`}>VK</span>Vrije Kast
+      </h3>
 
       <div className="flex gap-3">
         <div className="flex-1 space-y-2">
@@ -557,8 +561,10 @@ const CustomKastConfigurator = ({
     : [{ field: 'hoogte', label: 'Hoogte (mm)' }, { field: 'breedte', label: 'Breedte (mm)' }, { field: 'diepte', label: 'Diepte (mm)' }];
 
   return (
-    <div className={`${styles.bg} p-3 rounded-lg border ${styles.border} shadow-sm shadow-md`}>
-      <h3 className="text-sm font-bold text-gray-800 mb-2">Custom Kast</h3>
+    <div className={`${styles.bg} p-3 rounded-lg border ${styles.border} shadow-sm`}>
+      <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${styles.title}`}>
+        <span className={`${typeBadgeClass} ${styles.badge}`}>{typeConfig.short}</span>Custom Kast
+      </h3>
 
       <div className="space-y-2">
         {/* Type selector */}

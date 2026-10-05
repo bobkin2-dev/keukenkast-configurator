@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Counter from './Counter';
 import StukkenLijst from './StukkenLijst';
-import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL, complexiteitOpties } from '../constants/cabinet';
+import { SCHUIFDEUR_DEMPING, SCHUIFDEUR_PROFIEL, complexiteitOpties, getKastTypeStijl, typeBadgeClass } from '../constants/cabinet';
 
 // Aspect ratio limits (shared with KastPreview)
 const MIN_RATIO = 400 / 3000;
@@ -444,6 +444,7 @@ const KastenLijst = ({ kastenLijst, plaatMaterialen = [], voegZijpaneelToe, kopi
                     <MiniPreview kast={kast} />
                   </td>
                   <td className="py-2 px-2 font-medium">
+                    {(() => { const t = getKastTypeStijl(kast); return <span className={`${typeBadgeClass} ${t.styles.badge} mr-1.5 align-middle`}>{t.short}</span>; })()}
                     {kast.type}{kast.naam && <span className="text-gray-500 font-normal"> - {kast.naam}</span>}
                     {kast.isOpen && <span className="text-yellow-600 text-xs ml-1">(open)</span>}
                     {isVrijeKastType(kast.type) && (
