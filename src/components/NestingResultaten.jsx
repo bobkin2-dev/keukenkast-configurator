@@ -171,7 +171,7 @@ const NestingResultaten = ({
   if (!kastenLijst || kastenLijst.length === 0) return null;
 
   return (
-    <div className="bg-cyan-50 p-4 rounded-lg mb-4 border-2 border-cyan-200">
+    <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200 shadow-sm klassiek:bg-cyan-50 klassiek:border-2 klassiek:border-cyan-200 klassiek:shadow-none">
       <h2
         className="text-lg font-bold text-gray-800 cursor-pointer flex items-center justify-between"
         onClick={() => setOpen(!open)}

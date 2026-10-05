@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KastEditModal } from './KastenLijst';
+import { getKastTypeStijl, typeBadgeClass } from '../constants/cabinet';
 
 const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, updateKast, verwijderKast, plaatMaterialen = [] }) => {
   const [gekozenKast, setGekozenKast] = useState(null);   // kast clicked → action popup
@@ -41,6 +42,7 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, updat
                 >
                   <td className="py-1 px-2 text-gray-500">{index + 1}</td>
                   <td className="py-1 px-2 font-medium text-gray-700 truncate max-w-[120px]" title={kast.type}>
+                    {(() => { const t = getKastTypeStijl(kast); return <span className={`${typeBadgeClass} ${t.styles.badge} mr-1`}>{t.short}</span>; })()}
                     {kast.type}
                     {kast.naam && <span className="text-gray-400 font-normal"> {kast.naam}</span>}
                     {kast.isOpen && <span className="text-yellow-600 ml-0.5">(o)</span>}
@@ -81,13 +83,13 @@ const FloatingKastenLijst = ({ kastenLijst, voegZijpaneelToe, kopieerKast, updat
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => { setEditingKast(gekozenKast.kast); setGekozenKast(null); }}
-                className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold text-sm"
+                className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold text-sm klassiek:bg-green-500 klassiek:hover:bg-green-600"
               >
                 ✎ Aanpassen
               </button>
               <button
                 onClick={() => { kopieerKast(gekozenKast.kast); setGekozenKast(null); }}
-                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold text-sm"
+                className="w-full px-4 py-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 rounded-lg font-semibold text-sm klassiek:bg-blue-500 klassiek:hover:bg-blue-600 klassiek:text-white klassiek:border-0"
               >
                 ⧉ Kopiëren
               </button>

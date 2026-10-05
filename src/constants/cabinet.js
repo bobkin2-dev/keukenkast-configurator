@@ -1,41 +1,65 @@
 // Cabinet type constants - single source of truth
 
-// Color mapping for Tailwind (must use complete class names to avoid tree-shaking)
+// Color mapping for Tailwind (must use complete class names to avoid tree-shaking).
+// Two display styles (per user, see App.jsx): "rustig" (default) = white cards, the type colour
+// only on the title + a small label (badge); "klassiek" = the original tinted cards
+// (classes prefixed with `klassiek:`, a custom Tailwind variant).
 export const colorStyles = {
   purple: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    button: 'bg-purple-500 hover:bg-purple-600'
+    bg: 'bg-white klassiek:bg-purple-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-purple-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-purple-500 klassiek:hover:bg-purple-600',
+    title: 'text-purple-700 klassiek:text-gray-800',
+    badge: 'bg-purple-100 text-purple-800'
   },
   green: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    button: 'bg-green-500 hover:bg-green-600'
+    bg: 'bg-white klassiek:bg-green-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-green-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-green-500 klassiek:hover:bg-green-600',
+    title: 'text-green-700 klassiek:text-gray-800',
+    badge: 'bg-green-100 text-green-800'
   },
   blue: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    button: 'bg-blue-500 hover:bg-blue-600'
+    bg: 'bg-white klassiek:bg-blue-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-blue-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-blue-500 klassiek:hover:bg-blue-600',
+    title: 'text-blue-700 klassiek:text-gray-800',
+    badge: 'bg-blue-100 text-blue-800'
   },
   orange: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-200',
-    button: 'bg-orange-500 hover:bg-orange-600'
+    bg: 'bg-white klassiek:bg-orange-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-orange-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-orange-500 klassiek:hover:bg-orange-600',
+    title: 'text-orange-700 klassiek:text-gray-800',
+    badge: 'bg-orange-100 text-orange-800'
   },
   teal: {
-    bg: 'bg-teal-50',
-    border: 'border-teal-200',
-    button: 'bg-teal-500 hover:bg-teal-600'
+    bg: 'bg-white klassiek:bg-teal-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-teal-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-teal-500 klassiek:hover:bg-teal-600',
+    title: 'text-teal-700 klassiek:text-gray-800',
+    badge: 'bg-teal-100 text-teal-800'
   },
   rose: {
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
-    button: 'bg-rose-500 hover:bg-rose-600'
+    bg: 'bg-white klassiek:bg-rose-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-rose-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-rose-500 klassiek:hover:bg-rose-600',
+    title: 'text-rose-700 klassiek:text-gray-800',
+    badge: 'bg-rose-100 text-rose-800'
+  },
+  slate: {
+    bg: 'bg-white',
+    border: 'border-gray-200',
+    button: 'bg-slate-800 hover:bg-slate-900',
+    title: 'text-slate-700',
+    badge: 'bg-slate-200 text-slate-800'
   },
   amber: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    button: 'bg-amber-500 hover:bg-amber-600'
+    bg: 'bg-white klassiek:bg-amber-50',
+    border: 'border-gray-200 klassiek:border-2 klassiek:border-amber-200',
+    button: 'bg-slate-800 hover:bg-slate-900 klassiek:bg-amber-500 klassiek:hover:bg-amber-600',
+    title: 'text-amber-700 klassiek:text-gray-800',
+    badge: 'bg-amber-100 text-amber-800'
   }
 };
 
@@ -49,11 +73,28 @@ export const CABINET_TYPE_CONFIG = {
 
 // Custom cabinet types (dropdown-based)
 export const CUSTOM_CABINET_TYPES = [
-  { id: 'Vaatwasserdeur', label: 'Vaatwasserdeur', colorClass: 'rose' },
-  { id: 'Onderkast Schuifdeur', label: 'Onderkast Schuifdeur', colorClass: 'teal' },
-  { id: 'Kolomkast Schuifdeur', label: 'Kolomkast Schuifdeur', colorClass: 'green' },
-  { id: 'Tablet', label: 'Tablet', colorClass: 'amber' },
+  { id: 'Vaatwasserdeur', label: 'Vaatwasserdeur', colorClass: 'rose', short: 'VW' },
+  { id: 'Onderkast Schuifdeur', label: 'Onderkast Schuifdeur', colorClass: 'teal', short: 'OS' },
+  { id: 'Kolomkast Schuifdeur', label: 'Kolomkast Schuifdeur', colorClass: 'green', short: 'KS' },
+  { id: 'Tablet', label: 'Tablet', colorClass: 'amber', short: 'TB' },
 ];
+
+// Colour + short label for any kast (used for the type badge in configurators and lists)
+export const getKastTypeStijl = (kast) => {
+  if (kast?.isZijpaneel) return { short: 'ZP', styles: colorStyles.slate };
+  const type = kast?.type;
+  if (CABINET_TYPE_CONFIG[type]) {
+    const c = CABINET_TYPE_CONFIG[type];
+    return { short: c.label, styles: colorStyles[c.colorClass] };
+  }
+  const custom = CUSTOM_CABINET_TYPES.find(t => t.id === type);
+  if (custom) return { short: custom.short, styles: colorStyles[custom.colorClass] };
+  if (type === 'Vrije Kast' || type === 'Open Nis HPL') return { short: 'VK', styles: colorStyles.slate };
+  return { short: '?', styles: colorStyles.slate };
+};
+
+// Small coloured label, e.g. "BK"
+export const typeBadgeClass = 'inline-block text-[10px] font-bold leading-none px-1.5 py-1 rounded klassiek:hidden';
 
 // Schuifdeur options
 export const SCHUIFDEUR_DEMPING = [

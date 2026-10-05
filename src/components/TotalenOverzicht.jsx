@@ -535,7 +535,7 @@ const TotalenOverzicht = ({
   }
 
   return (
-    <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm klassiek:bg-blue-50 klassiek:border-2 klassiek:border-blue-200 klassiek:shadow-none">
       <h2 className="text-lg font-bold text-gray-800 mb-3">Totaallijst Materialen & Arbeid</h2>
 
       {/* Summary of manual quantity/hour overrides, with stale ones flagged */}
