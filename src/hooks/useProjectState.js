@@ -93,7 +93,10 @@ export const useProjectState = ({
       priceOverrideLocks,
       marge,
       overrideBasis,
-      totaalPrijs: totaalPrijsRef?.current || null,
+      totaalPrijs: totaalPrijsRef?.current
+        ? { exclMarge: totaalPrijsRef.current.exclMarge, inclMarge: totaalPrijsRef.current.inclMarge, platen: totaalPrijsRef.current.platen }
+        : null,
+      cafcaLijst: totaalPrijsRef?.current?.cafca || null,
       aantal: projectInfo.aantal || 1,
     };
 

@@ -94,6 +94,17 @@ Each cabinet part is tagged with a materiaalType which determines which plate ma
 - Parts larger than the plate are split into equal pieces by `packParts` (`split: true`, shown red)
 - nestingMode defaults to true for new projects (saved projects keep their stored value)
 
+### Export naar Cafca (offerte-programma)
+- Home page → dossier header "→ Cafca" → `Home/CafcaExportModal.jsx`: tick offertes (one post each), edit post text, download zip
+- Zip holds 3 ADO-rowset XML files Cafca's "<= Import" reads: `OFF_<id>.xml` (estimate), `POS_<id>.xml2`
+  (estimate_item, one 'P' row per post), `MID_<id>.xml2` (estimate_element_tree, middelen per post). Cafca
+  assigns its own offerte number on import and never overwrites
+- Templates (schema + standard middelen rows, client data stripped) in `src/data/cafca/sjabloon.js`, extracted from a real export
+- `src/utils/cafcaExport.js`: mapping configurator → Cafca rows (werkuren A-001/A-002/A-004-2025 (subcontract)/A-003,
+  plates by material name, kantenband, beslag by key); unmapped lines go to free rows (call_id 'x'); `maakPostTekst()` builds the client text
+- Data source: each project saves `settings.cafcaLijst` (TotalenOverzicht.bouwCafcaLijst → totaalPrijsRef → useProjectState);
+  App auto-saves once when the calculated list differs from the saved one
+
 ### Override System (TotalenOverzicht.jsx)
 - `extraAmounts` state — overrides calculated quantities (empty = use calculated)
 - `priceOverrides` state — overrides unit prices for accessories and (when locked) plate materials

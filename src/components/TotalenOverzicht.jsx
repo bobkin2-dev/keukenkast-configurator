@@ -295,40 +295,40 @@ const TotalenOverzicht = ({
       const uren = arbeidOverrides[key] !== undefined ? arbeidOverrides[key] : arbeidUren[key];
       const prijs = getOverride(`arbeid_${key}`, defaultPrijs);
       const pdfLabel = key === 'tekenwerk' && projectInfo.aantal > 1 ? `${label} (x${projectInfo.aantal})` : label;
-      return { label: pdfLabel, uren, prijs, totaal: uren * prijs, isZero: uren === 0 };
+      return { key, label: pdfLabel, uren, prijs, totaal: uren * prijs, isZero: uren === 0 };
     });
 
     // Plaatmateriaal
     const plaatDefs = [
-      { key: 'binnenkast', label: 'Binnenkast', aantal: totalen.platenBinnenkast, info: `${materiaalBinnenkast[geselecteerdMateriaalBinnen].naam} - ${materiaalBinnenkast[geselecteerdMateriaalBinnen].afmeting} mm`, defaultPlaatPrijs: binnenPlaatPrijs },
-      { key: 'rug', label: 'Rug', aantal: totalen.platenRug, info: alternatieveMateriaal.ruggenGebruiken ? materiaalBinnenkast[alternatieveMateriaal.ruggenMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
-      { key: 'leggers', label: 'Leggers', aantal: totalen.platenLeggers, info: alternatieveMateriaal.leggersGebruiken ? materiaalBinnenkast[alternatieveMateriaal.leggersMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
-      { key: 'buitenzijde', label: 'Buitenzijde', aantal: totalen.platenBuitenzijde, info: `${materiaalBuitenzijde[geselecteerdMateriaalBuiten].naam} - ${materiaalBuitenzijde[geselecteerdMateriaalBuiten].afmeting} mm`, defaultPlaatPrijs: buitenPlaatPrijs },
-      { key: 'tablet', label: 'Tablet', aantal: totalen.platenTablet, info: `${materiaalTablet[geselecteerdMateriaalTablet].naam} - ${materiaalTablet[geselecteerdMateriaalTablet].afmeting} mm`, defaultPlaatPrijs: tabletPlaatPrijs },
+      { key: 'binnenkast', label: 'Binnenkast', aantal: totalen.platenBinnenkast, matNaam: materiaalBinnenkast[geselecteerdMateriaalBinnen].naam, info: `${materiaalBinnenkast[geselecteerdMateriaalBinnen].naam} - ${materiaalBinnenkast[geselecteerdMateriaalBinnen].afmeting} mm`, defaultPlaatPrijs: binnenPlaatPrijs },
+      { key: 'rug', label: 'Rug', aantal: totalen.platenRug, matNaam: materiaalBinnenkast[alternatieveMateriaal.ruggenMateriaal]?.naam, info: alternatieveMateriaal.ruggenGebruiken ? materiaalBinnenkast[alternatieveMateriaal.ruggenMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
+      { key: 'leggers', label: 'Leggers', aantal: totalen.platenLeggers, matNaam: materiaalBinnenkast[alternatieveMateriaal.leggersMateriaal]?.naam, info: alternatieveMateriaal.leggersGebruiken ? materiaalBinnenkast[alternatieveMateriaal.leggersMateriaal].naam : 'Zelfde als binnenkast', defaultPlaatPrijs: binnenPlaatPrijs },
+      { key: 'buitenzijde', label: 'Buitenzijde', aantal: totalen.platenBuitenzijde, matNaam: materiaalBuitenzijde[geselecteerdMateriaalBuiten].naam, info: `${materiaalBuitenzijde[geselecteerdMateriaalBuiten].naam} - ${materiaalBuitenzijde[geselecteerdMateriaalBuiten].afmeting} mm`, defaultPlaatPrijs: buitenPlaatPrijs },
+      { key: 'tablet', label: 'Tablet', aantal: totalen.platenTablet, matNaam: materiaalTablet[geselecteerdMateriaalTablet].naam, info: `${materiaalTablet[geselecteerdMateriaalTablet].naam} - ${materiaalTablet[geselecteerdMateriaalTablet].afmeting} mm`, defaultPlaatPrijs: tabletPlaatPrijs },
       ...Object.entries(totalen.platenVrijeKast || {}).map(([matRef, { platen, mat }]) => ({
-        key: `vrijeKast_${matRef}`, label: 'Vrije Kast', aantal: platen,
+        key: `vrijeKast_${matRef}`, label: 'Vrije Kast', aantal: platen, matNaam: mat.naam,
         info: `${mat.naam || 'Onbekend'} - ${mat.afmeting || `${mat.breedte}x${mat.hoogte}`} mm`,
         defaultPlaatPrijs: (mat.breedte / 1000) * (mat.hoogte / 1000) * mat.prijs,
       })),
-      ...computeCustomPlaatRequestRows(customPlaatRequests),
+      ...computeCustomPlaatRequestRows(customPlaatRequests).map(r => ({ ...r, matNaam: r.label })),
     ];
     const plaatRows = plaatDefs
       .filter(({ key }) =>
         !(key === 'rug' && !alternatieveMateriaal.ruggenGebruiken) &&
         !(key === 'leggers' && !alternatieveMateriaal.leggersGebruiken)
       )
-      .map(({ key, label, aantal, info, defaultPlaatPrijs }) => {
+      .map(({ key, label, aantal, info, matNaam, defaultPlaatPrijs }) => {
         const aantalOverridden = extraAmounts[key] !== undefined;
         const effectiefAantal = aantalOverridden ? extraAmounts[key] : aantal;
         const isLocked = !!priceOverrideLocks?.[key];
         const effectiefPrijs = isLocked ? (priceOverrides[key] ?? defaultPlaatPrijs) : defaultPlaatPrijs;
         const effectiefInfo = (infoOverrides[key] !== undefined && infoOverrides[key] !== '') ? infoOverrides[key] : info;
-        return { label, info: effectiefInfo, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
+        return { key, matNaam, label, info: effectiefInfo, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
       });
     // Custom plaatmateriaal rows
     customPlaatmateriaal.forEach(line => {
       if (line.aantal > 0) {
-        plaatRows.push({ label: line.label || 'Extra plaatmateriaal', info: line.info || '', aantal: line.aantal, prijs: line.prijs, totaal: line.aantal * line.prijs });
+        plaatRows.push({ key: 'custom', matNaam: line.label || line.info || 'Extra plaatmateriaal', label: line.label || 'Extra plaatmateriaal', info: line.info || '', aantal: line.aantal, prijs: line.prijs, totaal: line.aantal * line.prijs });
       }
     });
 
@@ -338,7 +338,7 @@ const TotalenOverzicht = ({
       { key: 'kantenbandSpec', label: 'Speciaal', aantal: totalen.kantenbandSpeciaal, defaultPrijs: accessoires.afplakkenSpeciaal },
     ].map(({ key, label, aantal, defaultPrijs }) => {
       const { effectiefAantal, effectiefPrijs } = eff(key, aantal, defaultPrijs);
-      return { label, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
+      return { key, label, aantal: effectiefAantal, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 };
     });
 
     // Meubelbeslag (berekend + extra)
@@ -364,18 +364,18 @@ const TotalenOverzicht = ({
     ];
     allBeslagDefs.forEach(({ key, label, aantal, defaultPrijs, decimals }) => {
       const { effectiefAantal, effectiefPrijs, aantalDisplay } = eff(key, aantal, defaultPrijs, decimals);
-      beslagRows.push({ label, aantalDisplay, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 });
+      beslagRows.push({ key, label, aantalDisplay, prijs: effectiefPrijs, totaal: effectiefAantal * effectiefPrijs, isZero: effectiefAantal === 0 });
     });
     // Tabletsteun
     if (tabletsteun.type && tabletsteun.aantal > 0) {
       const sel = TABLETSTEUN_TYPES.find(t => t.id === tabletsteun.type);
       const effectiefPrijs = priceOverrides.tabletsteun ?? (sel?.prijs || 0);
-      beslagRows.push({ label: `Tabletsteun ${sel?.label || tabletsteun.type}`, aantalDisplay: String(tabletsteun.aantal), prijs: effectiefPrijs, totaal: tabletsteun.aantal * effectiefPrijs });
+      beslagRows.push({ key: 'tabletsteun', label: `Tabletsteun ${sel?.label || tabletsteun.type}`, aantalDisplay: String(tabletsteun.aantal), prijs: effectiefPrijs, totaal: tabletsteun.aantal * effectiefPrijs });
     }
     // Custom beslag
     customBeslag.forEach(line => {
       if (line.aantal > 0) {
-        beslagRows.push({ label: line.label || 'Extra beslag', aantalDisplay: String(line.aantal), prijs: line.prijs, totaal: line.aantal * line.prijs });
+        beslagRows.push({ key: 'custom', label: line.label || 'Extra beslag', aantalDisplay: String(line.aantal), prijs: line.prijs, totaal: line.aantal * line.prijs });
       }
     });
 
@@ -417,13 +417,13 @@ const TotalenOverzicht = ({
     const r = bouwOfferteRegels();
     const STUK_PER_METER = ['Profiel BK', 'LED', 'Kitwerk'];
     const lijnen = [
-      ...r.plaatRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Plaat', omschrijving: x.info ? `${x.label} – ${x.info}` : x.label, eenheid: 'plaat', aantal: x.aantal, prijs: x.prijs })),
-      ...r.kantenbandRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Kantenband', omschrijving: `Kantenband ${x.label.toLowerCase()}`, eenheid: 'lm', aantal: x.aantal, prijs: x.prijs })),
-      ...r.beslagRows.filter(x => !x.isZero && parseFloat(x.aantalDisplay) > 0).map(x => ({ groep: 'Beslag', omschrijving: x.label, eenheid: STUK_PER_METER.includes(x.label) ? 'm' : 'st', aantal: parseFloat(x.aantalDisplay), prijs: x.prijs })),
-      ...r.toestellenRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Toestel', omschrijving: [x.naam, x.model, x.klasse].filter(Boolean).join(' – '), eenheid: 'st', aantal: x.aantal, prijs: x.prijs })),
-      ...r.schuifdeurRows.filter(x => x.aantal > 0).map(x => ({ groep: 'Schuifdeur', omschrijving: x.label, eenheid: 'st', aantal: x.aantal, prijs: x.prijs })),
+      ...r.plaatRows.filter(x => x.aantal > 0).map(x => ({ key: x.key, matNaam: x.matNaam, groep: 'Plaat', omschrijving: x.info ? `${x.label} – ${x.info}` : x.label, eenheid: 'plaat', aantal: x.aantal, prijs: x.prijs })),
+      ...r.kantenbandRows.filter(x => x.aantal > 0).map(x => ({ key: x.key, groep: 'Kantenband', omschrijving: `Kantenband ${x.label.toLowerCase()}`, eenheid: 'lm', aantal: x.aantal, prijs: x.prijs })),
+      ...r.beslagRows.filter(x => !x.isZero && parseFloat(x.aantalDisplay) > 0).map(x => ({ key: x.key, groep: 'Beslag', omschrijving: x.label, eenheid: STUK_PER_METER.includes(x.label) ? 'm' : 'st', aantal: parseFloat(x.aantalDisplay), prijs: x.prijs })),
+      ...r.toestellenRows.filter(x => x.aantal > 0).map(x => ({ key: 'toestel', groep: 'Toestel', omschrijving: [x.naam, x.model, x.klasse].filter(Boolean).join(' – '), eenheid: 'st', aantal: x.aantal, prijs: x.prijs })),
+      ...r.schuifdeurRows.filter(x => x.aantal > 0).map(x => ({ key: 'schuifdeur', groep: 'Schuifdeur', omschrijving: x.label, eenheid: 'st', aantal: x.aantal, prijs: x.prijs })),
     ];
-    return { lijnen, arbeid: r.arbeidRows };
+    return { lijnen, arbeid: r.arbeidRows.map(a => ({ key: a.key, label: a.label, uren: a.uren, prijs: a.prijs })) };
   };
   // Cafca uses Dutch number format (comma decimals)
   const nl = (v, d = 2) => (Math.round((v || 0) * 10 ** d) / 10 ** d).toFixed(d).replace('.', ',');
@@ -553,7 +553,11 @@ const TotalenOverzicht = ({
   const totaal = berekenTotaal();
   laatsteTotaalRef.current = { exclMarge: Math.ceil(totaal.grandTotal), inclMarge: Math.ceil(totaal.totalInclMarge), platen: totaal.platen };
   if (totaalPrijsRef) {
-    totaalPrijsRef.current = { exclMarge: Math.ceil(totaal.grandTotal), inclMarge: Math.ceil(totaal.totalInclMarge), platen: totaal.platen };
+    totaalPrijsRef.current = {
+      exclMarge: Math.ceil(totaal.grandTotal), inclMarge: Math.ceil(totaal.totalInclMarge), platen: totaal.platen,
+      // Effective material lines + labour for the Cafca export (saved with the project)
+      cafca: bouwCafcaLijst(),
+    };
   }
 
   return (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth, isAdmin } from '../../lib/supabase';
+import CafcaExportModal from './CafcaExportModal';
 
 const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
   const [projects, setProjects] = useState([]);
@@ -16,6 +17,7 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
   const [newGroupNaam, setNewGroupNaam] = useState('');
   const [newGroupKlant, setNewGroupKlant] = useState('');
   const [dragOverTarget, setDragOverTarget] = useState(null); // group ID or 'loose'
+  const [cafcaGroep, setCafcaGroep] = useState(null); // group being exported to Cafca
 
   const userIsAdmin = isAdmin(user?.email);
 
@@ -548,6 +550,13 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
                         </div>
                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                           <button
+                            onClick={() => setCafcaGroep(group)}
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 rounded transition"
+                            title="Offertes van dit dossier exporteren naar Cafca"
+                          >
+                            → Cafca
+                          </button>
+                          <button
                             onClick={() => handleStartEditGroup(group)}
                             className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
                             title="Bewerken"
@@ -649,6 +658,15 @@ const HomePage = ({ user, onSelectProject, onNewProject, onLogout }) => {
       <footer className="mt-auto py-6 text-center text-gray-500 text-sm">
         &copy; {new Date().getFullYear()} Merger.be - Keukenkast Configurator
       </footer>
+
+      {cafcaGroep && (
+        <CafcaExportModal
+          group={cafcaGroep}
+          projects={getProjectsForGroup(cafcaGroep.id)}
+          user={user}
+          onClose={() => setCafcaGroep(null)}
+        />
+      )}
     </div>
   );
 };

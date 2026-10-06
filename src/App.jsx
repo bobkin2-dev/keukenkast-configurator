@@ -166,6 +166,22 @@ const KeukenKastInvoer = ({ user, projectId, initialData, onBackToHome, onLogout
     setOverrideBasis,
   });
 
+  // Keep the saved Cafca list (used by "Export naar Cafca" on the home page) in sync:
+  // when the calculated list differs from the saved one, save the project once.
+  // Waits a few seconds after the last recalculation so materials/prices are loaded.
+  const savedCafcaRef = useRef(JSON.stringify(initialData?.settings?.cafcaLijst ?? null));
+  useEffect(() => {
+    if (!projectId || !sidebarTotaal) return;
+    const timer = setTimeout(() => {
+      const huidig = JSON.stringify(totaalPrijsRef.current?.cafca ?? null);
+      if (huidig !== 'null' && huidig !== savedCafcaRef.current && !isSaving) {
+        savedCafcaRef.current = huidig;
+        handleSave();
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [sidebarTotaal, projectId, isSaving, handleSave]);
+
   // Load admin pricing (toestellen + schuifbeslag + accessoires defaults)
   useEffect(() => {
     const loadAdminPricing = async () => {
